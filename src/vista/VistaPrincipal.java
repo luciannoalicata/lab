@@ -482,8 +482,10 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
     @Override public void habilitarBotonGestionUsuarios(boolean b) { btnGestionUsuarios.setEnabled(b); }
     @Override public void habilitarBotonAuditoria(boolean b)       { btnAuditoria.setEnabled(b); }
     
-    public void registrarPanel(JPanel panel, String nombre) {
-        pnlContenido.add(panel, nombre);
+    @Override
+    public void registrarPanel(Object panel, String nombre) {
+        // La vista recibe un objeto genérico (la interfaz) y lo disfraza de JPanel
+        pnlContenido.add((javax.swing.JPanel) panel, nombre);
         pnlContenido.revalidate();
         pnlContenido.repaint();
     }

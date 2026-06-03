@@ -36,8 +36,8 @@ import modelo.ObraSocial;
 
 public class VistaObraSocial extends JPanel implements IVistaObraSocial {
 
-    private Controlador controlador;
-
+    private java.awt.event.ActionListener presentador;
+    
     // ── Paleta BIOTEC Minimalista ────────────────────────────────────
     private final Color C_NAVY         = new Color(10, 25, 47);    // Azul Encabezado
     private final Color C_FONDO        = new Color(238, 242, 246);
@@ -393,32 +393,61 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
         txtArancelObraSocial.addKeyListener(enterAdapter);
     }
 
-    @Override
-    public void setControlador(Controlador control) {
-        this.controlador = control;
-        btnAgregarObraSocial.setActionCommand(BTN_AGREGAR_OS);
-        btnAgregarObraSocial.addActionListener(control);
-        btnEliminarObraSocial.setActionCommand(BTN_ELIMINAR_OS);
-        btnEliminarObraSocial.addActionListener(control);
-        btnCambiarArancel.setActionCommand(BTN_MODIFICAR_ARANCEL_OS);
-        btnCambiarArancel.addActionListener(control);
-        btnVolver.setActionCommand(BTN_VOLVER_OS);
-        btnVolver.addActionListener(control);
+    // Asegúrate de tener esta variable global arriba en la clase:
+    // private java.awt.event.ActionListener presentador;
 
+    @Override
+    public void setControlador(java.awt.event.ActionListener presentador) {
+        this.presentador = presentador;
+        
+        // 1. Enlazamos los botones al presentador abstracto
+        btnAgregarObraSocial.setActionCommand(BTN_AGREGAR_OS);
+        btnAgregarObraSocial.addActionListener(presentador);
+        
+        btnEliminarObraSocial.setActionCommand(BTN_ELIMINAR_OS);
+        btnEliminarObraSocial.addActionListener(presentador);
+        
+        btnCambiarArancel.setActionCommand(BTN_MODIFICAR_ARANCEL_OS);
+        btnCambiarArancel.addActionListener(presentador);
+        
+        btnVolver.setActionCommand(BTN_VOLVER_OS);
+        btnVolver.addActionListener(presentador);
+
+        // 2. Magia MVP: Convertimos el tipeo en un evento genérico
         txtBuscarObraSocial.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
             public void keyReleased(java.awt.event.KeyEvent evt) {
-                if (controlador != null) controlador.actualizarBusquedaObrasSociales();
+                if (presentador != null) {
+                    presentador.actionPerformed(new java.awt.event.ActionEvent(
+                            txtBuscarObraSocial, 
+                            java.awt.event.ActionEvent.ACTION_PERFORMED, 
+                            "BUSCAR_OS"
+                    ));
+                }
             }
         });
 
+        // 3. Lógica puramente visual: Habilitar/Deshabilitar botones
+        // Esto se queda en la vista porque el Presentador no necesita saber de habilitaciones de UI
         grillaObrasSociales.getSelectionModel().addListSelectionListener(e -> {
+            // Verificamos si hay alguna fila seleccionada
             boolean sel = grillaObrasSociales.getSelectedRow() != -1;
+            
+            // Habilitamos o deshabilitamos visualmente los botones
             habilitarBotonEliminar(sel);
             btnCambiarArancel.setEnabled(sel);
         });
     }
 
+    @Override
+    public int confirmarAccion(String mensaje, String titulo) {
+        return javax.swing.JOptionPane.showConfirmDialog(this, mensaje, titulo, javax.swing.JOptionPane.YES_NO_OPTION);
+    }
+
+    @Override
+    public String pedirDato(String mensaje, String titulo) {
+        return javax.swing.JOptionPane.showInputDialog(this, mensaje, titulo, javax.swing.JOptionPane.QUESTION_MESSAGE);
+    }
     @Override public String getCodigoObraSocial() { return txtCodigoObraSocial.getText().trim(); }
     @Override public String getNombreObraSocial() { return txtNombreObraSocial.getText().trim(); }
 

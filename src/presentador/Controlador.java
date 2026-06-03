@@ -48,6 +48,13 @@ public class Controlador implements ActionListener {
     private final List<Determinacion> determinacionesSeleccionadas = new ArrayList<>();
     private List<Determinacion> listaVisualDeterminaciones = new ArrayList<>();
     private JDialog dialogoEspera;
+    
+   
+    //refactor
+    private MedicoPresenter medicoPresenter;
+    private ObraSocialPresenter osPresenter;
+    private AuditoriaPresenter auditoriaPresenter;
+    private UsuarioPresenter usuarioPresenter;
 
     public Controlador() {
         con.getConnection();
@@ -204,31 +211,29 @@ public class Controlador implements ActionListener {
             case IVistaPrincipal.BTN_MEDICOS:
                 if (this.vm == null) {
                     this.vm = new VistaMedicos();
-                    vp.registrarPanel((JPanel) this.vm, "medicos");
+                    
+                    // ── ¡ADIÓS SWING! Pasamos la interfaz limpia ──
+                    vp.registrarPanel(this.vm, "medicos"); 
+                    
+                    this.medicoPresenter = new MedicoPresenter(this.vm, this.vp, this.medicoDAO);
                 }
                 
-                // ¡El Controlador Principal delega el trabajo al Especialista!
-                MedicoPresenter medicoPresenter = new MedicoPresenter(this.vm, this.vp, this.medicoDAO);
-                medicoPresenter.iniciar();
-                
+                this.medicoPresenter.iniciar();
                 break;
 
-            case IVistaPrincipal.BTN_OBRAS_SOCIALES: // O el nombre de constante que estés usando ("seccion_obras_sociales")
-                // 1. Verificamos si el panel ya existe (Caché de memoria)
+            case IVistaPrincipal.BTN_OBRAS_SOCIALES: 
                 if (this.vos == null) {
-                    this.vos = new VistaObraSocial(); // Sin parámetros de ventana modal
-                    vos.setControlador(this);
-                    vp.registrarPanel((JPanel) this.vos, "obras_sociales");
-                    limpiarFocoYPantalla();
-
+                    this.vos = new VistaObraSocial(); 
+                    
+                    // ── ¡AQUÍ BORRAMOS EL CASTEO! Pasamos this.vos puro ──
+                    vp.registrarPanel(this.vos, "obras_sociales");
+                    
+                    // CREAMOS EL PRESENTADOR AQUÍ (Una sola vez)
+                    this.osPresenter = new ObraSocialPresenter(this.vos, this.vp, this.obraSocialDAO);
                 }
 
-                // 2. Cargamos los datos frescos
-                actualizarTablaObrasSociales();
-
-                // 3. Activamos el modo inmersión (pantalla completa) y mostramos
-                vp.activarModoInmersion();
-                vp.mostrarSeccion("obras_sociales");
+                // INICIAMOS
+                this.osPresenter.iniciar();
                 break;
 
             case IVistaPrincipal.BTN_AJUSTES:
@@ -300,21 +305,18 @@ public class Controlador implements ActionListener {
                 break;
 
             case IVistaPrincipal.BTN_GESTION_USUARIOS:
-                // 1. Verificamos si el panel ya existe (Caché) para ahorrar memoria
                 if (this.vgu == null) {
                     this.vgu = new VistaGestionUsuarios();
-                    vgu.setControlador(this);
-                    vp.registrarPanel((JPanel) this.vgu, "usuarios");
-                    limpiarFocoYPantalla();
-
+                    
+                    // Interfaz pura, sin JPanel
+                    vp.registrarPanel(this.vgu, "usuarios");
+                    
+                    // Instanciamos inyectando el usuarioLogueado que ya tenías en el Controlador Dios
+                    this.usuarioPresenter = new UsuarioPresenter(this.vgu, this.vp, this.usuarioDAO, this.usuarioLogueado);
                 }
 
-                // 2. Cargamos o actualizamos los datos de la tabla
-                vgu.cargarUsuarios(usuarioDAO.listarTodos());
-
-                // 3. Activamos el modo inmersión (oculta menús) y mostramos
-                vp.activarModoInmersion();
-                vp.mostrarSeccion("usuarios");
+                // Iniciamos
+                this.usuarioPresenter.iniciar();
                 break;
 
             case IVistaPrincipal.BTN_NBU:
@@ -336,138 +338,22 @@ public class Controlador implements ActionListener {
                 vp.mostrarSeccion("nbu");
                 break;
 
-            case IVistaPrincipal.BTN_AUDITORIA: // o "abrir_auditoria" dependiendo de tu constante
-                // 1. Verificamos si el panel ya existe (Caché de memoria)
+            case IVistaPrincipal.BTN_AUDITORIA: 
                 if (this.vauditoria == null) {
-                    this.vauditoria = new VistaAuditoria(); // Instanciamos como JPanel
-                    vauditoria.setControlador(this);
-                    vp.registrarPanel((JPanel) this.vauditoria, "auditoria");
-                    limpiarFocoYPantalla();
-
+                    this.vauditoria = new VistaAuditoria(); 
+                    
+                    // Pasamos el objeto limpio, sin cast a JPanel
+                    vp.registrarPanel(this.vauditoria, "auditoria");
+                    
+                    // Creamos el presentador con sus dos DAOs correspondientes
+                    this.auditoriaPresenter = new AuditoriaPresenter(this.vauditoria, this.vp, this.auditoriaDAO, this.usuarioDAO);
                 }
 
-                // 2. Cargamos los datos frescos
-                List<Usuario> listaU = usuarioDAO.listarTodos();
-                List<String> nombres = listaU.stream().map(Usuario::getUsername).toList();
-                vauditoria.cargarComboUsuarios(nombres);
-
-                // Cargamos la tabla inicialmente con todo
-                vauditoria.cargarTabla(auditoriaDAO.listarConFiltros("Todos", null));
-
-                // 3. Activamos el modo inmersión (pantalla completa) y mostramos
-                vp.activarModoInmersion();
-                vp.mostrarSeccion("auditoria");
+                // Iniciamos la pantalla
+                this.auditoriaPresenter.iniciar();
                 break;
 
-            case IVistaAuditoria.BTN_DETALLAR_CAMBIOS:
-                Auditoria log = vauditoria.getAuditoriaSeleccionada();
-                if (log != null) {
-                    StringBuilder sb = new StringBuilder();
-                    sb.append("");
-                    sb.append("Usuario: ").append(log.getUsuarioNombre()).append("\n");
-                    sb.append("Tabla: ").append(log.getTablaAfectada().toUpperCase()).append("\n");
-                    sb.append("Acción: ").append(log.getAccion()).append("\n");
-                    sb.append("Fecha: ").append(log.getFechaHora()).append("\n");
-                    sb.append("------------------------------------------\n");
-                    sb.append("VALOR ANTERIOR:\n").append(log.getValorAnterior() != null ? log.getValorAnterior() : "[NADA]").append("\n\n");
-                    sb.append("VALOR NUEVO:\n").append(log.getValorNuevo()).append("\n");
-                    sb.append("------------------------------------------\n");
-                    sb.append("RESUMEN: ").append(log.getDetalle());
-
-                    JOptionPane.showMessageDialog((java.awt.Component) vauditoria, sb.toString(), "Detalle de Cambios", JOptionPane.INFORMATION_MESSAGE);
-                }
-                break;
-
-            case IVistaAuditoria.BTN_FILTRAR_USUARIO:
-            case IVistaAuditoria.BTN_FILTRAR_FECHA:
-                if (vauditoria != null) {
-                    String userFiltro = vauditoria.getUsuarioSeleccionado();
-                    Date fechaFiltro = vauditoria.getFechaSeleccionada();
-
-                    // El DAO ya está preparado para recibir estos valores
-                    ArrayList<Auditoria> filtrados = auditoriaDAO.listarConFiltros(userFiltro, fechaFiltro);
-                    vauditoria.cargarTabla(filtrados);
-                }
-                break;
-
-            case IVistaAuditoria.BTN_SALIR:
-                // Salimos del modo inmersión para que reaparezcan los menús laterales
-                vp.desactivarModoInmersion();
-                vp.volverInicio();
-                break;
-            //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                
-                
-            case IVistaGestionUsuarios.BTN_GUARDAR:
-                // Ahora vgu ya no será null porque se asignó en el case de arriba
-                if (vgu == null) {
-                    return;
-                }
-
-                String nuevoUser = vgu.getUsername();
-                String nuevaPass = vgu.getPassword();
-                String nuevoRol = vgu.getRol();
-
-                if (nuevoUser.isEmpty() || nuevaPass.isEmpty()) {
-                    vgu.mostrarMensaje("Nombre y contraseña son obligatorios.");
-                    return;
-                }
-
-                Usuario uNuevo = new Usuario();
-                uNuevo.setUsername(nuevoUser);
-                uNuevo.setRol(nuevoRol);
-
-                if (usuarioDAO.guardar(uNuevo, nuevaPass)) {
-                    vgu.mostrarMensaje("Usuario creado con éxito.");
-                    vgu.cargarUsuarios(usuarioDAO.listarTodos());
-                } else {
-                    vgu.mostrarMensaje("Error al crear usuario (quizás ya existe).");
-                }
-                break;
-
-            case IVistaGestionUsuarios.BTN_ELIMINAR:
-                if (vgu == null) {
-                    return;
-                }
-
-                int idSeleccionado = vgu.getUsuarioSeleccionadoId();
-
-                if (idSeleccionado == -1) {
-                    vgu.mostrarMensaje("Seleccione un usuario de la tabla.");
-                    return;
-                }
-
-                // --- VALIDACIÓN DE SEGURIDAD CRÍTICA ---
-                // Comparamos el ID seleccionado con el ID del administrador que está usando el programa
-                if (idSeleccionado == this.usuarioLogueado.getIdUsuario()) {
-                    vgu.mostrarMensaje("Seguridad: No puede eliminarse a sí mismo mientras está en sesión.");
-                    return;
-                }
-                // ---------------------------------------
-
-                int confirmm = JOptionPane.showConfirmDialog(null,
-                        "¿Está seguro de eliminar este usuario? Esta acción no se puede deshacer.",
-                        "Confirmar Eliminación",
-                        JOptionPane.YES_NO_OPTION,
-                        JOptionPane.WARNING_MESSAGE);
-
-                if (confirmm == JOptionPane.YES_OPTION) {
-                    if (usuarioDAO.eliminar(idSeleccionado)) {
-                        vgu.mostrarMensaje("Usuario eliminado correctamente.");
-                        vgu.cargarUsuarios(usuarioDAO.listarTodos());
-                    } else {
-                        vgu.mostrarMensaje("Error al intentar eliminar el usuario.");
-                    }
-                }
-                break;
-
-            case IVistaGestionUsuarios.BTN_VOLVER:
-                // Salimos del modo inmersión para que reaparezcan los menús laterales
-                vp.desactivarModoInmersion();
-                vp.volverInicio();
-                limpiarFocoYPantalla();
-                break;
+          
 
             //VISTA DE AJUSTES
             case IVistaAjustes.BTN_ACTUALIZAR_CLAVE:
@@ -1064,66 +950,7 @@ public class Controlador implements ActionListener {
 
             // VISTA DE MÉDICOS // 
            
-            // AGREGAR ESTO EN EL SWITCH DEL ACTIONPERFORMED
-            case IVistaObraSocial.BTN_AGREGAR_OS:
-                String cod = vos.getCodigoObraSocial();
-                String nom = vos.getNombreObraSocial();
-                double ara = vos.getArancel();
-
-                if (cod.isEmpty() || nom.isEmpty() || ara < 0) {
-                    vos.mostrarMensaje("Todos los campos son obligatorios");
-                    return;
-                }
-
-                ObraSocial nueva = new ObraSocial(cod, nom, ara);
-                if (obraSocialDAO.agregarObraSocial(nueva)) {
-                    vos.mostrarMensaje("Obra Social agregada con éxito.");
-                    vos.limpiarCampos();
-                    actualizarTablaObrasSociales();
-                } else {
-                    vos.mostrarMensaje("Error: El código ya existe.");
-                }
-                break;
-
-            case IVistaObraSocial.BTN_ELIMINAR_OS:
-                ObraSocial selEliminar = vos.getObraSocialSeleccionada();
-                if (selEliminar != null) {
-                    int confirm = JOptionPane.showConfirmDialog(null, "¿Eliminar " + selEliminar.getNombre() + "?");
-                    if (confirm == JOptionPane.YES_OPTION) {
-                        obraSocialDAO.eliminarObraSocial(selEliminar.getCodigo());
-                        actualizarTablaObrasSociales();
-                    }
-                }
-                break;
-
-            case IVistaObraSocial.BTN_MODIFICAR_ARANCEL_OS:
-                ObraSocial selArancel = vos.getObraSocialSeleccionada();
-                if (selArancel != null) {
-                    // MINI VENTANITA EMERGENTE
-                    String inputArancel = JOptionPane.showInputDialog(null,
-                            "Ingrese el nuevo arancel para " + selArancel.getNombre() + ":",
-                            "Actualizar Arancel", JOptionPane.QUESTION_MESSAGE);
-
-                    if (inputArancel != null && !inputArancel.isEmpty()) {
-                        try {
-                            double nuevoAra = Double.parseDouble(inputArancel.replace(",", "."));
-                            if (obraSocialDAO.actualizarArancel(selArancel.getCodigo(), nuevoAra)) {
-                                vos.mostrarMensaje("Arancel actualizado.");
-                                actualizarTablaObrasSociales();
-                            }
-                        } catch (NumberFormatException ex) { // <--- CAMBIADO 'e' por 'ex' para evitar conflicto
-                            vos.mostrarMensaje("Error: El valor ingresado no es un número válido.");
-                        }
-                    }
-                }
-                break;
-
-            case IVistaObraSocial.BTN_VOLVER_OS:
-                // Salimos del modo inmersión para que reaparezcan los menús
-                vp.desactivarModoInmersion();
-                vp.volverInicio();
-                limpiarFocoYPantalla();
-                break;
+          
 
             // ── NUEVOS COMANDOS DEL NBU (PANEL HIJOS) ──
             case "BTN_AGREGAR_HIJO":

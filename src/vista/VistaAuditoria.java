@@ -36,7 +36,7 @@ import modelo.Usuario;
  */
 public class VistaAuditoria extends JPanel implements IVistaAuditoria {
 
-    private Controlador controlador;
+    private java.awt.event.ActionListener presentador;    
     private ArrayList<Auditoria> datosActuales;
 
     // ── Paleta BIOTEC Minimalista ────────────────────────────────────
@@ -253,18 +253,26 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
     @Override public void ejecutar() { setVisible(true); }
 
     @Override
-    public void setControlador(Controlador control) {
-        this.controlador = control;
-        btnFiltrarFecha.setActionCommand(BTN_FILTRAR_FECHA);
-        btnFiltrarFecha.addActionListener(control);
-        btnFiltrarUsuario.setActionCommand(BTN_FILTRAR_USUARIO);
-        btnFiltrarUsuario.addActionListener(control);
-        btnDetallarCambios.setActionCommand(BTN_DETALLAR_CAMBIOS);
-        btnDetallarCambios.addActionListener(control);
+    public void setControlador(java.awt.event.ActionListener presentador) {
+        this.presentador = presentador;
         
-        // Volver
-        btnVolver.setActionCommand(BTN_SALIR); // Mantiene tu comando original
-        btnVolver.addActionListener(control);
+        btnFiltrarFecha.setActionCommand(BTN_FILTRAR_FECHA);
+        btnFiltrarFecha.addActionListener(presentador);
+        
+        btnFiltrarUsuario.setActionCommand(BTN_FILTRAR_USUARIO);
+        btnFiltrarUsuario.addActionListener(presentador);
+        
+        btnDetallarCambios.setActionCommand(BTN_DETALLAR_CAMBIOS);
+        btnDetallarCambios.addActionListener(presentador);
+        
+        btnVolver.setActionCommand(BTN_SALIR); 
+        btnVolver.addActionListener(presentador);
+    }
+
+    // ── IMPLEMENTAMOS EL NUEVO MÉTODO DE DETALLE ──
+    @Override 
+    public void mostrarDetalleCambios(String titulo, String mensaje) {
+        JOptionPane.showMessageDialog(this, mensaje, titulo, JOptionPane.INFORMATION_MESSAGE);
     }
 
     @Override public void mostrarMensaje(String mensaje) { JOptionPane.showMessageDialog(this, mensaje); }
@@ -306,9 +314,7 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
         if (fila != -1 && datosActuales != null) return datosActuales.get(fila);
         return null;
     }
-
-    @Override public JTable getGrillaAuditoria()    { return grillaAuditoria; }
-    @Override public int getFilaSeleccionada()      { return grillaAuditoria.getSelectedRow(); }
+    
     @Override public void habilitarBotonDetalle(boolean b) { btnDetallarCambios.setEnabled(b); }
 
     // ══════════════════════════════════════════════════════════════════

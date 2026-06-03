@@ -1,9 +1,7 @@
 package vista;
 
-import presentador.Controlador;
 import java.util.ArrayList;
 import modelo.ObraSocial;
-
 /**
  *
  * @author luciano
@@ -14,21 +12,19 @@ public interface IVistaObraSocial {
     String BTN_ELIMINAR_OS = "eliminar_obra_social";
     String BTN_MODIFICAR_ARANCEL_OS = "modificar_arancel";
     String BTN_VOLVER_OS = "volver_os";
-    
-    public void ejecutar();
-    public void setControlador(Controlador control);
-    
-    public String getCodigoObraSocial();
-    public String getNombreObraSocial();
-    public double getArancel();
-    public String getTextoBusqueda();
-     public void cargarObrasSocialesEnTabla(ArrayList<ObraSocial> obs);
-    public ObraSocial getObraSocialSeleccionada();
-    
-    public void limpiarCampos();
+  
+    void ejecutar();
+    void setControlador(java.awt.event.ActionListener presentador);
+    int confirmarAccion(String mensaje, String titulo);
+    String pedirDato(String mensaje, String titulo);
+    String getCodigoObraSocial();
+    String getNombreObraSocial();
+    double getArancel();
+    String getTextoBusqueda();
+    void cargarObrasSocialesEnTabla(ArrayList<ObraSocial> obs);
+    ObraSocial getObraSocialSeleccionada();
+    void limpiarCampos();
     void habilitarBotonAgregar(boolean b);
     void habilitarBotonEliminar(boolean b);
-    
-    
-    public void mostrarMensaje(String mensaje); 
+    void mostrarMensaje(String mensaje); 
 }
