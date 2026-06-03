@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.21.3.final using JasperReports Library version 6.21.3-4a3078d20785ebe464f18037d738d12fc98c13cf  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="informe_analisis_A5" pageWidth="421" pageHeight="595" columnWidth="361" leftMargin="30" rightMargin="30" topMargin="30" bottomMargin="30" uuid="af2bd8ac-c487-4651-9b5f-50e0ad1b293e">
+	<parameter name="labNombre" class="java.lang.String"/>
+	<parameter name="labDireccion" class="java.lang.String"/>
+	<parameter name="labLocalidad" class="java.lang.String"/>
+	<parameter name="labBioquimico" class="java.lang.String"/>
+	<parameter name="labTelefono" class="java.lang.String"/>
+	<parameter name="labMatricula" class="java.lang.String"/>
+	<parameter name="pacienteNombre" class="java.lang.String"/>
+	<parameter name="pacienteDni" class="java.lang.String"/>
+	<parameter name="medicoSolicitante" class="java.lang.String"/>
+	<parameter name="fechaAnalisis" class="java.util.Date"/>
+	<parameter name="protocolo" class="java.lang.String"/>
+	<parameter name="urlLogo" class="java.lang.Object"/>
+	<parameter name="urlFirma" class="java.lang.Object"/>
+	<field name="nombrePrueba" class="java.lang.String"/>
+	<field name="resultado" class="java.lang.String"/>
+	<field name="unidad" class="java.lang.String"/>
+	<field name="referencia" class="java.lang.String"/>
+	<title>
+		<band height="100" splitType="Stretch">
+			<image scaleImage="RetainShape">
+				<reportElement x="0" y="0" width="110" height="55" uuid="ef3a3fff-7c5c-4a4f-8f96-3f7cc3a555cc">
+					<printWhenExpression><![CDATA[$P{urlLogo} != null]]></printWhenExpression>
+				</reportElement>
+				<imageExpression><![CDATA[$P{urlLogo}]]></imageExpression>
+			</image>
+			<frame>
+				<reportElement x="120" y="0" width="241" height="70" uuid="7d1e9f2a-3b4c-5d6e-7f8a-9b0c1d2e3f4a">
+					<printWhenExpression><![CDATA[$P{urlLogo} != null]]></printWhenExpression>
+				</reportElement>
+				<textField textAdjust="StretchHeight">
+					<reportElement x="0" y="0" width="241" height="20" uuid="7a66f56e-6883-4903-8821-66579872f22b"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="11" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{labNombre}]]></textFieldExpression>
+				</textField>
+				<textField textAdjust="StretchHeight">
+					<reportElement x="0" y="20" width="241" height="12" uuid="3ffafacc-9e36-4e91-bf08-3b86fdcbd69c"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="8" isItalic="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA["Responsable: " + $P{labBioquimico}]]></textFieldExpression>
+				</textField>
+				<textField textAdjust="StretchHeight">
+					<reportElement x="0" y="32" width="241" height="12" uuid="5e841dc7-2d34-47d4-b87d-21d157157d5a"/>
+					<textElement textAlignment="Center">
+						<font size="7"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{labDireccion} + " - " + $P{labLocalidad}]]></textFieldExpression>
+				</textField>
+				<textField textAdjust="StretchHeight">
+					<reportElement x="0" y="44" width="241" height="12" uuid="f15186f5-bd4e-4026-af1d-f0080e0de9d5"/>
+					<textElement textAlignment="Center">
+						<font size="7"/>
+					</textElement>
+					<textFieldExpression><![CDATA["Tel. " + $P{labTelefono}]]></textFieldExpression>
+				</textField>
+			</frame>
+			<frame>
+				<reportElement x="0" y="0" width="361" height="70" uuid="53229f3d-832d-4876-b997-6593a123bc45">
+					<printWhenExpression><![CDATA[$P{urlLogo} == null]]></printWhenExpression>
+				</reportElement>
+				<textField textAdjust="StretchHeight">
+					<reportElement x="0" y="0" width="361" height="25" uuid="1695627d-7845-4293-8756-123456789abc"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="14" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{labNombre}]]></textFieldExpression>
+				</textField>
+				<textField textAdjust="StretchHeight">
+					<reportElement x="0" y="25" width="361" height="15" uuid="27a4e61d-192a-463e-9b1e-0987654321fe"/>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font size="10" isItalic="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA["Responsable: " + $P{labBioquimico}]]></textFieldExpression>
+				</textField>
+				<textField textAdjust="StretchHeight">
+					<reportElement x="0" y="40" width="361" height="12" uuid="39f82d1c-b5e6-4291-a678-bcdef0123456"/>
+					<textElement textAlignment="Center">
+						<font size="9"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$P{labDireccion} + " - " + $P{labLocalidad}]]></textFieldExpression>
+				</textField>
+				<textField textAdjust="StretchHeight">
+					<reportElement x="0" y="52" width="361" height="12" uuid="48e1b2c3-d4e5-4f6a-7b89-01234567890a"/>
+					<textElement textAlignment="Center">
+						<font size="9"/>
+					</textElement>
+					<textFieldExpression><![CDATA["Tel. " + $P{labTelefono}]]></textFieldExpression>
+				</textField>
+			</frame>
+			<line>
+				<reportElement x="0" y="90" width="361" height="1" forecolor="#003366" uuid="7ba9fc71-29c1-49e7-a7df-dfb9a4c29482"/>
+				<graphicElement>
+					<pen lineWidth="1.5"/>
+				</graphicElement>
+			</line>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="65" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="5" width="55" height="13" uuid="55c1e345-6677-4433-8811-332211004455"/>
+				<textElement>
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[PACIENTE:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="55" y="5" width="145" height="13" uuid="99887766-5544-3322-1100-998877665544"/>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{pacienteNombre}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="22" width="55" height="13" uuid="11223344-5566-7788-9900-aabbccddeeff"/>
+				<textElement>
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[DNI:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="55" y="22" width="145" height="13" uuid="abcdefab-cdef-abcd-efab-cdefabcdefab"/>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{pacienteDni}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="205" y="5" width="75" height="13" isRemoveLineWhenBlank="true" uuid="d9e8d7c6-b5a4-4321-9876-543210fedcba">
+					<printWhenExpression><![CDATA[$P{medicoSolicitante} != null && !$P{medicoSolicitante}.isEmpty()]]></printWhenExpression>
+				</reportElement>
+				<textElement>
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[MÉDICO:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="280" y="5" width="81" height="13" isRemoveLineWhenBlank="true" uuid="12345678-1234-1234-1234-1234567890ab"/>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{medicoSolicitante}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="205" y="22" width="75" height="13" uuid="77665544-3322-1100-9988-776655443322"/>
+				<textElement>
+					<font size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[FECHA:]]></text>
+			</staticText>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+				<reportElement x="280" y="22" width="81" height="13" uuid="849a1d82-c486-4b97-aa13-4fbcc605bae5"/>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{fechaAnalisis}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="55" width="361" height="1" forecolor="#003366" uuid="e6d3a1f4-b2c5-4d6a-8e9f-0123456789ab"/>
+				<graphicElement>
+					<pen lineWidth="1.5"/>
+				</graphicElement>
+			</line>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="35" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="10" width="130" height="20" forecolor="#003366" uuid="f0f0f0f0-e1e1-d2d2-c3c3-b4b4a5a59696"/>
+				<textElement verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[DETERMINACIÓN]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="130" y="10" width="90" height="20" forecolor="#003366" uuid="e9e9e9e9-d8d8-c7c7-b6b6-a5a594948383"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[RESULTADO]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="220" y="10" width="141" height="20" forecolor="#003366" uuid="c2c2c2c2-b3b3-a4a4-9595-868677776666"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="10" isBold="true"/>
+				</textElement>
+				<text><![CDATA[VALOR REF.]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="25" splitType="Stretch">
+			<textField textAdjust="StretchHeight">
+				<reportElement x="0" y="3" width="130" height="18" uuid="b1b1b1b1-a2a2-9393-8484-757566665555"/>
+				<textElement verticalAlignment="Middle">
+					<font size="9" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{nombrePrueba}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="130" y="3" width="90" height="18" uuid="a3a3a3a3-9494-8585-7676-676758584949"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{resultado} + " " + $F{unidad}]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight">
+				<reportElement x="220" y="3" width="141" height="18" uuid="87878787-7878-6969-5050-414132322323"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{referencia}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="85">
+			<image hAlign="Center" vAlign="Bottom">
+				<reportElement x="210" y="0" width="150" height="40" uuid="065c6341-7292-45c5-853e-f6536b0f72c5"/>
+				<imageExpression><![CDATA[$P{urlFirma}]]></imageExpression>
+			</image>
+			<textField textAdjust="StretchHeight">
+				<reportElement x="210" y="45" width="150" height="12" uuid="75b63549-9439-4249-9f5e-4ec9c8c7a48b"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Bioq. " + $P{labBioquimico}]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight">
+				<reportElement x="210" y="57" width="150" height="12" uuid="5075c8e2-0ea5-4b5e-a25b-3bf2809519ec"/>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA["M.P.: " + $P{labMatricula}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+</jasperReport>
