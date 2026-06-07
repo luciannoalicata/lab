@@ -1,34 +1,28 @@
 package presentador;
-/**
- *
- * @author luciano
- */
+
 import dao.ObraSocialDAO;
 import modelo.ObraSocial;
-import vista.IVistaObraSocial;
-import vista.IVistaPrincipal;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import vista.interfaces.IVistaObraSocial;
+import presentador.router.AppRouter;
 import java.util.ArrayList;
 
-public class ObraSocialPresenter implements ActionListener {
+public class ObraSocialPresenter {
 
-    private IVistaObraSocial vos;
-    private IVistaPrincipal vp;
-    private ObraSocialDAO obraSocialDAO;
+    private final IVistaObraSocial vos;
+    private final AppRouter router; 
+    private final ObraSocialDAO obraSocialDAO;
 
-    public ObraSocialPresenter(IVistaObraSocial vos, IVistaPrincipal vp, ObraSocialDAO obraSocialDAO) {
+    // 2. CAMBIA ESTO EN EL CONSTRUCTOR
+    public ObraSocialPresenter(IVistaObraSocial vos, AppRouter router, ObraSocialDAO obraSocialDAO) {
         this.vos = vos;
-        this.vp = vp;
+        this.router = router;
         this.obraSocialDAO = obraSocialDAO;
-        this.vos.setControlador(this);
     }
 
     public void iniciar() {
+        vos.setPresenter(this); // Conectamos la vista
         vos.limpiarCampos();
         cargarObrasSocialesEnTabla();
-        vp.activarModoInmersion();
-        vp.mostrarSeccion("obras_sociales");
     }
 
     private void cargarObrasSocialesEnTabla() {
@@ -36,32 +30,9 @@ public class ObraSocialPresenter implements ActionListener {
         vos.cargarObrasSocialesEnTabla(lista);
     }
 
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        String comando = e.getActionCommand();
-        System.out.println("Boton de OS presionado, el comando es: " + comando); 
+    // ── MÉTODOS EXPLÍCITOS LLAMADOS POR LA VISTA (Adiós al ActionPerformed) ──
 
-        switch (comando) {
-            case IVistaObraSocial.BTN_AGREGAR_OS:
-                agregarObraSocial();
-                break;
-            case IVistaObraSocial.BTN_ELIMINAR_OS:
-                eliminarObraSocial();
-                break;
-            case IVistaObraSocial.BTN_MODIFICAR_ARANCEL_OS:
-                modificarArancel();
-                break;
-            case IVistaObraSocial.BTN_VOLVER_OS:
-                vp.desactivarModoInmersion();
-                vp.volverInicio();
-                break;
-            case "BUSCAR_OS":
-                actualizarBusqueda();
-                break;
-        }
-    }
-
-    private void agregarObraSocial() {
+    public void onAgregarOS() {
         String cod = vos.getCodigoObraSocial();
         String nom = vos.getNombreObraSocial();
         double ara = vos.getArancel();
@@ -81,7 +52,7 @@ public class ObraSocialPresenter implements ActionListener {
         }
     }
 
-    private void eliminarObraSocial() {
+    public void onEliminarOS() {
         ObraSocial selEliminar = vos.getObraSocialSeleccionada();
         
         if (selEliminar == null) {
@@ -90,7 +61,7 @@ public class ObraSocialPresenter implements ActionListener {
         }
         
         int confirm = vos.confirmarAccion("¿Eliminar la obra social " + selEliminar.getNombre() + "?", "Confirmar");
-        if (confirm == 0) { // 0 = YES_OPTION
+        if (confirm == 0) { 
             if(obraSocialDAO.eliminarObraSocial(selEliminar.getCodigo())) {
                  vos.mostrarMensaje("Obra social eliminada.");
                  cargarObrasSocialesEnTabla();
@@ -100,7 +71,7 @@ public class ObraSocialPresenter implements ActionListener {
         }
     }
 
-    private void modificarArancel() {
+    public void onCambiarArancel() {
         ObraSocial selArancel = vos.getObraSocialSeleccionada();
         
         if (selArancel == null) {
@@ -125,7 +96,7 @@ public class ObraSocialPresenter implements ActionListener {
         }
     }
 
-    private void actualizarBusqueda() {
+    public void onBuscarOS() {
         String filtro = vos.getTextoBusqueda();
         ArrayList<ObraSocial> filtradas;
 
@@ -135,5 +106,15 @@ public class ObraSocialPresenter implements ActionListener {
             filtradas = obraSocialDAO.buscarPorCodigoONombre(filtro);
         }
         vos.cargarObrasSocialesEnTabla(filtradas);
+    }
+
+    public void onVolver() {
+        // Le pasamos la pelota al taxista (Router)
+        router.irAInicio();
+    }
+
+    public void onSeleccionarOS() {
+        // En este módulo, la selección solo habilita botones visualmente
+        // La vista (VistaObraSocial) ya maneja esto, así que aquí no hace falta lógica extra.
     }
 }

@@ -1,38 +1,34 @@
 package presentador;
-/**
- *
- * @author luciano
- */
 
 import dao.AuditoriaDAO;
 import dao.UsuarioDAO;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import modelo.Auditoria;
 import modelo.Usuario;
-import vista.IVistaAuditoria;
-import vista.IVistaPrincipal;
+import presentador.router.AppRouter;
+import vista.interfaces.IVistaAuditoria;
 
-public class AuditoriaPresenter implements ActionListener {
+// 1. Adiós al implements ActionListener
+public class AuditoriaPresenter {
 
-    private IVistaAuditoria vauditoria;
-    private IVistaPrincipal vp;
-    private AuditoriaDAO auditoriaDAO;
-    private UsuarioDAO usuarioDAO;
+    private final IVistaAuditoria vauditoria;
+    private final AppRouter router; // 2. El router toma el control de la navegación
+    private final AuditoriaDAO auditoriaDAO;
+    private final UsuarioDAO usuarioDAO;
 
-    public AuditoriaPresenter(IVistaAuditoria vauditoria, IVistaPrincipal vp, AuditoriaDAO auditoriaDAO, UsuarioDAO usuarioDAO) {
+    // 3. Constructor actualizado
+    public AuditoriaPresenter(IVistaAuditoria vauditoria, AppRouter router, AuditoriaDAO auditoriaDAO, UsuarioDAO usuarioDAO) {
         this.vauditoria = vauditoria;
-        this.vp = vp;
+        this.router = router;
         this.auditoriaDAO = auditoriaDAO;
         this.usuarioDAO = usuarioDAO;
-        
-        this.vauditoria.setControlador(this);
     }
 
     public void iniciar() {
+        vauditoria.setPresenter(this); // Conectamos la vista al presentador
+        
         // 1. Cargamos el combobox de usuarios
         List<Usuario> listaU = usuarioDAO.listarTodos();
         List<String> nombres = listaU.stream().map(Usuario::getUsername).toList();
@@ -41,31 +37,14 @@ public class AuditoriaPresenter implements ActionListener {
         // 2. Cargamos la tabla inicialmente con todo
         vauditoria.cargarTabla(auditoriaDAO.listarConFiltros("Todos", null));
 
-        // 3. Activamos el modo inmersión
-        vp.activarModoInmersion();
-        vp.mostrarSeccion("auditoria");
+        // El AppRouter se encarga de mostrar la vista en pantalla
     }
 
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        String comando = e.getActionCommand();
+    // ════════════════════════════════════════════════════════════════
+    //  MÉTODOS EXPLÍCITOS LLAMADOS POR LA VISTA (MVP Puro)
+    // ════════════════════════════════════════════════════════════════
 
-        switch (comando) {
-            case IVistaAuditoria.BTN_DETALLAR_CAMBIOS:
-                detallarCambios();
-                break;
-            case IVistaAuditoria.BTN_FILTRAR_USUARIO:
-            case IVistaAuditoria.BTN_FILTRAR_FECHA:
-                filtrarAuditoria();
-                break;
-            case IVistaAuditoria.BTN_SALIR:
-                vp.desactivarModoInmersion();
-                vp.volverInicio();
-                break;
-        }
-    }
-
-    private void detallarCambios() {
+    public void onDetallarCambios() {
         Auditoria log = vauditoria.getAuditoriaSeleccionada();
         if (log != null) {
             StringBuilder sb = new StringBuilder();
@@ -83,6 +62,22 @@ public class AuditoriaPresenter implements ActionListener {
             vauditoria.mostrarDetalleCambios("Detalle de Cambios", sb.toString());
         }
     }
+
+    public void onFiltrarFecha() {
+        filtrarAuditoria();
+    }
+
+    public void onFiltrarUsuario() {
+        filtrarAuditoria();
+    }
+
+    public void onVolver() {
+        router.irAInicio();
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  MÉTODOS PRIVADOS DE APOYO
+    // ════════════════════════════════════════════════════════════════
 
     private void filtrarAuditoria() {
         String userFiltro = vauditoria.getUsuarioSeleccionado();

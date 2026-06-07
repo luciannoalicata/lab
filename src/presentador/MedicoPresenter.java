@@ -2,84 +2,42 @@ package presentador;
 
 import dao.MedicoDAO;
 import modelo.Medico;
-import vista.IVistaMedicos;
-import vista.IVistaPrincipal;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import presentador.router.AppRouter;
+import vista.interfaces.IVistaMedicos;
 import java.util.ArrayList;
 
-public class MedicoPresenter implements ActionListener {
+public class MedicoPresenter {
 
-    private IVistaMedicos vm;
-    private IVistaPrincipal vp;
-    private MedicoDAO medicoDAO;
+    private final IVistaMedicos vista;
+    private final AppRouter router;
+    private final MedicoDAO medicoDAO;
 
-    // Inyectamos las dependencias necesarias
-    public MedicoPresenter(IVistaMedicos vm, IVistaPrincipal vp, MedicoDAO medicoDAO) {
-        this.vm = vm;
-        this.vp = vp;
+    public MedicoPresenter(IVistaMedicos vista, AppRouter router, MedicoDAO medicoDAO) {
+        this.vista = vista;
+        this.router = router;
         this.medicoDAO = medicoDAO;
-        
-        // El presentador se "conecta" a la vista
-        this.vm.setControlador(this); 
     }
 
-    // Este método reemplaza la inicialización que tenías en el Controlador Dios
     public void iniciar() {
-        vm.limpiarCampos();
-        cargarMedicosEnTabla();
-        vp.activarModoInmersion();
-        vp.mostrarSeccion("medicos");
+        vista.setPresenter(this); 
+        cargarTabla();
     }
 
-    private void cargarMedicosEnTabla() {
-        // Llama a tu método del DAO que lista los médicos
-        ArrayList<Medico> lista = medicoDAO.listarMedicos(); 
-        vm.cargarMedicosEnTabla(lista);
+    private void cargarTabla() {
+        ArrayList<Medico> lista = medicoDAO.listarMedicos();
+        vista.cargarMedicosEnTabla(lista);
     }
-
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        String comando = e.getActionCommand();
-
-        switch (comando) {
-            case IVistaMedicos.BTN_GUARDAR_MEDICO:
-                guardarMedico();
-                break;
-            case IVistaMedicos.BTN_ELIMINAR_MEDICO:
-                eliminarMedico();
-                break;
-            case IVistaMedicos.BTN_VOLVER:
-                vp.desactivarModoInmersion();
-                vp.volverInicio();
-                // vp.limpiarFocoYPantalla(); 
-                break;
-                
-            // ── AQUÍ ESTÁN LOS QUE FALTABAN ──
-            case "BUSCAR_MEDICO":
-                actualizarBusquedaMedicos(); // ¡Ahora sí se usa cada vez que tipean!
-                break;
-            case "SELECCIONAR_MEDICO":
-                medicoSeleccionado();        // ¡Ahora sí se usa al hacer clic en la tabla!
-                break;
-        }
-    }
-
-    private void guardarMedico() {
-        String apellido = vm.getApellidoMedico();
-        String nombre = vm.getNombreMedico();
-        String matricula = vm.getMatriculaMedico();
-        String especialidad = vm.getEspecialidad();
-        String observaciones = vm.getObservacionesMedico();
+    
+    public void onGuardarMedico() {
+        String nombre = vista.getNombreMedico();
+        String apellido = vista.getApellidoMedico();
+        String matricula = vista.getMatriculaMedico();
+        String especialidad = vista.getEspecialidad();
+        String observaciones = vista.getObservacionesMedico();
 
         if (apellido.isEmpty() || nombre.isEmpty() || matricula.isEmpty()) {
-            vm.mostrarMensaje("Error: Apellido, Nombre y Matrícula son campos obligatorios.");
+            vista.mostrarMensaje("Error: Apellido, Nombre y Matrícula son campos obligatorios.");
             return;
-        }
-
-        if (medicoDAO.existeMatricula(matricula)) {
-            vm.mostrarMensaje("Error: Ya existe un médico con la matrícula " + matricula);
-            return; 
         }
 
         Medico m = new Medico();
@@ -90,58 +48,54 @@ public class MedicoPresenter implements ActionListener {
         m.setObservaciones(observaciones);
 
         if (medicoDAO.guardarMedico(m)) {
-            vm.mostrarMensaje("Médico guardado correctamente.");
-            vm.limpiarCampos();
-            cargarMedicosEnTabla(); 
+            vista.mostrarMensaje("Médico guardado/actualizado correctamente.");
+            vista.limpiarCampos();
+            cargarTabla();
         } else {
-            vm.mostrarMensaje("Error: No se pudo guardar el médico.");
+            vista.mostrarMensaje("Error: No se pudo guardar el médico.");
         }
     }
 
-    private void eliminarMedico() {
-        Medico seleccionado = vm.getMedicoSeleccionado();
+    public void onEliminarMedico() {
+        Medico seleccionado = vista.getMedicoSeleccionado();
 
         if (seleccionado == null) {
-            vm.mostrarMensaje("Por favor, seleccione un médico de la tabla.");
+            vista.mostrarMensaje("Por favor, seleccione un médico de la tabla.");
             return;
         }
-
-        // ¡Magia! El presentador ya no sabe de JOptionPanes, solo recibe un int (0 = YES)
-        int respuesta = vm.confirmarAccion(
+        
+        int respuesta = vista.confirmarAccion(
                 "¿Está seguro que desea eliminar al Dr/a. " + seleccionado.getApellidoMedico() + "?", 
                 "Confirmar Eliminación"
         );
 
-        if (respuesta == 0) { // 0 suele ser JOptionPane.YES_OPTION
+        if (respuesta == 0) {
             if (medicoDAO.eliminarMedico(seleccionado.getMatricula())) {
-                vm.mostrarMensaje("Médico eliminado con éxito.");
-                cargarMedicosEnTabla(); 
-                vm.limpiarCampos();
+                vista.mostrarMensaje("Médico eliminado con éxito.");
+                vista.limpiarCampos();
+                cargarTabla(); 
             } else {
-                vm.mostrarMensaje("Error: No se pudo eliminar el médico seleccionado.");
+                vista.mostrarMensaje("Error: No se pudo eliminar el médico seleccionado.");
             }
         }
     }
     
-    public void medicoSeleccionado() {
-        Medico m = vm.getMedicoSeleccionado();
-        if (m == null) {
-            return;
-        }
+    public void onBuscarMedico() {
+        String filtro = vista.getTextoBusqueda();
+        vista.cargarMedicosEnTabla(medicoDAO.buscarMedicoInteligente(filtro));
+    }
 
-        // Usamos el nuevo método que devuelve UN solo médico
-        Medico completo = medicoDAO.buscarPorMatricula(m.getMatricula());
-
-        if (completo != null) {
-            vm.cargarDatosMedico(completo);
-            // Tip: podrías deshabilitar la edición de la matrícula aquí si no quieres que la cambien
+    public void onSeleccionarMedico() {
+        Medico m = vista.getMedicoSeleccionado();
+        if (m != null) {
+            Medico completo = medicoDAO.buscarPorMatricula(m.getMatricula());
+            if (completo != null) {
+                vista.cargarDatosMedico(completo);
+            }
         }
     }
-    
-    public void actualizarBusquedaMedicos() {
-        String texto = vm.getTextoBusqueda();
-        // Llamamos al DAO usando el nuevo filtro que incluye matrícula
-        ArrayList<Medico> filtrados = medicoDAO.buscarMedicoInteligente(texto);
-        vm.cargarMedicosEnTabla(filtrados);
+
+    public void onVolver(){
+        router.irAInicio();
     }
 }
