@@ -221,7 +221,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
 
         JPanel wrapperCentro = new JPanel(new BorderLayout());
         wrapperCentro.setBackground(C_FONDO);
-        wrapperCentro.setBorder(new EmptyBorder(25, 25, 25, 25));
+        wrapperCentro.setBorder(new EmptyBorder(0, 0, 0, 0));
         wrapperCentro.add(pnlContenido, BorderLayout.CENTER);
 
         pnlMenuIzquierdo = construirMenuLateral(true);
