@@ -212,15 +212,15 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         pnlContenido = new JPanel(cardLayout);
         pnlContenido.setBackground(C_BLANCO); 
         
-        pnlContenido.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 210, 220), 1),
-            new EmptyBorder(10, 10, 10, 10)
-        ));
+        // ¡CORRECCIÓN CRÍTICA! Quitamos todos los bordes internos
+        pnlContenido.setBorder(null);
 
         pnlContenido.add(construirCentro(), "inicio");
 
         JPanel wrapperCentro = new JPanel(new BorderLayout());
         wrapperCentro.setBackground(C_FONDO);
+        
+        // ¡CORRECCIÓN CRÍTICA! Quitamos el margen de 25px para que ocupe el 100% de la pantalla
         wrapperCentro.setBorder(new EmptyBorder(0, 0, 0, 0));
         wrapperCentro.add(pnlContenido, BorderLayout.CENTER);
 

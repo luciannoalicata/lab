@@ -6,6 +6,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Window;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.List;
@@ -17,6 +18,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JWindow;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -27,9 +29,9 @@ import presentador.DeterminacionesPresenter;
 /**
  * Vista profesional de Selección de Determinaciones - BIOTEC LIS
  */
-public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaDeterminaciones {
+public class VistaDeterminaciones extends javax.swing.JPanel implements IVistaDeterminaciones {
 
-    private DeterminacionesPresenter presenter; // Nuestra variable MVP
+    private DeterminacionesPresenter presenter; 
     
     private JWindow ventanaSugerencias;
     private JList<String> listaSugerencias;
@@ -47,9 +49,7 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
     private final Color COLOR_FILA_PAR     = new Color(250, 253, 255);
     private final Color COLOR_TEXTO_LABEL  = new Color(60, 80, 100);
    
-    public VistaDeterminaciones(Object parentView) {
-        super(parentView instanceof java.awt.Frame ? (java.awt.Frame) parentView : null, true);
-        
+    public VistaDeterminaciones() {
         initComponents();
         configurarEsteticaPersonalizada();
         configurarBuscadorDeterminaciones();
@@ -65,7 +65,7 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
             }
         });
         
-        // Listener del buscador (Reemplaza al ActionPerformed viejo)
+        // Listener del buscador
         txtDeterminacion.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             @Override public void insertUpdate(javax.swing.event.DocumentEvent e)  { buscar(); }
             @Override public void removeUpdate(javax.swing.event.DocumentEvent e)  { buscar(); }
@@ -86,7 +86,6 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
     public void setPresenter(DeterminacionesPresenter presenter) {
         this.presenter = presenter;
         
-        // ¡MAGIA MVP! Conexión directa y limpia
         btnAgregarDeterminacion.addActionListener(e -> presenter.onAgregarDeterminacion());
         btnEliminar.addActionListener(e -> presenter.onEliminarDeterminacion());
         btnContinuar.addActionListener(e -> presenter.onContinuar());
@@ -106,7 +105,7 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
 
     @Override
     public void cerrarPantalla() {
-        this.dispose();
+        // Al ser JPanel, no usamos dispose(). El AppRouter se encarga de cambiar el panel.
     }
     
     @Override public void limpiarCampos(){ txtDeterminacion.setText("");}
@@ -132,7 +131,9 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
     @Override
     public void mostrarSugerencias(List<Determinacion> sugerencias) {
         if (ventanaSugerencias == null) {
-            ventanaSugerencias = new JWindow(this);
+            // Corrección: JWindow necesita un Window padre, no un JPanel
+            Window parentWindow = SwingUtilities.getWindowAncestor(this);
+            ventanaSugerencias = new JWindow(parentWindow);
             ventanaSugerencias.setAlwaysOnTop(true);
             ventanaSugerencias.setFocusableWindowState(false);
             JScrollPane scroll = new JScrollPane(listaSugerencias);
@@ -205,7 +206,7 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
                 String texto = txtDeterminacion.getText().trim();
                 if (texto.length() >= 1) {
                     if (presenter != null) {
-                        presenter.onBuscarSugerencias(); // Actualizado a MVP
+                        presenter.onBuscarSugerencias(); 
                     }
                 } else if (ventanaSugerencias != null) {
                     ventanaSugerencias.setVisible(false);
@@ -229,10 +230,9 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
     }
 
     private void configurarEsteticaPersonalizada() {
-        this.setTitle("Selección de Determinaciones — BIOTEC LIS");
+        // Al ser JPanel ya no usamos setTitle() ni setLocationRelativeTo()
         this.setMinimumSize(new Dimension(750, 580));
         this.setPreferredSize(new Dimension(900, 680));
-        this.setLocationRelativeTo(null);
 
         pnlHeader.setBackground(COLOR_AZUL_OSCURO);
 
@@ -406,10 +406,9 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
         btnContinuar        = new javax.swing.JButton();
         btnEliminar         = new javax.swing.JButton();
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-
-        getContentPane().setBackground(COLOR_FONDO);
-        getContentPane().setLayout(new BorderLayout(0, 0));
+        // Limpieza de panel: Se reemplaza getContentPane() por invocaciones directas (this)
+        this.setBackground(COLOR_FONDO);
+        this.setLayout(new BorderLayout(0, 0));
 
         pnlHeader.setBackground(new java.awt.Color(0, 51, 102));
         pnlHeader.setLayout(new java.awt.GridBagLayout());
@@ -442,7 +441,7 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
         gbc.anchor = java.awt.GridBagConstraints.EAST;
         pnlHeader.add(btnAgregarDeterminacion, gbc);
 
-        getContentPane().add(pnlHeader, BorderLayout.NORTH);
+        this.add(pnlHeader, BorderLayout.NORTH);
 
         pnlTablaContainer.setBackground(java.awt.Color.WHITE);
         pnlTablaContainer.setLayout(new BorderLayout());
@@ -454,7 +453,7 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
         jScrollPane1.setViewportView(grillaDeterminaciones);
         pnlTablaContainer.add(jScrollPane1, BorderLayout.CENTER);
 
-        getContentPane().add(pnlTablaContainer, BorderLayout.CENTER);
+        this.add(pnlTablaContainer, BorderLayout.CENTER);
 
         pnlFooter.setBackground(java.awt.Color.WHITE);
         pnlFooter.setPreferredSize(new Dimension(900, 78));
@@ -473,7 +472,7 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
         pnlFooter.add(pnlLeft,  BorderLayout.WEST);
         pnlFooter.add(pnlRight, BorderLayout.EAST);
 
-        pack();
+        this.add(pnlFooter, BorderLayout.SOUTH);
     }
 
     private javax.swing.JButton btnAgregarDeterminacion;

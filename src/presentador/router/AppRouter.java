@@ -47,10 +47,29 @@ public class AppRouter {
         );
     }
     
-
-    // ── NAVEGACIÓN PRINCIPAL ─────────────────────────────────────────
+// ── NAVEGACIÓN PRINCIPAL ─────────────────────────────────────────
     public void irAInicio() {
+        vp.desactivarModoInmersion(); // <--- Vuelve a mostrar los menús laterales
         vp.volverInicio();
+        vp.limpiarFocos();
+    }
+
+    public void irAPacientes() {
+        if (pacientePresenter == null) {
+            IVistaPaciente vista = vistaFactory.getVistaPaciente();
+            vp.registrarPanel(vista, "pacientes");
+            pacientePresenter = new PacientePresenter(
+                    vista, 
+                    this, 
+                    daoFactory.getPacienteDAO(), 
+                    daoFactory.getAuditoriaDAO(), 
+                    this.usuarioLogueado
+            );
+        }
+        pacientePresenter.iniciar();
+        
+        vp.activarModoInmersion(); // <--- ¡LA MAGIA! Oculta los menús laterales
+        vp.mostrarSeccion("pacientes");
         vp.limpiarFocos();
     }
 
@@ -61,6 +80,7 @@ public class AppRouter {
             medicoPresenter = new MedicoPresenter(vista, this, daoFactory.getMedicoDAO());
         }
         medicoPresenter.iniciar();
+        vp.activarModoInmersion();
         vp.mostrarSeccion("medicos");
         vp.limpiarFocos();
     }
@@ -77,6 +97,7 @@ public class AppRouter {
         }
         
         this.osPresenter.iniciar();
+        vp.activarModoInmersion();
         vp.mostrarSeccion("obras_sociales");
         vp.limpiarFocos();
     }
@@ -88,24 +109,8 @@ public class AppRouter {
             nbuPresenter = new NBUPresenter(vista, this, daoFactory.getDeterminacionDAO());
         }
         nbuPresenter.iniciar(); // <--- ¡AQUÍ ESTABA EL ERROR! Decía medicoPresenter.iniciar()
+        vp.activarModoInmersion();
         vp.mostrarSeccion("nbu");
-        vp.limpiarFocos();
-    }
-    
-    public void irAPacientes() {
-        if (pacientePresenter == null) {
-            IVistaPaciente vista = vistaFactory.getVistaPaciente();
-            vp.registrarPanel(vista, "pacientes");
-            pacientePresenter = new PacientePresenter(
-                    vista, 
-                    this, 
-                    daoFactory.getPacienteDAO(), 
-                    daoFactory.getAuditoriaDAO(), 
-                    this.usuarioLogueado
-            );
-        }
-        pacientePresenter.iniciar();
-        vp.mostrarSeccion("pacientes");
         vp.limpiarFocos();
     }
 
@@ -142,6 +147,7 @@ public class AppRouter {
         );
         
         historialPresenter.iniciar();
+        vp.activarModoInmersion();
         vp.mostrarSeccion("historial_analisis");
         vp.limpiarFocos();
     }
@@ -248,6 +254,7 @@ public class AppRouter {
         }
         
         this.analisisPresenter.iniciar();
+        vp.activarModoInmersion();
         vp.mostrarSeccion("analisis_global");
         vp.limpiarFocos();
     }
@@ -268,6 +275,7 @@ public class AppRouter {
         }
         
         this.usuarioPresenter.iniciar();
+        vp.activarModoInmersion();
         vp.mostrarSeccion("gestion_usuarios");
         vp.limpiarFocos();
     }
@@ -289,6 +297,7 @@ public class AppRouter {
         }
         
         this.auditoriaPresenter.iniciar();
+        vp.activarModoInmersion();
         vp.mostrarSeccion("auditoria");
         vp.limpiarFocos();
     }

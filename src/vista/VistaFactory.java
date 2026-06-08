@@ -34,7 +34,7 @@ public class VistaFactory {
     }
 
     public IVistaDeterminaciones getVistaDeterminaciones() {
-        return new VistaDeterminaciones(null);
+        return new VistaDeterminaciones();
     }
 
     public IVistaObraSocial getVistaObraSocial() {
