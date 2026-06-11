@@ -18,7 +18,7 @@ public interface IVistaDeterminaciones {
     String getDeterminacion();
     void limpiarCampos();
     void cargarTablaConTitulos(List<Determinacion> lista);
-    int getFilaSeleccionada();
+    int[] getFilasSeleccionadas();
     void mostrarSugerencias(List<Determinacion> sugerencias);
     void mostrarMensaje(String mensaje);
 }

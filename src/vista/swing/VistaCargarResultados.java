@@ -43,7 +43,7 @@ import presentador.ResultadoPresenter;
 
 /**
  * Vista de Carga de Resultados - BIOTEC LIS
- * @author luciano
+ * Diseño consistente con VistaPaciente
  */
 public class VistaCargarResultados extends JPanel implements IVistaCargarResultados {
 
@@ -91,14 +91,23 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  ESTÉTICA Y UX
+    //  ESTÉTICA Y UX - Consistente con VistaPaciente
     // ════════════════════════════════════════════════════════════════
     private void aplicarEsteticaPersonalizada() {
         setBackground(C_FONDO);
 
-        // ── HEADER ───────────────────────────────────────────────────
+        // ── HEADER (mismos márgenes que VistaPaciente) ────────────────
         jPanelHeader.setBackground(C_NAVY);
-        jPanelHeader.setBorder(new EmptyBorder(15, 30, 15, 30));
+        jPanelHeader.setBorder(new EmptyBorder(14, 28, 14, 28));
+        
+        // Reconstruir el header correctamente
+        jPanelHeader.removeAll();
+        jPanelHeader.setLayout(new BorderLayout());
+
+        // Panel izquierdo: botón cerrar + título + nombre paciente
+        JPanel pnlIzqHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        pnlIzqHeader.setOpaque(false);
+        pnlIzqHeader.add(btnCerrar);
 
         jLabel1.setForeground(C_HEADER_TEXT);
         jLabel1.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -106,23 +115,71 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         lblNombrePaciente.setForeground(C_BLANCO);
         lblNombrePaciente.setFont(new Font("Segoe UI", Font.BOLD, 22));
 
-        configurarBotonRetroceso(btnCerrar); // El botón CERRAR actúa como volver en esta vista
+        JPanel pnlTitulos = new JPanel();
+        pnlTitulos.setOpaque(false);
+        pnlTitulos.setLayout(new BoxLayout(pnlTitulos, BoxLayout.Y_AXIS));
+        jLabel1.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblNombrePaciente.setAlignmentX(Component.LEFT_ALIGNMENT);
+        pnlTitulos.add(jLabel1);
+        pnlTitulos.add(Box.createVerticalStrut(4));
+        pnlTitulos.add(lblNombrePaciente);
 
+        pnlIzqHeader.add(pnlTitulos);
+        jPanelHeader.add(pnlIzqHeader, BorderLayout.WEST);
+
+        configurarBotonRetroceso(btnCerrar);
+
+        // Panel derecho: Obra Social y Médico
+        JPanel pnlDerHeader = new JPanel(new GridBagLayout());
+        pnlDerHeader.setOpaque(false);
+        GridBagConstraints g = new GridBagConstraints();
+        
         jLabel2.setForeground(C_HEADER_TEXT);
         jLabel2.setFont(new Font("Segoe UI", Font.BOLD, 11));
-
         jLabel3.setForeground(C_HEADER_TEXT);
         jLabel3.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        
+        g.gridx = 0; g.gridy = 0; g.anchor = GridBagConstraints.WEST; g.insets = new Insets(0, 0, 4, 15);
+        pnlDerHeader.add(jLabel2, g);
+        g.gridx = 1; g.insets = new Insets(0, 0, 4, 0);
+        pnlDerHeader.add(jLabel3, g);
+        
+        g.gridx = 0; g.gridy = 1; g.insets = new Insets(0, 0, 0, 15);
+        pnlDerHeader.add(txtObraSocialBusqueda, g);
+        g.gridx = 1; g.insets = new Insets(0, 0, 0, 0);
+        pnlDerHeader.add(txtMedicoSolicitante, g);
+
+        jPanelHeader.add(pnlDerHeader, BorderLayout.EAST);
 
         estilizarCampoBusqueda(txtObraSocialBusqueda);
         estilizarCampoBusqueda(txtMedicoSolicitante);
 
-        // ── TABLA ENVOLTORIO ─────────────────────────────────────────
+        // ── CONTENEDOR PRINCIPAL BLANCO (con borde sin superior) ──────
+        pnlContenedorBlanco.setBackground(C_BLANCO);
+        pnlContenedorBlanco.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 1, 1, 1, C_BORDE),
+            new EmptyBorder(24, 28, 24, 28)
+        ));
+        pnlContenedorBlanco.removeAll();
+        pnlContenedorBlanco.setLayout(new BorderLayout());
+
+        // ── CUERPO (Tabla) ────────────────────────────────────────────
+        pnlCuerpo.setBackground(C_BLANCO);
+        pnlCuerpo.removeAll();
+        pnlCuerpo.setLayout(new BorderLayout());
+
+        // ── TABLA WRAPPER (igual que VistaPaciente) ───────────────────
         pnlTablaWrapper.setBackground(C_BLANCO);
         pnlTablaWrapper.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(C_BORDE, 1, true),
-            new EmptyBorder(1, 1, 1, 1)
+            new EmptyBorder(0, 0, 0, 0),
+            BorderFactory.createLineBorder(C_BORDE, 1, true)
         ));
+
+        // Título de la tabla
+        lblTituloTabla = new JLabel("DETERMINACIONES A CARGAR");
+        lblTituloTabla.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblTituloTabla.setForeground(C_TEXTO_FUERTE);
+        lblTituloTabla.setBorder(new EmptyBorder(14, 16, 12, 16));
 
         // Configuración de la Grilla
         grillaResultados.setRowHeight(36);
@@ -135,28 +192,55 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         grillaResultados.setIntercellSpacing(new Dimension(0, 1));
         grillaResultados.setFocusable(true);
         grillaResultados.setBorder(BorderFactory.createEmptyBorder());
+        grillaResultados.setFillsViewportHeight(true);
 
         grillaResultados.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         grillaResultados.getTableHeader().setBackground(C_CABECERA_TBL);
         grillaResultados.getTableHeader().setForeground(C_TEXTO_SUAVE);
-        grillaResultados.getTableHeader().setPreferredSize(new Dimension(0, 42));
-        grillaResultados.getTableHeader().setBorder(BorderFactory.createMatteBorder(1, 0, 2, 0, C_BORDE));
+        grillaResultados.getTableHeader().setPreferredSize(new Dimension(0, 40));
+        grillaResultados.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE));
         grillaResultados.getTableHeader().setReorderingAllowed(false);
 
         jScrollPane1.setBorder(BorderFactory.createEmptyBorder());
         jScrollPane1.getViewport().setBackground(C_BLANCO);
 
-        aplicarColumnas();
-        aplicarRenderer();
+        pnlTablaWrapper.removeAll();
+        pnlTablaWrapper.setLayout(new BorderLayout());
+        pnlTablaWrapper.add(lblTituloTabla, BorderLayout.NORTH);
+        pnlTablaWrapper.add(jScrollPane1, BorderLayout.CENTER);
 
-        // ── FOOTER ───────────────────────────────────────────────────
+        pnlCuerpo.add(pnlTablaWrapper, BorderLayout.CENTER);
+        pnlContenedorBlanco.add(pnlCuerpo, BorderLayout.CENTER);
+
+        // ── FOOTER (mismos márgenes que VistaPaciente) ────────────────
         jPanelFooter.setBackground(C_BLANCO);
         jPanelFooter.setBorder(BorderFactory.createCompoundBorder(
             new MatteBorder(1, 0, 0, 0, C_BORDE),
-            new EmptyBorder(15, 25, 15, 25)
+            new EmptyBorder(16, 28, 16, 28)
         ));
+        jPanelFooter.removeAll();
+        jPanelFooter.setLayout(new BorderLayout());
 
-        configurarBoton(btnGuardarResultados, C_VERDE, "💾 GUARDAR RESULTADOS", 240, 48);
+        configurarBoton(btnGuardarResultados, C_VERDE, "GUARDAR RESULTADOS", 220, 44);
+
+        JPanel pnlFooterAcciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        pnlFooterAcciones.setOpaque(false);
+        pnlFooterAcciones.add(btnGuardarResultados);
+        jPanelFooter.add(pnlFooterAcciones, BorderLayout.EAST);
+
+        // ── ARMADO FINAL DEL LAYOUT ───────────────────────────────────
+        this.removeAll();
+        this.setLayout(new BorderLayout());
+        this.add(jPanelHeader, BorderLayout.NORTH);
+        this.add(pnlContenedorBlanco, BorderLayout.CENTER);
+        this.add(jPanelFooter, BorderLayout.SOUTH);
+
+        aplicarColumnas();
+        aplicarRenderer();
+        
+        // Forzar actualización
+        this.revalidate();
+        this.repaint();
     }
 
     private void estilizarCampoBusqueda(JTextField tf) {
@@ -168,16 +252,15 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
             BorderFactory.createLineBorder(new Color(50, 80, 120), 1, true),
             new EmptyBorder(8, 14, 8, 14)
         ));
-        // Aumentado el ancho de los campos a 360px
-        tf.setPreferredSize(new Dimension(360, 42)); 
-        tf.setMinimumSize(new Dimension(250, 42));
+        tf.setPreferredSize(new Dimension(320, 40));
+        tf.setMinimumSize(new Dimension(250, 40));
     }
 
     private void configurarBoton(JButton btn, Color bg, String texto, int w, int h) {
         btn.setText(texto);
         btn.setBackground(bg);
         btn.setForeground(C_BLANCO);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
         btn.setOpaque(true);
@@ -186,18 +269,18 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
     }
 
     private void configurarBotonRetroceso(JButton btn) {
-        btn.setText(" "); 
+        btn.setText(" ");
         btn.setBackground(C_NAVY);
         btn.setForeground(C_HEADER_TEXT);
         btn.setFont(new Font("Segoe UI", Font.BOLD, 15));
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
-        btn.setContentAreaFilled(false); 
+        btn.setContentAreaFilled(false);
         btn.setOpaque(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(0, 0, 0, 20));
+        btn.setBorder(new EmptyBorder(0, 0, 0, 16));
 
-        ImageIcon ico = icon("/reportes/img/flecha_icon.png", 43, 43);
+        ImageIcon ico = icon("/reportes/img/flecha_icon.png", 40, 40);
         if (ico != null) btn.setIcon(ico);
         
         btn.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -217,11 +300,11 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
                 Image img = new ImageIcon(url).getImage().getScaledInstance(w, h, Image.SCALE_SMOOTH);
                 return new ImageIcon(img);
             }
-        } catch (Exception e) { /* silencioso */ }
+        } catch (Exception e) { }
         return null;
     }
 
-    // ── Anchos de columna ──────────────────────────────────────────────
+    // ── Anchos de columna optimizados ────────────────────────────────
     private void aplicarColumnas() {
         if (grillaResultados.getColumnCount() < 6) return;
 
@@ -232,22 +315,23 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
 
         grillaResultados.getColumnModel().getColumn(1).setPreferredWidth(80);
         grillaResultados.getColumnModel().getColumn(1).setMaxWidth(90);
+        grillaResultados.getColumnModel().getColumn(1).setMinWidth(70);
 
-        // Reducimos sutilmente Determinación (antes 310)
         grillaResultados.getColumnModel().getColumn(2).setPreferredWidth(260);
+        grillaResultados.getColumnModel().getColumn(2).setMinWidth(200);
         
         grillaResultados.getColumnModel().getColumn(3).setPreferredWidth(120);
+        grillaResultados.getColumnModel().getColumn(3).setMinWidth(100);
 
-        // Ensanchamos la Unidad para que no se corte (antes 48)
         grillaResultados.getColumnModel().getColumn(4).setPreferredWidth(98);
         grillaResultados.getColumnModel().getColumn(4).setMaxWidth(110);
+        grillaResultados.getColumnModel().getColumn(4).setMinWidth(85);
 
         grillaResultados.getColumnModel().getColumn(5).setPreferredWidth(340);
-    } 
+        grillaResultados.getColumnModel().getColumn(5).setMinWidth(250);
+    }
 
-    // ── Renderer de la tabla (Títulos sin cortes y colores especiales) ────────────
-   // ── Renderer de la tabla (Títulos sin cortes, HTML y colores) ────────────
-    // ── Renderer de la tabla (Títulos sin cortes, HTML y colores) ────────────
+    // ── Renderer de la tabla ─────────────────────────────────────────
     private void aplicarRenderer() {
         if (grillaResultados.getColumnCount() < 6) return;
 
@@ -288,10 +372,8 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
 
                     setBackground(bgColor);
                     setForeground(fgColor);
-                    
-                    // ── 1. ¡CAMBIO AQUÍ! Centramos el texto del título ──
                     setHorizontalAlignment(SwingConstants.CENTER);
-                    setToolTipText(null); 
+                    setToolTipText(null);
 
                     if (col == 0) {
                         setText("");
@@ -303,7 +385,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
                         setBorder(BorderFactory.createMatteBorder(1, 0, 1, 0, accentColor));
                     } else if (col == 2) {
                         setText(nombreLimpio);
-                        // ── 2. ¡CAMBIO AQUÍ! Quitamos el margen izquierdo (EmptyBorder en 0) para un centrado perfecto ──
                         setBorder(BorderFactory.createCompoundBorder(
                                 BorderFactory.createMatteBorder(1, 0, 1, 0, accentColor),
                                 new EmptyBorder(0, 0, 0, 0)));
@@ -313,19 +394,16 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
                     }
 
                 } else {
-                    // ── FILA NORMAL DE COMPONENTE ──
                     setOpaque(true);
                     setFont(col == 3 ? new Font("Segoe UI", Font.BOLD, 14) : new Font("Segoe UI", Font.PLAIN, 13));
-                    // ── APLICAMOS EL SEMÁFORO DE COLORES ──
+                    
                     Object objRes = table.getModel().getValueAt(row, 3);
                     Object objRef = table.getModel().getValueAt(row, 5);
                     String resActual = objRes != null ? objRes.toString() : "";
                     String refActual = objRef != null ? objRef.toString() : "";
 
-                    // Solo pintamos la columna del Resultado y si tiene un valor cargado
                     if (col == 3 && !resActual.isEmpty()) {
                         setForeground(evaluarAlertaResultado(resActual, refActual));
-                        // Un toque extra: ponemos en negrita los valores alterados
                         if (getForeground().equals(new Color(220, 53, 69)) || getForeground().equals(new Color(230, 126, 34))) {
                             setFont(new Font("Segoe UI", Font.BOLD, 15));
                         }
@@ -333,40 +411,34 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
                         setForeground(C_TEXTO_FUERTE);
                     }
                     
-                    // Respetamos el color de la fila seleccionada
                     if (isSelected) {
                         setBackground(new Color(210, 232, 250)); 
                     } else {
                         setBackground(row % 2 == 0 ? C_BLANCO : C_FILA_PAR);
                     }
 
-                    // 1. Centramos TODAS las columnas visualmente
                     setHorizontalAlignment(SwingConstants.CENTER);
                     
-                    // 2. Contorno Negro Fuerte para saber dónde estamos navegando
                     if (hasFocus) {
                         setBorder(BorderFactory.createCompoundBorder(
                             BorderFactory.createLineBorder(Color.BLACK, 2), 
                             new EmptyBorder(0, 8, 0, 8)
                         ));
                     } else {
-                        setBorder(new EmptyBorder(0, 10, 0, 10));
+                        setBorder(new EmptyBorder(0, 12, 0, 12));
                     }
 
                     Object val = table.getModel().getValueAt(row, col);
                     String textoOriginal = val != null ? val.toString() : "";
                     
-                    // 3. Magia HTML para saltos de línea (sin Tooltips)
                     if ((col == 5 || col == 2) && textoOriginal.contains(";")) {
                         String[] lineas = textoOriginal.split(";");
                         StringBuilder sb = new StringBuilder("<html>");
-                        
                         for (int i = 0; i < lineas.length; i++) {
                             String lineaBlindada = lineas[i].trim()
                                     .replace("<", "&lt;")
                                     .replace(">", "&gt;")
                                     .replace(" ", "&nbsp;"); 
-                                    
                             sb.append(lineaBlindada);
                             if (i < lineas.length - 1) sb.append("<br>");
                         }
@@ -376,14 +448,11 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
                         setText(textoOriginal);
                     }
                     
-                    // ── ELIMINAMOS EL GLOBO TOOLTIP MOLESTO ──
                     setToolTipText(null);
                 }
                 
-                // ── MAGIA UX: AUTO-AJUSTE DE ALTURA DE FILA ──
                 int alturaPreferida = getPreferredSize().height + 10; 
                 int alturaActual = table.getRowHeight(row);
-                
                 if (alturaPreferida > alturaActual) {
                     table.setRowHeight(row, alturaPreferida);
                 }
@@ -475,8 +544,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
             @Override public void keyReleased(KeyEvent e) {
                 if (esTeclaNav(e)) return;
                 String t = txtObraSocialBusqueda.getText().trim();
-                
-                // ── EVENTO PURO MVP ──
                 if (t.length() >= 1 && presenter != null) {
                     presenter.onBuscarSugerenciasOS(); 
                 } else if (ventanaSugerenciasOS != null) {
@@ -494,8 +561,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
             @Override public void keyReleased(KeyEvent e) {
                 if (esTeclaNav(e)) return;
                 String t = txtMedicoSolicitante.getText().trim();
-                
-                // ── EVENTO PURO MVP ──
                 if (t.length() >= 1 && presenter != null) {
                     presenter.onBuscarSugerenciasMed();
                 } else if (ventanaSugerenciasMed != null) {
@@ -592,22 +657,14 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         ) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                // Solo la columna de Resultado es editable
                 if (column != 3) return false;
-                
                 Object codigo = getValueAt(row, 1);
-                // Previene la edición si la fila de código está vacía (títulos virtuales)
                 if (codigo == null || codigo.toString().trim().isEmpty()) return false;
-                
-                // ── BLINDAJE: Previene la edición si es un "Subtítulo" (--- TITULO ---) ──
                 Object nombre = getValueAt(row, 2);
                 if (nombre != null) {
                     String nombreFila = nombre.toString().trim();
-                    if (nombreFila.startsWith("---") && nombreFila.endsWith("---")) {
-                        return false; 
-                    }
+                    if (nombreFila.startsWith("---") && nombreFila.endsWith("---")) return false;
                 }
-                
                 return true;
             }
         };
@@ -623,9 +680,7 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
             if (!esTitulo) {
                 String nombreLimpio = d.getNombre() != null ? d.getNombre().trim() : "";
                 String referenciaLimpia = d.getReferencia() != null ? d.getReferencia().trim() : "";
-
                 boolean esMetodo = nombreLimpio.equalsIgnoreCase("Método") || nombreLimpio.equalsIgnoreCase("Metodo");
-
                 if (esMetodo && !referenciaLimpia.isEmpty()) {
                     resultadoPorDefecto = referenciaLimpia;
                     referenciaAMostrar = ""; 
@@ -683,39 +738,25 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
     @Override
     public void setPresenter(ResultadoPresenter presenter) {
         this.presenter = presenter;
-        
-        // ¡MAGIA MVP! Conexión directa y limpia
         btnGuardarResultados.addActionListener(e -> presenter.onGuardarResultados());
         btnCerrar.addActionListener(e -> presenter.onVolver());
     }
     
     @Override
     public void limpiarFocos() {
-        // Le quita el foco a cualquier botón y lo devuelve a la ventana principal
         this.requestFocusInWindow();
     }
 
-    // ── IMPLEMENTACIÓN DEL MÉTODO CONFIRMAR ACCIÓN ──
     @Override
     public int confirmarAccion(String mensaje, String titulo) {
-        // La vista encapsula el JOptionPane, el presentador ni se entera que existe Swing
-        return javax.swing.JOptionPane.showConfirmDialog(
-                this, 
-                mensaje, 
-                titulo, 
-                javax.swing.JOptionPane.YES_NO_OPTION
-        );
+        return JOptionPane.showConfirmDialog(this, mensaje, titulo, JOptionPane.YES_NO_OPTION);
     }
     
-    // Método para evitar "ghosting" de los buscadores flotantes
     public void ocultarSugerenciasFlotantes() {
         if (ventanaSugerenciasOS != null) ventanaSugerenciasOS.setVisible(false);
         if (ventanaSugerenciasMed != null) ventanaSugerenciasMed.setVisible(false);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  NAVEGACIÓN ENTER
-    // ════════════════════════════════════════════════════════════════
     // ════════════════════════════════════════════════════════════════
     //  NAVEGACIÓN ENTER Y AUTO-FORMATEO
     // ════════════════════════════════════════════════════════════════
@@ -729,55 +770,36 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
             public void actionPerformed(java.awt.event.ActionEvent e) {
                 int row = grillaResultados.getSelectedRow();
                 
-                // 1. Detenemos la edición para capturar lo que el usuario escribió
                 if (grillaResultados.isEditing()) {
                     grillaResultados.getCellEditor().stopCellEditing();
                 }
 
-                // ── MAGIA UX: AUTO-FORMATEO DE MILES Y DECIMALES ──
                 if (row != -1) {
                     Object val = grillaResultados.getModel().getValueAt(row, 3);
                     if (val != null) {
                         String texto = val.toString().trim();
-                        
-                        // REGEX: Detecta números de 4 o más cifras, y opcionalmente permite decimales (punto o coma)
                         if (texto.matches("^-?\\d{4,}([.,]\\d+)?$")) {
                             try {
-                                // 1. Separamos la parte entera de los decimales
                                 String[] partes = texto.split("[.,]");
                                 String parteEntera = partes[0];
                                 String parteDecimal = partes.length > 1 ? partes[1] : "";
-                                
-                                // 2. Detectamos si usó punto o coma para respetárselo
                                 char separadorOriginal = partes.length > 1 ? texto.charAt(parteEntera.length()) : '.';
-
-                                // 3. Le ponemos el punto de miles SOLO a la parte entera
                                 java.text.DecimalFormatSymbols dfs = new java.text.DecimalFormatSymbols();
                                 dfs.setGroupingSeparator('.');
                                 java.text.DecimalFormat df = new java.text.DecimalFormat("#,###", dfs);
-                                
                                 String enteroFormateado = df.format(Long.parseLong(parteEntera));
-                                
-                                // 4. Volvemos a armar el número completo
                                 String formateado = enteroFormateado;
-                                if (partes.length > 1) {
-                                    formateado += separadorOriginal + parteDecimal;
-                                }
-                                
+                                if (partes.length > 1) formateado += separadorOriginal + parteDecimal;
                                 grillaResultados.getModel().setValueAt(formateado, row, 3);
-                            } catch (Exception ex) {
-                                // Si algo falla, lo deja como estaba
-                            }
+                            } catch (Exception ex) {}
                         }
                     }
                 }
 
-                // 2. Buscamos la siguiente fila válida para saltar
                 int total = grillaResultados.getRowCount();
                 for (int sig = row + 1; sig < total; sig++) {
                     Object cod = grillaResultados.getModel().getValueAt(sig, 1);
                     boolean esTitulo = (cod == null || cod.toString().trim().isEmpty());
-                    
                     Object nombreObj = grillaResultados.getModel().getValueAt(sig, 2);
                     boolean esSubtitulo = (nombreObj != null && nombreObj.toString().trim().startsWith("---") && nombreObj.toString().trim().endsWith("---"));
                     
@@ -788,18 +810,77 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
                         grillaResultados.editCellAt(sig, 3);
                         Component ed = grillaResultados.getEditorComponent();
                         if (ed != null) ed.requestFocusInWindow();
-                        return; // Termina la acción si encontró fila
+                        return;
                     }
                 }
                 
-                // 3. Si no hay más filas abajo, mandamos el foco al botón de guardar
                 btnGuardarResultados.requestFocusInWindow();
             }
         });
     }
 
+    // ── MOTOR DE EVALUACIÓN CLÍNICA ───────────────────────────────────
+    private Color evaluarAlertaResultado(String resStr, String refStr) {
+        if (resStr == null || resStr.isEmpty() || refStr == null || refStr.isEmpty()) return C_TEXTO_FUERTE;
+
+        String refBaja = refStr.toLowerCase();
+        if (refBaja.contains("\n") || refBaja.contains("hombre") || refBaja.contains("mujer") ||
+            refBaja.contains("niño") || refBaja.contains("fase") || refBaja.contains("varon")) {
+            return C_TEXTO_FUERTE;
+        }
+
+        try {
+            double valorIngresado = parsearNumeroLab(resStr);
+            if (Double.isNaN(valorIngresado)) return C_TEXTO_FUERTE;
+
+            if (refBaja.contains("hasta") || refBaja.contains("<")) {
+                int pos = refBaja.contains("hasta") ? refBaja.indexOf("hasta") + 5 : refBaja.indexOf("<") + 1;
+                double max = parsearNumeroLab(refBaja.substring(pos));
+                if (Double.isNaN(max)) return C_TEXTO_FUERTE;
+                return (valorIngresado <= max) ? new Color(35, 160, 115) : new Color(220, 53, 69);
+            }
+
+            String separador = refBaja.contains(" a ") ? " a " : (refBaja.contains("-") ? "-" : null);
+            if (separador != null) {
+                String[] partes = refBaja.split(separador);
+                if (partes.length == 2) {
+                    double min = parsearNumeroLab(partes[0]);
+                    double max = parsearNumeroLab(partes[1]);
+                    if (!Double.isNaN(min) && !Double.isNaN(max)) {
+                        if (min > max) { double temp = min; min = max; max = temp; }
+                        if (valorIngresado >= min && valorIngresado <= max) {
+                            return new Color(35, 160, 115);
+                        } else {
+                            double tolerancia = (max - min) * 0.15;
+                            if (valorIngresado >= (min - tolerancia) && valorIngresado <= (max + tolerancia)) {
+                                return new Color(230, 126, 34);
+                            } else {
+                                return new Color(220, 53, 69);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {}
+
+        return C_TEXTO_FUERTE;
+    }
+
+    private double parsearNumeroLab(String numStr) {
+        String s = numStr.replaceAll("[^0-9.,]", "");
+        if (s.isEmpty()) return Double.NaN;
+        if (s.contains(",")) return Double.parseDouble(s.replace(".", "").replace(",", "."));
+        if (s.contains(".")) {
+            long cantPuntos = s.chars().filter(ch -> ch == '.').count();
+            if (cantPuntos > 1) return Double.parseDouble(s.replace(".", ""));
+            String[] partes = s.split("\\.");
+            if (partes.length == 2 && partes[1].length() == 3) return Double.parseDouble(s.replace(".", ""));
+        }
+        return Double.parseDouble(s);
+    }
+
     // ════════════════════════════════════════════════════════════════
-    //  UI BUILDER (Layout Programático)
+    //  UI BUILDER (Estructura base)
     // ════════════════════════════════════════════════════════════════
     private void initComponents() {
         jPanelHeader          = new JPanel();
@@ -812,6 +893,8 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         jLabel3               = new JLabel("MÉDICO SOLICITANTE");
         txtMedicoSolicitante  = new JTextField();
 
+        pnlContenedorBlanco   = new JPanel();
+        pnlCuerpo             = new JPanel();
         pnlTablaWrapper       = new JPanel();
         jScrollPane1          = new JScrollPane();
         grillaResultados      = new JTable();
@@ -827,148 +910,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
             @Override public boolean isCellEditable(int r, int c) { return canEdit[c]; }
         });
         jScrollPane1.setViewportView(grillaResultados);
-
-        // ── ROOT ─────────────────────────────────────────────────────
-        setLayout(new BorderLayout(0, 0));
-
-        // ── HEADER ───────────────────────────────────────────────────
-        jPanelHeader.setLayout(new BorderLayout());
-
-        JPanel pnlIzqHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        pnlIzqHeader.setOpaque(false);
-        pnlIzqHeader.add(btnCerrar); 
-
-        JPanel pnlTitulos = new JPanel();
-        pnlTitulos.setOpaque(false);
-        pnlTitulos.setLayout(new BoxLayout(pnlTitulos, BoxLayout.Y_AXIS));
-        jLabel1.setAlignmentX(Component.LEFT_ALIGNMENT);
-        lblNombrePaciente.setAlignmentX(Component.LEFT_ALIGNMENT);
-        pnlTitulos.add(jLabel1);
-        pnlTitulos.add(Box.createVerticalStrut(4));
-        pnlTitulos.add(lblNombrePaciente);
-
-        pnlIzqHeader.add(pnlTitulos);
-        jPanelHeader.add(pnlIzqHeader, BorderLayout.WEST);
-
-        // Inputs en el Header (Obra Social y Médico)
-        JPanel pnlDerHeader = new JPanel(new GridBagLayout());
-        pnlDerHeader.setOpaque(false);
-        GridBagConstraints g = new GridBagConstraints();
-        
-        g.gridx = 0; g.gridy = 0; g.anchor = GridBagConstraints.WEST; g.insets = new Insets(0, 0, 4, 15);
-        pnlDerHeader.add(jLabel2, g);
-        g.gridx = 1; g.insets = new Insets(0, 0, 4, 0);
-        pnlDerHeader.add(jLabel3, g);
-        
-        g.gridx = 0; g.gridy = 1; g.insets = new Insets(0, 0, 0, 15);
-        pnlDerHeader.add(txtObraSocialBusqueda, g);
-        g.gridx = 1; g.insets = new Insets(0, 0, 0, 0);
-        pnlDerHeader.add(txtMedicoSolicitante, g);
-
-        jPanelHeader.add(pnlDerHeader, BorderLayout.EAST);
-        add(jPanelHeader, BorderLayout.NORTH);
-
-        // ── CUERPO (Tabla) ───────────────────────────────────────────
-        pnlTablaWrapper.setLayout(new BorderLayout());
-        pnlTablaWrapper.add(jScrollPane1, BorderLayout.CENTER);
-
-        JPanel wrapperCuerpo = new JPanel(new BorderLayout());
-        wrapperCuerpo.setOpaque(false);
-        wrapperCuerpo.setBorder(new EmptyBorder(25, 25, 25, 25));
-        wrapperCuerpo.add(pnlTablaWrapper, BorderLayout.CENTER);
-
-        add(wrapperCuerpo, BorderLayout.CENTER);
-
-        // ── FOOTER ───────────────────────────────────────────────────
-        jPanelFooter.setLayout(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-        jPanelFooter.add(btnGuardarResultados);
-
-        add(jPanelFooter, BorderLayout.SOUTH);
-    }
-    
-    
-    
-    
-    // ── MOTOR DE EVALUACIÓN CLÍNICA (PARSER) ────────────
-    private Color evaluarAlertaResultado(String resStr, String refStr) {
-        if (resStr == null || resStr.isEmpty() || refStr == null || refStr.isEmpty()) return C_TEXTO_FUERTE;
-
-        // 1. SEGURO MÉDICO: Si la referencia requiere contexto del paciente, abortamos coloración.
-        String refBaja = refStr.toLowerCase();
-        if (refBaja.contains("\n") || refBaja.contains("hombre") || refBaja.contains("mujer") ||
-            refBaja.contains("niño") || refBaja.contains("fase") || refBaja.contains("varon")) {
-            return C_TEXTO_FUERTE; // Queda en negro estándar
-        }
-
-        try {
-            double valorIngresado = parsearNumeroLab(resStr);
-            if (Double.isNaN(valorIngresado)) return C_TEXTO_FUERTE;
-
-            // 2. Lógica para "Hasta X", "Menor a X", "< X"
-            if (refBaja.contains("hasta") || refBaja.contains("<")) {
-                int pos = refBaja.contains("hasta") ? refBaja.indexOf("hasta") + 5 : refBaja.indexOf("<") + 1;
-                double max = parsearNumeroLab(refBaja.substring(pos));
-                
-                if (Double.isNaN(max)) return C_TEXTO_FUERTE;
-                return (valorIngresado <= max) ? new Color(35, 160, 115) : new Color(220, 53, 69); // Verde o Rojo
-            }
-
-            // 3. Lógica para Rangos "X - Y" o "X a Y"
-            String separador = refBaja.contains(" a ") ? " a " : (refBaja.contains("-") ? "-" : null);
-            if (separador != null) {
-                String[] partes = refBaja.split(separador);
-                if (partes.length == 2) {
-                    double min = parsearNumeroLab(partes[0]);
-                    double max = parsearNumeroLab(partes[1]);
-                    
-                    if (!Double.isNaN(min) && !Double.isNaN(max)) {
-                        if (min > max) { double temp = min; min = max; max = temp; } // Ordenamos por las dudas
-                        
-                        if (valorIngresado >= min && valorIngresado <= max) {
-                            return new Color(35, 160, 115); // Verde (Normal)
-                        } else {
-                            // ¿Está levemente fuera de rango? (15% de tolerancia)
-                            double tolerancia = (max - min) * 0.15;
-                            if (valorIngresado >= (min - tolerancia) && valorIngresado <= (max + tolerancia)) {
-                                return new Color(230, 126, 34); // Naranja (Alerta Leve)
-                            } else {
-                                return new Color(220, 53, 69); // Rojo (Crítico)
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            // Falla silenciosa: si escribe "Positivo", simplemente lo ignora y no pita.
-        }
-
-        return C_TEXTO_FUERTE;
-    }
-
-    // ── HEURÍSTICA DE NÚMEROS ARGENTINOS ────────────
-    private double parsearNumeroLab(String numStr) {
-        String s = numStr.replaceAll("[^0-9.,]", ""); // Quita letras y espacios
-        if (s.isEmpty()) return Double.NaN;
-
-        // Si usó coma (ej: 14,5), es el decimal estándar
-        if (s.contains(",")) {
-            return Double.parseDouble(s.replace(".", "").replace(",", "."));
-        }
-
-        // El problema del Punto: ¿Es 4.900 (miles) o 7.36 (decimal)?
-        if (s.contains(".")) {
-            long cantPuntos = s.chars().filter(ch -> ch == '.').count();
-            if (cantPuntos > 1) {
-                return Double.parseDouble(s.replace(".", "")); // Son millones (3.950.000)
-            } else {
-                String[] partes = s.split("\\.");
-                if (partes.length == 2 && partes[1].length() == 3) {
-                    return Double.parseDouble(s.replace(".", "")); // Si hay exactos 3 dígitos post-punto, son miles (4.900)
-                }
-                // Si no, es un decimal clínico puro (7.36)
-            }
-        }
-        return Double.parseDouble(s);
     }
 
     // ── Variables ────────────────────────────────────────────────────
@@ -976,7 +917,9 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
     private JButton      btnGuardarResultados;
     private JTable       grillaResultados;
     private JLabel       jLabel1, jLabel2, jLabel3;
-    private JPanel       jPanelHeader, jPanelFooter, pnlTablaWrapper;
+    private JPanel       jPanelHeader, jPanelFooter;
+    private JPanel       pnlContenedorBlanco, pnlCuerpo, pnlTablaWrapper;
+    private JLabel       lblTituloTabla;
     private JScrollPane  jScrollPane1;
     private JLabel       lblNombrePaciente;
     private JTextField   txtMedicoSolicitante;

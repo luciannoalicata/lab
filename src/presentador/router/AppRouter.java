@@ -18,6 +18,10 @@ public class AppRouter {
     private Usuario usuarioLogueado;
     private ReporteService reporteService;
     
+    // En la clase Router
+private IVistaDeterminaciones vistaDeterminacionesActual;
+private DeterminacionesPresenter determinacionesPresenterActual;
+    
     // ── PRESENTADORES ──
     private PrincipalPresenter principalPresenter;
     private MedicoPresenter medicoPresenter;
@@ -58,12 +62,14 @@ public class AppRouter {
         if (pacientePresenter == null) {
             IVistaPaciente vista = vistaFactory.getVistaPaciente();
             vp.registrarPanel(vista, "pacientes");
+            // En tu AppRouter.java, dentro del método que abre la VistaPaciente
             pacientePresenter = new PacientePresenter(
-                    vista, 
-                    this, 
-                    daoFactory.getPacienteDAO(), 
-                    daoFactory.getAuditoriaDAO(), 
-                    this.usuarioLogueado
+                    vista,
+                    this,
+                    daoFactory.getPacienteDAO(),
+                    daoFactory.getAuditoriaDAO(),
+                    daoFactory.getObraSocialDAO(), // ← ¡Agrega esta línea!
+                    usuarioLogueado
             );
         }
         pacientePresenter.iniciar();
@@ -115,19 +121,31 @@ public class AppRouter {
     }
 
     // ── FLUJO DE ANÁLISIS E HISTORIAL ────────────────────────────────
-    public void irANuevoAnalisis(Paciente p) {
-        // Obtenemos la vista de determinaciones para arrancar un nuevo análisis
-        IVistaDeterminaciones vistaDet = vistaFactory.getVistaDeterminaciones();
-        vp.registrarPanel(vistaDet, "nueva_determinacion");
+    public void irANuevoAnalisis(modelo.Paciente p) {
+        // 1. Limpieza 100% MVP (Sin clases de Java Swing)
+        if (vistaDeterminacionesActual != null) {
+            vistaDeterminacionesActual.cerrarPantalla(); 
+            vistaDeterminacionesActual = null;
+        }
         
-        DeterminacionesPresenter detPresenter = new DeterminacionesPresenter(
-                vistaDet, 
-                this, 
-                daoFactory.getDeterminacionDAO(), 
+        if (determinacionesPresenterActual != null) {
+            determinacionesPresenterActual = null;
+        }
+
+        // 2. Instanciar nueva vista y presentador
+        vista.interfaces.IVistaDeterminaciones vistaDet = vistaFactory.getVistaDeterminaciones();
+        vistaDeterminacionesActual = vistaDet;
+
+        determinacionesPresenterActual = new presentador.DeterminacionesPresenter(
+                vistaDet,
+                this,
+                daoFactory.getDeterminacionDAO(),
                 p
         );
-        detPresenter.iniciar();
-        vp.mostrarSeccion("nueva_determinacion");
+
+        // 3. Ejecutar (Al ser JDialog Modal, el hilo se pausa aquí hasta cerrarse)
+        determinacionesPresenterActual.iniciar();
+        
         vp.limpiarFocos();
     }
 
@@ -136,7 +154,7 @@ public class AppRouter {
         IVistaHistorialAnalisis vista = vistaFactory.getVistaHistorialAnalisis();
         vp.registrarPanel(vista, "historial_analisis");
         
-        historialPresenter = new HistorialPresenter(
+        historialPresenter = new HistorialPresenter( 
                 vista, 
                 this, 
                 daoFactory.getAnalisisDAO(), 
@@ -156,50 +174,52 @@ public class AppRouter {
         if (this.detallePresenter == null) {
             IVistaVerDetalleAnalisis vistaDetalle = vistaFactory.getVistaVerDetalleAnalisis();
             vp.registrarPanel(vistaDetalle, "ver_detalle_analisis");
-            
+
             this.detallePresenter = new DetalleAnalisisPresenter(
-                    vistaDetalle, 
-                    this, 
-                    daoFactory.getAnalisisDAO(), 
-                    daoFactory.getResultadoDAO(), 
+                    vistaDetalle,
+                    this,
+                    daoFactory.getAnalisisDAO(),
+                    daoFactory.getResultadoDAO(),
                     daoFactory.getPacienteDAO(),
-                    daoFactory.getDeterminacionDAO(), 
-                    daoFactory.getAuditoriaDAO(), 
-                    daoFactory.getConfigDAO(), 
-                    daoFactory.getMedicoDAO(), 
+                    daoFactory.getDeterminacionDAO(),
+                    daoFactory.getAuditoriaDAO(),
+                    daoFactory.getConfigDAO(),
+                    daoFactory.getMedicoDAO(),
                     this.usuarioLogueado,
-                    this.reporteService 
+                    this.reporteService
             );
         }
-        
+
         this.detallePresenter.iniciar(idAnalisis);
-        // El método mostrarVistaDetalleAnalisis() se llamará desde el Presentador
+
+        // 👇 IMPORTANTE: Mostrar la sección de detalle
+        vp.mostrarSeccion("ver_detalle_analisis");
+        vp.limpiarFocos();
     }
-    
+
     public void abrirCargaResultados(modelo.Paciente pacienteActual, java.util.List<modelo.Determinacion> listaDeterminaciones) {
-        // 1. Pedimos la vista a la fábrica
         vista.interfaces.IVistaCargarResultados vistaResultados = vistaFactory.getVistaCargarResultados();
-        
-        // 2. Registramos el panel en la vista principal
+
+        // 3. Registramos el panel
         vp.registrarPanel(vistaResultados, "cargar_resultados");
-        
-        // 3. Instanciamos el Presentador con el ejército de DAOs
+
+        // 4. Instanciamos el Presentador
         presentador.ResultadoPresenter resultadoPresenter = new presentador.ResultadoPresenter(
-                vistaResultados, 
-                this, 
-                pacienteActual, 
-                listaDeterminaciones, 
-                this.usuarioLogueado, 
-                daoFactory.getAnalisisDAO(), 
-                daoFactory.getResultadoDAO(), 
-                daoFactory.getObraSocialDAO(), 
-                daoFactory.getDeterminacionDAO(), 
-                daoFactory.getConfigDAO(), 
-                daoFactory.getAuditoriaDAO(), 
+                vistaResultados,
+                this,
+                pacienteActual,
+                listaDeterminaciones,
+                this.usuarioLogueado,
+                daoFactory.getAnalisisDAO(),
+                daoFactory.getResultadoDAO(),
+                daoFactory.getObraSocialDAO(),
+                daoFactory.getDeterminacionDAO(),
+                daoFactory.getConfigDAO(),
+                daoFactory.getAuditoriaDAO(),
                 daoFactory.getMedicoDAO()
         );
-        
-        // 4. Arrancamos y mostramos la sección
+
+        // 5. Iniciar y mostrar
         resultadoPresenter.iniciar();
         vp.mostrarSeccion("cargar_resultados");
         vp.limpiarFocos();
@@ -213,9 +233,7 @@ public class AppRouter {
     }
 
     public void cerrarDetalleAnalisis() {
-        // Al cerrar el detalle, normalmente volvemos al listado global o al historial.
-        // Por defecto lo mandamos al historial o a pacientes.
-        vp.mostrarSeccion("historial_analisis");
+        vp.mostrarSeccion("lista_analisis");
         vp.limpiarFocos();
     }
 
@@ -398,5 +416,10 @@ public class AppRouter {
         // Al ser un JDialog modal, esto bloqueará el sistema hasta que se logueen de nuevo
         sesion.iniciar();
     }
+
+    public void limpiarReferenciaDeterminaciones() {
+    this.vistaDeterminacionesActual = null;
+    this.determinacionesPresenterActual = null;
+}
 
 }

@@ -33,11 +33,24 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
     private final Color C_LABEL_HDR = new Color(160, 200, 230);
 
     public VistaAjustes(Object parentView) {
-        super(parentView instanceof java.awt.Frame ? (java.awt.Frame) parentView : null, true);
-        initComponents();
-        aplicarEstilo();
-        poblarCombos();
-    }
+    super(parentView instanceof java.awt.Frame ? (java.awt.Frame) parentView : null, true);
+    initComponents();
+    aplicarEstilo();
+    poblarCombos();
+    
+    // Configurar comportamiento al cerrar con la X
+    setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+    
+    // Limpiar referencia al cerrar
+    addWindowListener(new java.awt.event.WindowAdapter() {
+        @Override
+        public void windowClosed(java.awt.event.WindowEvent e) {
+            if (presenter != null) {
+                presenter.onVolver();
+            }
+        }
+    });
+}
 
     // ════════════════════════════════════════════════════════════════
     //  INTERFAZ IVistaAjustes - MÉTODOS MVP

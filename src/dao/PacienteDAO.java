@@ -5,6 +5,7 @@ import modelo.Conexion;
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.sql.ResultSet;
+import java.util.List;
 
 public class PacienteDAO {
 
@@ -85,6 +86,7 @@ public ArrayList<Paciente> listarPacientes() {
             p.setNombre(res.getString("nombre"));
             p.setApellido(res.getString("apellido"));
             p.setDni(res.getString("dni"));
+            p.setEdad(res.getString("edad"));
             p.setVersion(res.getInt("version"));
             
             // IMPORTANTE: Cambiamos getDate por getTimestamp para traer la hora
@@ -239,7 +241,6 @@ public ArrayList<Paciente> buscarPorDniOApellidoONombre(String texto) {
     }
     return resultado.toString().trim();
 }
-    
     
 }
 

@@ -63,8 +63,6 @@ public class ResultadoPresenter {
         vcr.setMedicoSolicitante(""); 
         vcr.cargarDeterminaciones(this.determinacionesAProcesar);
         
-        // No llamamos a router.mostrarSeccion aquí, 
-        // asumimos que el AppRouter se encarga de mostrar el panel cuando lo instancia
     }
 
     // ════════════════════════════════════════════════════════════════

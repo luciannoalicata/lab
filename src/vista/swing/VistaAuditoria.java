@@ -8,31 +8,32 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.Image;
+import java.awt.Insets;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
 import javax.swing.JTable;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.MatteBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import modelo.Auditoria;
-import modelo.Usuario;
 import presentador.AuditoriaPresenter;
 
 /**
  * Vista Auditoría de Seguridad - BIOTEC LIS
+ * Diseño consistente con VistaPaciente y VistaGestionUsuarios
  */
 public class VistaAuditoria extends JPanel implements IVistaAuditoria {
 
@@ -52,6 +53,7 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
     private final Color C_CABECERA_TBL = new Color(245, 248, 252);
     private final Color C_FILA_PAR     = new Color(252, 254, 255);
     private final Color C_HEADER_TEXT  = new Color(175, 205, 235);
+    private final Color C_GRIS_CLARO   = new Color(245, 248, 250);
 
     public VistaAuditoria() {
         initComponents();
@@ -59,7 +61,9 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
 
         btnDetallarCambios.setEnabled(false);
         grillaAuditoria.getSelectionModel().addListSelectionListener(e -> {
-            btnDetallarCambios.setEnabled(grillaAuditoria.getSelectedRow() != -1);
+            if (!e.getValueIsAdjusting()) {
+                btnDetallarCambios.setEnabled(grillaAuditoria.getSelectedRow() != -1);
+            }
         });
     }
 
@@ -71,7 +75,6 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
     public void setPresenter(AuditoriaPresenter presenter) {
         this.presenter = presenter;
         
-        // ¡MAGIA MVP! Conexión directa
         btnFiltrarFecha.addActionListener(e -> presenter.onFiltrarFecha());
         btnFiltrarUsuario.addActionListener(e -> presenter.onFiltrarUsuario());
         btnDetallarCambios.addActionListener(e -> presenter.onDetallarCambios());
@@ -87,12 +90,7 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
 
     @Override
     public int confirmarAccion(String mensaje, String titulo) {
-        return javax.swing.JOptionPane.showConfirmDialog(
-                this, 
-                mensaje, 
-                titulo, 
-                javax.swing.JOptionPane.YES_NO_OPTION
-        );
+        return JOptionPane.showConfirmDialog(this, mensaje, titulo, JOptionPane.YES_NO_OPTION);
     }
 
     @Override 
@@ -100,8 +98,13 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
         JOptionPane.showMessageDialog(this, mensaje, titulo, JOptionPane.INFORMATION_MESSAGE);
     }
 
-    @Override public void mostrarMensaje(String mensaje) { JOptionPane.showMessageDialog(this, mensaje); }
-    @Override public Date getFechaSeleccionada() { return jdFechaFiltro.getDate(); }
+    @Override public void mostrarMensaje(String mensaje) { 
+        JOptionPane.showMessageDialog(this, mensaje); 
+    }
+    
+    @Override public Date getFechaSeleccionada() { 
+        return jdFechaFiltro.getDate(); 
+    }
 
     @Override
     public void cargarTabla(ArrayList<Auditoria> lista) {
@@ -140,75 +143,126 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
         return null;
     }
     
-    @Override public void habilitarBotonDetalle(boolean b) { btnDetallarCambios.setEnabled(b); }
+    @Override public void habilitarBotonDetalle(boolean b) { 
+        btnDetallarCambios.setEnabled(b); 
+    }
 
     // ══════════════════════════════════════════════════════════════════
-    //  ESTILO Y UX
+    //  ESTILO Y UX - Mismo que VistaPaciente
     // ══════════════════════════════════════════════════════════════════
     private void aplicarEstilo() {
         setBackground(C_FONDO);
 
+        // ========== HEADER (mismo que VistaPaciente) ==========
         pnlHeader.setBackground(C_NAVY);
-        pnlHeader.setBorder(new EmptyBorder(15, 30, 15, 30));
-        
+        pnlHeader.setBorder(new EmptyBorder(14, 28, 14, 28));
         lblTituloHeader.setForeground(C_BLANCO);
         lblTituloHeader.setFont(new Font("Segoe UI", Font.BOLD, 22));
 
         configurarBotonRetroceso(btnVolver);
 
+        // ========== CONTENEDOR PRINCIPAL BLANCO ==========
+        pnlContenedorBlanco.setBackground(C_BLANCO);
+        pnlContenedorBlanco.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 1, 1, 1, C_BORDE),
+            new EmptyBorder(24, 28, 24, 28)
+        ));
+        pnlContenedorBlanco.setLayout(new BorderLayout());
+
+        // ========== PANEL DE FILTROS (estilo moderno) ==========
         pnlFiltros.setBackground(C_BLANCO);
         pnlFiltros.setBorder(BorderFactory.createCompoundBorder(
-            new EmptyBorder(12, 20, 0, 20),
-            BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(C_BORDE, 1, true),
-                new EmptyBorder(14, 20, 14, 20)
-            )
+            BorderFactory.createLineBorder(C_BORDE, 1, true),
+            new EmptyBorder(20, 24, 20, 24)
         ));
-
-        Font fontLabel = new Font("Segoe UI", Font.BOLD, 12);
+        pnlFiltros.setLayout(new GridBagLayout());
+        
+        Font fontLabel = new Font("Segoe UI", Font.BOLD, 11);
         lblBusqueda.setFont(fontLabel);
         lblBusqueda.setForeground(C_TEXTO_SUAVE);
         lblFecha.setFont(fontLabel);
         lblFecha.setForeground(C_TEXTO_SUAVE);
 
-        cbxUsuario.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        // Estilo para el combo de usuarios
+        cbxUsuario.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         cbxUsuario.setBackground(C_CAMPO);
         cbxUsuario.setForeground(C_TEXTO_FUERTE);
-        cbxUsuario.setPreferredSize(new Dimension(220, 40));
         cbxUsuario.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(0, 0, 2, 0, C_AZUL_MEDIO),
-            new EmptyBorder(4, 8, 4, 8)
+            BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
+            new EmptyBorder(8, 12, 8, 12)
         ));
+        cbxUsuario.setPreferredSize(new Dimension(220, 38));
 
-        jdFechaFiltro.setPreferredSize(new Dimension(180, 40));
-        jdFechaFiltro.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        // Estilo para el selector de fecha
+        jdFechaFiltro.setPreferredSize(new Dimension(200, 38));
+        jdFechaFiltro.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         jdFechaFiltro.setBackground(C_CAMPO);
         if (jdFechaFiltro.getDateEditor() instanceof com.toedter.calendar.JTextFieldDateEditor) {
             com.toedter.calendar.JTextFieldDateEditor editor =
                 (com.toedter.calendar.JTextFieldDateEditor) jdFechaFiltro.getDateEditor();
-            editor.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            editor.setFont(new Font("Segoe UI", Font.PLAIN, 13));
             editor.setBackground(C_CAMPO);
             editor.setForeground(C_TEXTO_FUERTE);
             editor.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
-                new EmptyBorder(4, 8, 4, 8)
+                new EmptyBorder(8, 12, 8, 12)
             ));
         }
 
-        configurarBoton(btnFiltrarUsuario, C_AZUL_MEDIO, "FILTRAR USUARIO", 160, 40);
-        configurarBoton(btnFiltrarFecha,   C_AZUL_MEDIO, "FILTRAR FECHA",   160, 40);
+        configurarBoton(btnFiltrarUsuario, C_AZUL_MEDIO, "FILTRAR", 140, 38);
+        configurarBoton(btnFiltrarFecha,   C_AZUL_MEDIO, "FILTRAR", 140, 38);
 
+        // Layout de filtros usando GridBagLayout para mejor alineación
+        GridBagConstraints gf = new GridBagConstraints();
+        gf.insets = new Insets(0, 0, 0, 40);
+        gf.anchor = GridBagConstraints.WEST;
+        
+        // Bloque Usuario
+        gf.gridx = 0; gf.gridy = 0;
+        pnlFiltros.add(lblBusqueda, gf);
+        gf.gridy = 1; gf.insets = new Insets(4, 0, 0, 40);
+        pnlFiltros.add(cbxUsuario, gf);
+        gf.gridy = 1; gf.gridx = 1; gf.insets = new Insets(4, 0, 0, 0);
+        pnlFiltros.add(btnFiltrarUsuario, gf);
+        
+        // Separador vertical
+        JSeparator sep = new JSeparator(JSeparator.VERTICAL);
+        sep.setPreferredSize(new Dimension(1, 50));
+        sep.setForeground(C_BORDE);
+        gf.gridx = 2; gf.gridy = 0; gf.gridheight = 2;
+        gf.insets = new Insets(0, 0, 0, 40);
+        pnlFiltros.add(sep, gf);
+        gf.gridheight = 1;
+        
+        // Bloque Fecha
+        gf.gridx = 3; gf.gridy = 0; gf.insets = new Insets(0, 0, 0, 40);
+        pnlFiltros.add(lblFecha, gf);
+        gf.gridy = 1; gf.insets = new Insets(4, 0, 0, 40);
+        pnlFiltros.add(jdFechaFiltro, gf);
+        gf.gridy = 1; gf.gridx = 4; gf.insets = new Insets(4, 0, 0, 0);
+        pnlFiltros.add(btnFiltrarFecha, gf);
+        
+        // Espaciador elástico a la derecha
+        gf.gridx = 5; gf.weightx = 1.0; gf.insets = new Insets(0, 0, 0, 0);
+        pnlFiltros.add(new JPanel() {{ setOpaque(false); }}, gf);
+        gf.weightx = 0;
+
+        pnlContenedorBlanco.add(pnlFiltros, BorderLayout.NORTH);
+
+        // ========== TABLA WRAPPER ==========
         pnlTablaWrapper.setBackground(C_BLANCO);
         pnlTablaWrapper.setBorder(BorderFactory.createCompoundBorder(
-            new EmptyBorder(12, 20, 0, 20),
-            BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(C_BORDE, 1, true),
-                new EmptyBorder(1, 1, 1, 1)
-            )
+            new EmptyBorder(20, 0, 0, 0),
+            BorderFactory.createLineBorder(C_BORDE, 1, true)
         ));
 
-        grillaAuditoria.setRowHeight(38);
-        grillaAuditoria.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblTituloTabla.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblTituloTabla.setForeground(C_TEXTO_FUERTE);
+        lblTituloTabla.setBorder(new EmptyBorder(14, 16, 12, 16));
+
+        // Tabla mejorada
+        grillaAuditoria.setRowHeight(36);
+        grillaAuditoria.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         grillaAuditoria.setGridColor(new Color(235, 240, 245));
         grillaAuditoria.setShowHorizontalLines(true);
         grillaAuditoria.setShowVerticalLines(false);
@@ -221,8 +275,8 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
         grillaAuditoria.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         grillaAuditoria.getTableHeader().setBackground(C_CABECERA_TBL);
         grillaAuditoria.getTableHeader().setForeground(C_TEXTO_SUAVE);
-        grillaAuditoria.getTableHeader().setPreferredSize(new Dimension(0, 42));
-        grillaAuditoria.getTableHeader().setBorder(BorderFactory.createMatteBorder(1, 0, 2, 0, C_BORDE));
+        grillaAuditoria.getTableHeader().setPreferredSize(new Dimension(0, 40));
+        grillaAuditoria.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE));
         grillaAuditoria.getTableHeader().setReorderingAllowed(false);
 
         DefaultTableCellRenderer centerR = crearRenderer(SwingConstants.CENTER);
@@ -234,23 +288,41 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
         grillaAuditoria.getColumnModel().getColumn(3).setCellRenderer(centerR);
         grillaAuditoria.getColumnModel().getColumn(4).setCellRenderer(leftR);
 
-        grillaAuditoria.getColumnModel().getColumn(0).setPreferredWidth(130);
-        grillaAuditoria.getColumnModel().getColumn(0).setMaxWidth(160);
-        grillaAuditoria.getColumnModel().getColumn(1).setPreferredWidth(160);
-        grillaAuditoria.getColumnModel().getColumn(1).setMaxWidth(190);
-        grillaAuditoria.getColumnModel().getColumn(2).setPreferredWidth(160);
-        grillaAuditoria.getColumnModel().getColumn(2).setMaxWidth(200);
-        grillaAuditoria.getColumnModel().getColumn(3).setPreferredWidth(130);
-        grillaAuditoria.getColumnModel().getColumn(3).setMaxWidth(160);
-        grillaAuditoria.getColumnModel().getColumn(4).setPreferredWidth(500);
+        // Anchos de columna optimizados
+        grillaAuditoria.getColumnModel().getColumn(0).setPreferredWidth(120);
+        grillaAuditoria.getColumnModel().getColumn(0).setMinWidth(100);
+        grillaAuditoria.getColumnModel().getColumn(1).setPreferredWidth(150);
+        grillaAuditoria.getColumnModel().getColumn(1).setMinWidth(130);
+        grillaAuditoria.getColumnModel().getColumn(2).setPreferredWidth(140);
+        grillaAuditoria.getColumnModel().getColumn(2).setMinWidth(120);
+        grillaAuditoria.getColumnModel().getColumn(3).setPreferredWidth(120);
+        grillaAuditoria.getColumnModel().getColumn(3).setMinWidth(100);
+        grillaAuditoria.getColumnModel().getColumn(4).setPreferredWidth(450);
+        grillaAuditoria.getColumnModel().getColumn(4).setMinWidth(200);
 
         jScrollPane1.setBorder(BorderFactory.createEmptyBorder());
         jScrollPane1.getViewport().setBackground(C_BLANCO);
 
-        pnlFooter.setBackground(C_FONDO);
-        pnlFooter.setBorder(new EmptyBorder(15, 20, 15, 20));
+        pnlTablaWrapper.setLayout(new BorderLayout());
+        pnlTablaWrapper.add(lblTituloTabla, BorderLayout.NORTH);
+        pnlTablaWrapper.add(jScrollPane1, BorderLayout.CENTER);
 
-        configurarBoton(btnDetallarCambios, C_VERDE, "🔍 VER DETALLE", 180, 44);
+        pnlContenedorBlanco.add(pnlTablaWrapper, BorderLayout.CENTER);
+
+        add(pnlContenedorBlanco, BorderLayout.CENTER);
+
+        // ========== FOOTER ==========
+        pnlFooter.setBackground(C_FONDO);
+        pnlFooter.setBorder(new EmptyBorder(10, 16, 14, 16));
+        pnlFooter.setLayout(new BorderLayout());
+        
+        JPanel pnlAcciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        pnlAcciones.setOpaque(false);
+        configurarBoton(btnDetallarCambios, C_VERDE, "VER DESCRIPCIÓN", 180, 42);
+        pnlAcciones.add(btnDetallarCambios);
+        pnlFooter.add(pnlAcciones, BorderLayout.EAST);
+        
+        add(pnlFooter, BorderLayout.SOUTH);
     }
 
     private void configurarBoton(JButton btn, Color bg, String texto, int w, int h) {
@@ -266,18 +338,18 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
     }
     
     private void configurarBotonRetroceso(JButton btn) {
-        btn.setText(" "); 
+        btn.setText(" ");
         btn.setBackground(C_NAVY);
         btn.setForeground(C_HEADER_TEXT);
         btn.setFont(new Font("Segoe UI", Font.BOLD, 15));
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
-        btn.setContentAreaFilled(false); 
+        btn.setContentAreaFilled(false);
         btn.setOpaque(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(0, 0, 0, 20));
+        btn.setBorder(new EmptyBorder(0, 0, 0, 16));
 
-        ImageIcon ico = icon("/reportes/img/flecha_icon.png", 43, 43);
+        ImageIcon ico = icon("/reportes/img/flecha_icon.png", 40, 40);
         if (ico != null) btn.setIcon(ico);
         
         btn.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -297,7 +369,7 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
                 Image img = new ImageIcon(url).getImage().getScaledInstance(w, h, Image.SCALE_SMOOTH);
                 return new ImageIcon(img);
             }
-        } catch (Exception e) {  }
+        } catch (Exception e) { }
         return null;
     }
 
@@ -307,7 +379,7 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
             public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int row, int col) {
                 super.getTableCellRendererComponent(t, v, sel, foc, row, col);
                 setHorizontalAlignment(alineacion);
-                setBorder(new EmptyBorder(0, 10, 0, 10));
+                setBorder(new EmptyBorder(0, 12, 0, 12));
                 if (!sel) {
                     setBackground(row % 2 == 0 ? C_BLANCO : C_FILA_PAR);
                     setForeground(C_TEXTO_FUERTE);
@@ -318,32 +390,33 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  UI BUILDER
+    //  initComponents
     // ══════════════════════════════════════════════════════════════════
     private void initComponents() {
 
-        pnlHeader          = new JPanel();
-        lblTituloHeader    = new JLabel("Registro Global de Auditoría");
-        btnVolver          = new JButton();
+        pnlHeader = new JPanel();
+        lblTituloHeader = new JLabel("REGISTRO GLOBAL DE AUDITORÍA");
+        btnVolver = new JButton();
 
-        pnlFiltros         = new JPanel();
-        lblBusqueda        = new JLabel("FILTRAR POR USUARIO");
-        lblFecha           = new JLabel("FILTRAR POR FECHA");
-        cbxUsuario         = new javax.swing.JComboBox<>();
-        jdFechaFiltro      = new com.toedter.calendar.JDateChooser();
-        btnFiltrarUsuario  = new JButton();
-        btnFiltrarFecha    = new JButton();
+        pnlContenedorBlanco = new JPanel();
+        pnlFiltros = new JPanel();
+        lblBusqueda = new JLabel("FILTRAR POR USUARIO");
+        lblFecha = new JLabel("FILTRAR POR FECHA");
+        cbxUsuario = new javax.swing.JComboBox<>();
+        jdFechaFiltro = new com.toedter.calendar.JDateChooser();
+        btnFiltrarUsuario = new JButton();
+        btnFiltrarFecha = new JButton();
 
-        pnlTablaWrapper    = new JPanel();
-        jScrollPane1       = new JScrollPane();
-        grillaAuditoria    = new JTable();
-
-        pnlFooter          = new JPanel();
+        pnlTablaWrapper = new JPanel();
+        lblTituloTabla = new JLabel("Eventos Registrados");
+        jScrollPane1 = new JScrollPane();
+        grillaAuditoria = new JTable();
+        pnlFooter = new JPanel();
         btnDetallarCambios = new JButton();
 
         grillaAuditoria.setModel(new DefaultTableModel(
             new Object[][]{},
-            new String[]{"USUARIO", "FECHA Y HORA", "ACCIÓN", "TABLA", "DETALLE"}
+            new String[]{"USUARIO", "FECHA Y HORA", "ACCIÓN", "TABLA", "DESCRIPCIÓN"}
         ) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         });
@@ -351,80 +424,34 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
 
         setLayout(new BorderLayout());
 
+        // HEADER
         pnlHeader.setLayout(new BorderLayout());
-        
         JPanel pnlIzqHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         pnlIzqHeader.setOpaque(false);
         pnlIzqHeader.add(btnVolver);
-        
         lblTituloHeader.setHorizontalAlignment(SwingConstants.LEFT);
-        lblTituloHeader.setBorder(new EmptyBorder(0, 10, 0, 0)); 
+        lblTituloHeader.setBorder(new EmptyBorder(0, 10, 0, 0));
         pnlIzqHeader.add(lblTituloHeader);
-        
         pnlHeader.add(pnlIzqHeader, BorderLayout.WEST);
         add(pnlHeader, BorderLayout.NORTH);
 
-        JPanel pnlCentro = new JPanel(new BorderLayout(0, 0));
-        pnlCentro.setBackground(C_FONDO);
-
-        pnlFiltros.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 30, 0));
-
-        JPanel blqUsuario = new JPanel(new java.awt.GridBagLayout());
-        blqUsuario.setOpaque(false);
-        java.awt.GridBagConstraints gu = new java.awt.GridBagConstraints();
-        gu.gridx = 0; gu.gridy = 0; gu.anchor = java.awt.GridBagConstraints.WEST;
-        gu.insets = new java.awt.Insets(0, 0, 4, 0);
-        blqUsuario.add(lblBusqueda, gu);
-        gu.gridy = 1; gu.insets = new java.awt.Insets(0, 0, 0, 0);
-        blqUsuario.add(cbxUsuario, gu);
-        gu.gridx = 1; gu.insets = new java.awt.Insets(0, 15, 0, 0);
-        blqUsuario.add(btnFiltrarUsuario, gu);
-
-        javax.swing.JSeparator sep = new javax.swing.JSeparator(javax.swing.JSeparator.VERTICAL);
-        sep.setPreferredSize(new Dimension(1, 45));
-        sep.setForeground(C_BORDE);
-
-        JPanel blqFecha = new JPanel(new java.awt.GridBagLayout());
-        blqFecha.setOpaque(false);
-        java.awt.GridBagConstraints gf2 = new java.awt.GridBagConstraints();
-        gf2.gridx = 0; gf2.gridy = 0; gf2.anchor = java.awt.GridBagConstraints.WEST;
-        gf2.insets = new java.awt.Insets(0, 0, 4, 0);
-        blqFecha.add(lblFecha, gf2);
-        gf2.gridy = 1; gf2.insets = new java.awt.Insets(0, 0, 0, 0);
-        blqFecha.add(jdFechaFiltro, gf2);
-        gf2.gridx = 1; gf2.insets = new java.awt.Insets(0, 15, 0, 0);
-        blqFecha.add(btnFiltrarFecha, gf2);
-
-        pnlFiltros.add(blqUsuario);
-        pnlFiltros.add(sep);
-        pnlFiltros.add(blqFecha);
-
-        pnlCentro.add(pnlFiltros, BorderLayout.NORTH);
-
-        pnlTablaWrapper.setLayout(new BorderLayout());
-        pnlTablaWrapper.add(jScrollPane1, BorderLayout.CENTER);
-        pnlCentro.add(pnlTablaWrapper, BorderLayout.CENTER);
-
-        add(pnlCentro, BorderLayout.CENTER);
-
-        pnlFooter.setLayout(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-        pnlFooter.add(btnDetallarCambios);
-
-        add(pnlFooter, BorderLayout.SOUTH);
+        // El estilo se aplica en aplicarEstilo()
     }
 
     // ── Variables ────────────────────────────────────────────────────
     private JPanel                              pnlHeader;
     private JLabel                              lblTituloHeader;
+    private JButton                             btnVolver;
+    private JPanel                              pnlContenedorBlanco;
     private JPanel                              pnlFiltros;
     private JLabel                              lblBusqueda;
     private JLabel                              lblFecha;
     private JPanel                              pnlTablaWrapper;
+    private JLabel                              lblTituloTabla;
     private JPanel                              pnlFooter;
     private JButton                             btnDetallarCambios;
     private JButton                             btnFiltrarFecha;
     private JButton                             btnFiltrarUsuario;
-    private JButton                             btnVolver;
     private javax.swing.JComboBox<String>       cbxUsuario;
     private JTable                              grillaAuditoria;
     private JScrollPane                         jScrollPane1;

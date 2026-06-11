@@ -32,7 +32,7 @@ import presentador.HistorialPresenter;
 
 /**
  * Vista Historial Clínico - BIOTEC LIS
- * @author luciano
+ * Diseño consistente con VistaPaciente y VistaMedicos
  */
 public class VistaHistorialAnalisis extends JPanel implements IVistaHistorialAnalisis {
 
@@ -52,6 +52,7 @@ public class VistaHistorialAnalisis extends JPanel implements IVistaHistorialAna
     private final Color C_CABECERA_TBL = new Color(245, 248, 252);
     private final Color C_FILA_PAR     = new Color(252, 254, 255);
     private final Color C_HEADER_TEXT  = new Color(175, 205, 235);
+    private final Color C_CAMPO        = new Color(250, 252, 254);
     
     // Colores de estado
     private final Color COLOR_VERDE_FILA   = new Color(210, 245, 220);
@@ -75,37 +76,80 @@ public class VistaHistorialAnalisis extends JPanel implements IVistaHistorialAna
                     Date fechaAnalisis = historialCargado.get(fila).getFecha();
                     if (fechaAnalisis != null) jdFechaInforme.setDate(fechaAnalisis);
                 }
+                if (presenter != null && haySeleccion) {
+                    presenter.onSeleccionarAnalisis();
+                }
             }
         });
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  ESTILO Y UX
+    //  ESTILO Y UX - Consistente con VistaPaciente y VistaMedicos
     // ══════════════════════════════════════════════════════════════════
     private void aplicarEsteticaPersonalizada() {
         setBackground(C_FONDO);
 
-        // ── HEADER (Azul institucional con flecha) ───────────────────
+        // ── HEADER (mismos márgenes que VistaPaciente) ────────────────
         jPanelHeader.setBackground(C_NAVY);
-        jPanelHeader.setBorder(new EmptyBorder(15, 30, 15, 30));
-
+        jPanelHeader.setBorder(new EmptyBorder(14, 28, 14, 28));
+        
+        // Reconstruir el header correctamente
+        jPanelHeader.removeAll();
+        jPanelHeader.setLayout(new BorderLayout());
+        
+        // Panel izquierdo: botón volver + título + nombre paciente
+        JPanel pnlIzqHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        pnlIzqHeader.setOpaque(false);
+        pnlIzqHeader.add(btnVolver);
+        
         jLabel1.setForeground(C_HEADER_TEXT);
         jLabel1.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-
+        
         lblNombrePaciente.setForeground(C_BLANCO);
         lblNombrePaciente.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        
+        JPanel pnlTitulos = new JPanel();
+        pnlTitulos.setOpaque(false);
+        pnlTitulos.setLayout(new BoxLayout(pnlTitulos, BoxLayout.Y_AXIS));
+        jLabel1.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblNombrePaciente.setAlignmentX(Component.LEFT_ALIGNMENT);
+        pnlTitulos.add(jLabel1);
+        pnlTitulos.add(Box.createVerticalStrut(4));
+        pnlTitulos.add(lblNombrePaciente);
+        
+        pnlIzqHeader.add(pnlTitulos);
+        
+        jPanelHeader.add(pnlIzqHeader, BorderLayout.WEST);
 
         configurarBotonRetroceso(btnVolver);
 
-        // ── CENTRO / TABLA ────────────────────────────────────────────
-        jPanelCenter.setBackground(C_FONDO);
-        
+        // ── CONTENEDOR PRINCIPAL BLANCO (con borde sin superior) ──────
+        pnlContenedorBlanco.setBackground(C_BLANCO);
+        pnlContenedorBlanco.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 1, 1, 1, C_BORDE),
+            new EmptyBorder(24, 28, 24, 28)
+        ));
+        pnlContenedorBlanco.removeAll();
+        pnlContenedorBlanco.setLayout(new BorderLayout());
+
+        // ── CUERPO (Tabla) ────────────────────────────────────────────
+        pnlCuerpo.setBackground(C_BLANCO);
+        pnlCuerpo.removeAll();
+        pnlCuerpo.setLayout(new BorderLayout());
+
+        // ── TABLA WRAPPER (igual que VistaPaciente) ───────────────────
         pnlTablaWrapper.setBackground(C_BLANCO);
         pnlTablaWrapper.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(C_BORDE, 1, true),
-            new EmptyBorder(1, 1, 1, 1)
+            new EmptyBorder(0, 0, 0, 0),
+            BorderFactory.createLineBorder(C_BORDE, 1, true)
         ));
 
+        lblTituloTabla = new JLabel("ANÁLISIS REALIZADOS");
+        lblTituloTabla.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblTituloTabla.setForeground(C_TEXTO_FUERTE);
+        lblTituloTabla.setBorder(new EmptyBorder(14, 16, 12, 16));
+
+        // Configuración de la tabla
         grillaHistorial.setRowHeight(36);
         grillaHistorial.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         grillaHistorial.setGridColor(new Color(235, 240, 245));
@@ -115,40 +159,108 @@ public class VistaHistorialAnalisis extends JPanel implements IVistaHistorialAna
         grillaHistorial.setSelectionForeground(C_NAVY);
         grillaHistorial.setIntercellSpacing(new Dimension(0, 1));
         grillaHistorial.setBorder(BorderFactory.createEmptyBorder());
+        grillaHistorial.setFillsViewportHeight(true);
 
         grillaHistorial.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         grillaHistorial.getTableHeader().setBackground(C_CABECERA_TBL);
         grillaHistorial.getTableHeader().setForeground(C_TEXTO_SUAVE);
-        grillaHistorial.getTableHeader().setPreferredSize(new Dimension(0, 42));
-        grillaHistorial.getTableHeader().setBorder(BorderFactory.createMatteBorder(1, 0, 2, 0, C_BORDE));
+        grillaHistorial.getTableHeader().setPreferredSize(new Dimension(0, 40));
+        grillaHistorial.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE));
         grillaHistorial.getTableHeader().setReorderingAllowed(false);
+
+        // Anchos de columna (nuevas columnas: OBRA SOCIAL y MÉDICO)
+        grillaHistorial.getColumnModel().getColumn(0).setPreferredWidth(60);
+        grillaHistorial.getColumnModel().getColumn(0).setMaxWidth(80);
+        grillaHistorial.getColumnModel().getColumn(0).setMinWidth(50);
+        
+        grillaHistorial.getColumnModel().getColumn(1).setPreferredWidth(100);
+        grillaHistorial.getColumnModel().getColumn(1).setMinWidth(90);
+        
+        grillaHistorial.getColumnModel().getColumn(2).setPreferredWidth(180);
+        grillaHistorial.getColumnModel().getColumn(2).setMinWidth(150);
+        
+        grillaHistorial.getColumnModel().getColumn(3).setPreferredWidth(150);
+        grillaHistorial.getColumnModel().getColumn(3).setMinWidth(120);
+        
+        grillaHistorial.getColumnModel().getColumn(4).setPreferredWidth(100);
+        grillaHistorial.getColumnModel().getColumn(4).setMinWidth(80);
+        
+        grillaHistorial.getColumnModel().getColumn(5).setPreferredWidth(100);
+        grillaHistorial.getColumnModel().getColumn(5).setMaxWidth(120);
+        grillaHistorial.getColumnModel().getColumn(5).setMinWidth(80);
 
         jScrollPane1.setBorder(BorderFactory.createEmptyBorder());
         jScrollPane1.getViewport().setBackground(C_BLANCO);
 
-        configurarRenderizadorColor();
+        pnlTablaWrapper.removeAll();
+        pnlTablaWrapper.setLayout(new BorderLayout());
+        pnlTablaWrapper.add(lblTituloTabla, BorderLayout.NORTH);
+        pnlTablaWrapper.add(jScrollPane1, BorderLayout.CENTER);
 
-        // ── FOOTER ────────────────────────────────────────────────────
+        pnlCuerpo.add(pnlTablaWrapper, BorderLayout.CENTER);
+        pnlContenedorBlanco.add(pnlCuerpo, BorderLayout.CENTER);
+
+        // ── FOOTER (mismos márgenes que VistaPaciente) ────────────────
         jPanelFooter.setBackground(C_BLANCO);
         jPanelFooter.setBorder(BorderFactory.createCompoundBorder(
             new MatteBorder(1, 0, 0, 0, C_BORDE),
-            new EmptyBorder(15, 25, 15, 25)
+            new EmptyBorder(16, 28, 16, 28)
         ));
+        jPanelFooter.removeAll();
+        jPanelFooter.setLayout(new BorderLayout());
 
         jLabel2.setFont(new Font("Segoe UI", Font.BOLD, 12));
         jLabel2.setForeground(C_TEXTO_SUAVE);
 
-        jdFechaInforme.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        // Estilo para el selector de fecha
+        jdFechaInforme.setPreferredSize(new Dimension(180, 38));
+        jdFechaInforme.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        if (jdFechaInforme.getDateEditor() instanceof com.toedter.calendar.JTextFieldDateEditor) {
+            com.toedter.calendar.JTextFieldDateEditor editor =
+                (com.toedter.calendar.JTextFieldDateEditor) jdFechaInforme.getDateEditor();
+            editor.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            editor.setBackground(C_CAMPO);
+            editor.setForeground(C_TEXTO_FUERTE);
+            editor.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
+                new EmptyBorder(6, 10, 6, 10)
+            ));
+        }
 
-        configurarBoton(btnVerDetalles, C_AZUL_MEDIO, "☰ VER DETALLES", 170, 44);
-        configurarBoton(btnGenerarInforme, C_VERDE, "⎙ IMPRIMIR", 160, 44);
+        pnlFechaConfig.setOpaque(false);
+        pnlFechaConfig.setLayout(new FlowLayout(FlowLayout.LEFT, 12, 0));
+        pnlFechaConfig.add(jLabel2);
+        pnlFechaConfig.add(jdFechaInforme);
+        jPanelFooter.add(pnlFechaConfig, BorderLayout.WEST);
+
+        configurarBoton(btnVerDetalles, C_AZUL_MEDIO, "VER DETALLES", 160, 42);
+        configurarBoton(btnGenerarInforme, C_VERDE, "IMPRIMIR", 150, 42);
+
+        pnlBotonesAccion.setOpaque(false);
+        pnlBotonesAccion.setLayout(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        pnlBotonesAccion.add(btnVerDetalles);
+        pnlBotonesAccion.add(btnGenerarInforme);
+        jPanelFooter.add(pnlBotonesAccion, BorderLayout.EAST);
+
+        // ── ARMADO FINAL DEL LAYOUT ───────────────────────────────────
+        this.removeAll();
+        this.setLayout(new BorderLayout());
+        this.add(jPanelHeader, BorderLayout.NORTH);
+        this.add(pnlContenedorBlanco, BorderLayout.CENTER);
+        this.add(jPanelFooter, BorderLayout.SOUTH);
+
+        configurarRenderizadorColor();
+        
+        // Forzar actualización
+        this.revalidate();
+        this.repaint();
     }
 
     private void configurarBoton(JButton btn, Color bg, String texto, int w, int h) {
         btn.setText(texto);
         btn.setBackground(bg);
         btn.setForeground(C_BLANCO);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
         btn.setOpaque(true);
@@ -157,18 +269,18 @@ public class VistaHistorialAnalisis extends JPanel implements IVistaHistorialAna
     }
 
     private void configurarBotonRetroceso(JButton btn) {
-        btn.setText(" "); 
+        btn.setText(" ");
         btn.setBackground(C_NAVY);
         btn.setForeground(C_HEADER_TEXT);
         btn.setFont(new Font("Segoe UI", Font.BOLD, 15));
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
-        btn.setContentAreaFilled(false); 
+        btn.setContentAreaFilled(false);
         btn.setOpaque(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(0, 0, 0, 20));
+        btn.setBorder(new EmptyBorder(0, 0, 0, 16));
 
-        ImageIcon ico = icon("/reportes/img/flecha_icon.png", 43, 43);
+        ImageIcon ico = icon("/reportes/img/flecha_icon.png", 40, 40);
         if (ico != null) btn.setIcon(ico);
         
         btn.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -188,7 +300,7 @@ public class VistaHistorialAnalisis extends JPanel implements IVistaHistorialAna
                 Image img = new ImageIcon(url).getImage().getScaledInstance(w, h, Image.SCALE_SMOOTH);
                 return new ImageIcon(img);
             }
-        } catch (Exception e) { /* silencioso */ }
+        } catch (Exception e) { }
         return null;
     }
 
@@ -197,23 +309,25 @@ public class VistaHistorialAnalisis extends JPanel implements IVistaHistorialAna
         if (fecha != null) jdFechaInforme.setDate(fecha);
     }
 
-    // ── RENDERIZADOR ──────────────────────────────────────────────────
+    // ── RENDERIZADOR DE COLORES PARA FILAS COMPLETADAS ────────────────
     private void configurarRenderizadorColor() {
         DefaultTableCellRenderer renderizadorColores = new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
                     boolean isSelected, boolean hasFocus, int row, int column) {
                 super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                
+                // Centrar todas las columnas para mayor orden visual
                 setHorizontalAlignment(SwingConstants.CENTER);
-                setBorder(new EmptyBorder(0, 10, 0, 10));
+                setBorder(new EmptyBorder(0, 12, 0, 12));
 
                 if (isSelected) {
                     setBackground(table.getSelectionBackground());
                     setForeground(table.getSelectionForeground());
                 } else {
-                    Object estadoObj = table.getValueAt(row, 3);
+                    Object estadoObj = table.getValueAt(row, 5); // Índice de columna ESTADO
                     String estado = (estadoObj != null) ? estadoObj.toString() : "COMPLETO";
-                    if ("GENERADO".equals(estado)) {
+                    if ("GENERADO".equals(estado) || "COMPLETO".equals(estado)) {
                         setBackground(COLOR_VERDE_FILA);
                         setForeground(COLOR_VERDE_TEXTO);
                     } else {
@@ -230,7 +344,7 @@ public class VistaHistorialAnalisis extends JPanel implements IVistaHistorialAna
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  INTERFAZ
+    //  INTERFAZ IVistaHistorialAnalisis
     // ══════════════════════════════════════════════════════════════════
     @Override public void ejecutar() { setVisible(true); }
 
@@ -238,41 +352,36 @@ public class VistaHistorialAnalisis extends JPanel implements IVistaHistorialAna
     public void setPresenter(HistorialPresenter presenter) {
         this.presenter = presenter;
         
-        // ¡MAGIA MVP! Los botones llaman a los métodos exactos, sin "switch"
         btnGenerarInforme.addActionListener(e -> presenter.onGenerarInforme());
-        btnVerDetalles.addActionListener( e -> presenter.onVerDetalles());
+        btnVerDetalles.addActionListener(e -> presenter.onVerDetalles());
         btnVolver.addActionListener(e -> presenter.onVolver());
-
-        // ── AQUÍ AGREGAS EL LISTENER DE LA TABLA ──
-        grillaHistorial.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                presenter.onSeleccionarAnalisis();
-            }
-        });
     }
     
     @Override
     public void limpiarFocos() {
-        // Le quita el foco a cualquier botón y lo devuelve a la ventana principal
         this.requestFocusInWindow();
     }
 
-    // ── IMPLEMENTACIÓN DEL MÉTODO CONFIRMAR ACCIÓN ──
     @Override
     public int confirmarAccion(String mensaje, String titulo) {
-        // La vista encapsula el JOptionPane, el presentador ni se entera que existe Swing
-        return javax.swing.JOptionPane.showConfirmDialog(
-                this, 
-                mensaje, 
-                titulo, 
-                javax.swing.JOptionPane.YES_NO_OPTION
-        );
+        return JOptionPane.showConfirmDialog(this, mensaje, titulo, JOptionPane.YES_NO_OPTION);
     }
 
-    @Override public void mostrarMensaje(String mensaje) { JOptionPane.showMessageDialog(this, mensaje); }
-    @Override public void setNombrePaciente(String nombre) { lblNombrePaciente.setText(nombre.toUpperCase()); }
-    @Override public void habilitarBotonVerDetalles(boolean b) { btnVerDetalles.setEnabled(b); }
-    @Override public void habilitarBotonImprimir(boolean b)    { btnGenerarInforme.setEnabled(b); }
+    @Override public void mostrarMensaje(String mensaje) { 
+        JOptionPane.showMessageDialog(this, mensaje); 
+    }
+    
+    @Override public void setNombrePaciente(String nombre) { 
+        lblNombrePaciente.setText(nombre.toUpperCase()); 
+    }
+    
+    @Override public void habilitarBotonVerDetalles(boolean b) { 
+        btnVerDetalles.setEnabled(b); 
+    }
+    
+    @Override public void habilitarBotonImprimir(boolean b) { 
+        btnGenerarInforme.setEnabled(b); 
+    }
 
     @Override
     public int getAnalisisSeleccionadoId() {
@@ -290,7 +399,18 @@ public class VistaHistorialAnalisis extends JPanel implements IVistaHistorialAna
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
         for (Analisis a : lista) {
             String estadoLabel = (a.getEstado() != null) ? a.getEstado() : "COMPLETO";
-            modelo.addRow(new Object[]{ a.getIdAnalisis(), sdf.format(a.getFecha()), String.format("$ %.2f", a.getPrecio()), estadoLabel });
+            String obraSocialStr = (a.getObraSocial() != null && !a.getObraSocial().trim().isEmpty()) 
+                                    ? a.getObraSocial() : "-";
+            String medicoStr = (a.getMedicoSolicitante() != null && !a.getMedicoSolicitante().trim().isEmpty()) 
+                                ? a.getMedicoSolicitante().toUpperCase() : "-";
+            modelo.addRow(new Object[]{ 
+                a.getIdAnalisis(), 
+                sdf.format(a.getFecha()),
+                obraSocialStr,
+                medicoStr,
+                String.format("$ %.2f", a.getPrecio()), 
+                estadoLabel 
+            });
         }
         configurarRenderizadorColor();
     }
@@ -302,7 +422,7 @@ public class VistaHistorialAnalisis extends JPanel implements IVistaHistorialAna
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  UI BUILDER
+    //  UI BUILDER (Estructura base)
     // ══════════════════════════════════════════════════════════════════
     private void initComponents() {
 
@@ -312,7 +432,8 @@ public class VistaHistorialAnalisis extends JPanel implements IVistaHistorialAna
         lblNombrePaciente = new JLabel();
         btnVolver         = new JButton();
 
-        jPanelCenter      = new JPanel();
+        pnlContenedorBlanco = new JPanel();
+        pnlCuerpo         = new JPanel();
         pnlTablaWrapper   = new JPanel();
         jScrollPane1      = new JScrollPane();
         grillaHistorial   = new JTable();
@@ -325,70 +446,14 @@ public class VistaHistorialAnalisis extends JPanel implements IVistaHistorialAna
         btnVerDetalles    = new JButton();
         btnGenerarInforme = new JButton();
 
+        // Nuevo modelo de tabla con 6 columnas
         grillaHistorial.setModel(new DefaultTableModel(
             new Object[][]{},
-            new String[]{"ID ANÁLISIS", "FECHA", "PRECIO", "ESTADO"}
+            new String[]{"ID", "FECHA", "OBRA SOCIAL", "MÉDICO", "PRECIO", "ESTADO"}
         ) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         });
         jScrollPane1.setViewportView(grillaHistorial);
-
-        // ── ROOT ─────────────────────────────────────────────────────
-        setLayout(new BorderLayout());
-
-        // ── HEADER ───────────────────────────────────────────────────
-        jPanelHeader.setLayout(new BorderLayout());
-
-        JPanel pnlIzqHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        pnlIzqHeader.setOpaque(false);
-        pnlIzqHeader.add(btnVolver);
-
-        pnlHeaderTexto.setOpaque(false);
-        pnlHeaderTexto.setLayout(new BoxLayout(pnlHeaderTexto, BoxLayout.Y_AXIS));
-        jLabel1.setAlignmentX(Component.LEFT_ALIGNMENT);
-        lblNombrePaciente.setAlignmentX(Component.LEFT_ALIGNMENT);
-        pnlHeaderTexto.add(jLabel1);
-        pnlHeaderTexto.add(Box.createVerticalStrut(4));
-        pnlHeaderTexto.add(lblNombrePaciente);
-
-        pnlIzqHeader.add(pnlHeaderTexto);
-        jPanelHeader.add(pnlIzqHeader, BorderLayout.WEST);
-        
-        add(jPanelHeader, BorderLayout.NORTH);
-
-        // ── CENTRO / TABLA ───────────────────────────────────────────
-        jPanelCenter.setLayout(new BorderLayout());
-
-        pnlTablaWrapper.setLayout(new BorderLayout());
-        pnlTablaWrapper.add(jScrollPane1, BorderLayout.CENTER);
-
-        JPanel wrapperCuerpo = new JPanel(new BorderLayout());
-        wrapperCuerpo.setOpaque(false);
-        wrapperCuerpo.setBorder(new EmptyBorder(25, 25, 25, 25));
-        wrapperCuerpo.add(pnlTablaWrapper, BorderLayout.CENTER);
-
-        jPanelCenter.add(wrapperCuerpo, BorderLayout.CENTER);
-        add(jPanelCenter, BorderLayout.CENTER);
-
-        // ── FOOTER ───────────────────────────────────────────────────
-        jPanelFooter.setLayout(new BorderLayout());
-
-        pnlFechaConfig.setOpaque(false);
-        pnlFechaConfig.setLayout(new FlowLayout(FlowLayout.LEFT, 12, 0));
-        pnlFechaConfig.add(jLabel2);
-        jdFechaInforme.setPreferredSize(new Dimension(160, 38));
-        pnlFechaConfig.add(jdFechaInforme);
-        
-        jPanelFooter.add(pnlFechaConfig, BorderLayout.WEST);
-
-        pnlBotonesAccion.setOpaque(false);
-        pnlBotonesAccion.setLayout(new FlowLayout(FlowLayout.RIGHT, 12, 0));
-        pnlBotonesAccion.add(btnVerDetalles);
-        pnlBotonesAccion.add(btnGenerarInforme);
-        
-        jPanelFooter.add(pnlBotonesAccion, BorderLayout.EAST);
-
-        add(jPanelFooter, BorderLayout.SOUTH);
     }
 
     // Variables declaration
@@ -398,18 +463,16 @@ public class VistaHistorialAnalisis extends JPanel implements IVistaHistorialAna
     private JTable  grillaHistorial;
     private JLabel  jLabel1;
     private JLabel  jLabel2;
-    private JPanel  jPanelCenter;
-    private JPanel  jPanelFooter;
     private JPanel  jPanelHeader;
+    private JPanel  jPanelFooter;
     private JPanel  pnlHeaderTexto;
     private JPanel  pnlBotonesAccion;
     private JPanel  pnlFechaConfig;
+    private JPanel  pnlContenedorBlanco;
+    private JPanel  pnlCuerpo;
     private JPanel  pnlTablaWrapper;
+    private JLabel  lblTituloTabla;
     private JScrollPane jScrollPane1;
     private com.toedter.calendar.JDateChooser jdFechaInforme;
     private JLabel  lblNombrePaciente;
-
-    private void onSeleccionarAnalisis() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
 }

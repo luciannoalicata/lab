@@ -7,14 +7,15 @@ import presentador.router.AppRouter;
 import java.util.Collections;
 import java.util.List;
 
-// 1. Adiós al implements ActionListener
 public class NBUPresenter {
 
     private final IVistaNBU vnbu;
-    private final AppRouter router; // 2. El router toma el control
+    private final AppRouter router;
     private final DeterminacionDAO determinacionDAO;
+    
+    // RASTREADOR: Sabe qué hijos están en la pantalla para autoguardarlos
+    private String padreActualmenteEnGrilla = ""; 
 
-    // 3. Constructor actualizado
     public NBUPresenter(IVistaNBU vnbu, AppRouter router, DeterminacionDAO determinacionDAO) {
         this.vnbu = vnbu;
         this.router = router;
@@ -22,57 +23,60 @@ public class NBUPresenter {
     }
 
     public void iniciar() {
-        vnbu.setPresenter(this); // Conectamos la vista
+        vnbu.setPresenter(this);
+        padreActualmenteEnGrilla = "";
+        cargarDeterminaciones();
+    }
+
+    private void cargarDeterminaciones() {
         List<Determinacion> todosNBU = determinacionDAO.listarTodo();
         vnbu.cargarDeterminaciones(todosNBU);
-        // El router se encargará de mostrar la vista en pantalla
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  MÉTODOS EXPLÍCITOS LLAMADOS POR LA VISTA (El nuevo ActionPerformed)
+    //  MÉTODOS EXPLÍCITOS LLAMADOS POR LA VISTA (Con Autoguardado)
     // ════════════════════════════════════════════════════════════════
-
-    public void onGuardarCambios() {
-        guardarCambiosPendientesHijos();
-        vnbu.mostrarMensaje("Cambios guardados correctamente.");
-    }
 
     public void onVolver() {
         vnbu.detenerEdicionTabla();
-        
-        int confirmacion = vnbu.confirmarSalidaConGuardado(); // 0=YES, 1=NO, 2=CANCEL
-
-        if (confirmacion == 0) { // SÍ
-            guardarCambiosPendientesHijos(); 
-            router.irAInicio();
-        } else if (confirmacion == 1) { // NO
-            router.irAInicio();
-        }
-        // Si Cancelar (2), no hace nada y se queda en la pantalla.
+        guardarTextosHijos(); // Autoguardado preventivo al volver
+        router.irAInicio();
     }
 
     public void onSeleccionarPadre() {
-        guardarCambiosPendientesHijos();
-        String codigoPadre = vnbu.getCodigoPadreSeleccionado();
+        vnbu.detenerEdicionTabla();
+        
+        // Autoguardamos lo que el usuario haya escrito en el padre anterior
+        guardarTextosHijos();
+        
+        String nuevoPadre = vnbu.getCodigoPadreSeleccionado();
 
-        if (codigoPadre == null || codigoPadre.trim().isEmpty()) {
-            vnbu.cargarHijos(new java.util.ArrayList<>()); 
+        if (nuevoPadre == null || nuevoPadre.trim().isEmpty()) {
+            padreActualmenteEnGrilla = "";
+            vnbu.cargarHijos(new java.util.ArrayList<>());
             return;
         }
-        List<Determinacion> hijos = determinacionDAO.obtenerComponentes(codigoPadre);
+        
+        // Actualizamos el rastreador y cargamos hijos
+        padreActualmenteEnGrilla = nuevoPadre;
+        List<Determinacion> hijos = determinacionDAO.obtenerComponentes(nuevoPadre);
         vnbu.cargarHijos(hijos);
     }
 
     public void onBuscarNBU() {
         String texto = vnbu.getBusqueda();
-        List<Determinacion> resultados = determinacionDAO.buscar(texto); 
-        vnbu.cargarDeterminaciones(resultados);
+        if (texto == null || texto.trim().isEmpty()) {
+            cargarDeterminaciones();
+        } else {
+            List<Determinacion> resultados = determinacionDAO.buscar(texto);
+            vnbu.cargarDeterminaciones(resultados);
+        }
     }
 
     public void onAgregarHijo() {
-        guardarCambiosPendientesHijos();
-        vnbu.detenerEdicionTabla(); 
-        
+        vnbu.detenerEdicionTabla();
+        guardarTextosHijos(); // Autoguardado antes de recargar tabla
+
         String padre = vnbu.getCodigoPadreSeleccionado();
         if (padre == null || padre.trim().isEmpty()) {
             vnbu.mostrarMensaje("Debe seleccionar una práctica de la tabla para vincularle un componente.");
@@ -80,7 +84,7 @@ public class NBUPresenter {
         }
 
         String nombreHijo = vnbu.pedirNombreNuevoComponente();
-        
+
         if (nombreHijo != null && !nombreHijo.isEmpty()) {
             int sufijo = 1;
             String nuevoCodigoHijo = padre + "." + sufijo;
@@ -95,7 +99,7 @@ public class NBUPresenter {
                 return;
             }
 
-            if (determinacionDAO.vincularHijo(padre, nuevoCodigoHijo)) { 
+            if (determinacionDAO.vincularHijo(padre, nuevoCodigoHijo)) {
                 List<Determinacion> hijosActuales = determinacionDAO.obtenerComponentes(padre);
                 determinacionDAO.actualizarPrioridad(nuevoCodigoHijo, hijosActuales.size());
                 refrescarAmbasTablasNBU(padre);
@@ -106,20 +110,23 @@ public class NBUPresenter {
     }
 
     public void onQuitarHijo() {
-        guardarCambiosPendientesHijos();
         vnbu.detenerEdicionTabla();
+        guardarTextosHijos(); 
 
         String padre = vnbu.getCodigoPadreSeleccionado();
         String hijo = vnbu.getCodigoHijoSeleccionado();
 
-        if (padre == null || hijo == null) {
+        if (padre == null || padre.trim().isEmpty() || hijo == null || hijo.trim().isEmpty()) {
             vnbu.mostrarMensaje("Debe seleccionar un componente de la tabla de la derecha para quitarlo.");
             return;
         }
 
-        int confirmacion = vnbu.confirmarAccion("¿Está seguro de que desea desvincular el componente '" + hijo + "'?\nEsto NO borrará el código del sistema.", "Confirmar");
+        int confirmacion = vnbu.confirmarAccion(
+            "¿Está seguro de que desea desvincular el componente '" + hijo + "'?\nEsto NO borrará el código del sistema.",
+            "Confirmar"
+        );
 
-        if (confirmacion == 0) { // YES
+        if (confirmacion == 0) {
             if (determinacionDAO.desvincularHijo(padre, hijo)) {
                 refrescarAmbasTablasNBU(padre);
             } else {
@@ -128,53 +135,43 @@ public class NBUPresenter {
         }
     }
 
-    public void onSubirHijo() {
-        moverHijoNBU(-1);
-    }
-
-    public void onBajarHijo() {
-        moverHijoNBU(1);
-    }
-
-    public void onSubirPadre() {
-        moverPadreNBU(-1);
-    }
-
-    public void onBajarPadre() {
-        moverPadreNBU(1);
-    }
-
+    public void onSubirHijo() { moverHijoNBU(-1); }
+    public void onBajarHijo() { moverHijoNBU(1); }
+    public void onSubirPadre() { moverPadreNBU(-1); }
+    public void onBajarPadre() { moverPadreNBU(1); }
 
     // ════════════════════════════════════════════════════════════════
-    //  MÉTODOS PRIVADOS DE APOYO (Lógica interna del presentador)
+    //  MÉTODOS PRIVADOS DE APOYO (Autoguardado de Textos)
     // ════════════════════════════════════════════════════════════════
 
-    private void guardarCambiosPendientesHijos() {
-        vnbu.detenerEdicionTabla();
-        if (vnbu.getCodigoPadreSeleccionado() == null) return;
+    private void guardarTextosHijos() {
+        if (padreActualmenteEnGrilla == null || padreActualmenteEnGrilla.isEmpty()) return;
 
         for (int i = 0; i < vnbu.getCantidadFilas(); i++) {
-            String codigoHijo = vnbu.getCodigoHijoFila(i); 
-            String nombreHijo = vnbu.getNombreHijoFila(i); 
-            String unidad = vnbu.getUnidad(i); 
-            String ref = vnbu.getReferencia(i); 
+            String codigoHijo = vnbu.getCodigoHijoFila(i);
+            if (codigoHijo == null || codigoHijo.trim().isEmpty()) continue;
+            
+            String nombreHijo = vnbu.getNombreHijoFila(i);
+            String unidad = vnbu.getUnidad(i);
+            String ref = vnbu.getReferencia(i);
 
-            determinacionDAO.actualizarNombre(codigoHijo, nombreHijo);
+            if (nombreHijo != null && !nombreHijo.trim().isEmpty()) {
+                determinacionDAO.actualizarNombre(codigoHijo, nombreHijo);
+            }
             determinacionDAO.actualizarUnidadReferenciaPorCodigo(codigoHijo, unidad, ref);
         }
     }
 
     private void moverHijoNBU(int direccion) {
         vnbu.detenerEdicionTabla();
-        guardarCambiosPendientesHijos();
+        guardarTextosHijos();
 
         String padre = vnbu.getCodigoPadreSeleccionado();
         String hijoSeleccionado = vnbu.getCodigoHijoSeleccionado();
         int filaActual = vnbu.getIndiceHijoSeleccionado();
 
-        if (padre == null || hijoSeleccionado == null) return;
+        if (padre == null || padre.trim().isEmpty() || hijoSeleccionado == null) return;
         
-        // Blockeo lógico: no subir si es el primero, no bajar si es el último
         if (direccion == -1 && filaActual <= 0) return;
         if (direccion == 1 && filaActual >= vnbu.getCantidadFilas() - 1) return;
 
@@ -184,7 +181,8 @@ public class NBUPresenter {
         int index = -1;
         for (int i = 0; i < hijos.size(); i++) {
             if (hijos.get(i).getCodigo().equals(hijoSeleccionado)) {
-                index = i; break;
+                index = i;
+                break;
             }
         }
         if (index == -1) return;
@@ -199,7 +197,7 @@ public class NBUPresenter {
         }
 
         refrescarAmbasTablasNBU(padre);
-        vnbu.seleccionarHijoPorIndice(nuevaPosicion); 
+        vnbu.seleccionarHijoPorIndice(nuevaPosicion);
     }
 
     private void moverPadreNBU(int direccion) {
@@ -207,10 +205,14 @@ public class NBUPresenter {
         if (filaActual < 0) return;
         
         int filaDestino = filaActual + direccion;
+        if (filaDestino < 0 || filaDestino >= vnbu.getCantidadFilasPadre()) return;
+        
         String codActual = vnbu.getCodigoPadreSeleccionado();
         String codDestino = vnbu.getCodigoPadreFila(filaDestino);
         
-        if (codActual == null || codActual.isEmpty() || codDestino.isEmpty()) return;
+        if (codActual == null || codActual.isEmpty() || codDestino == null || codDestino.isEmpty()) {
+            return;
+        }
 
         Determinacion detActual = determinacionDAO.buscarPorCodigo(codActual);
         Determinacion detDestino = determinacionDAO.buscarPorCodigo(codDestino);
@@ -222,18 +224,23 @@ public class NBUPresenter {
             determinacionDAO.actualizarPrioridad(codActual, prioDestino);
             determinacionDAO.actualizarPrioridad(codDestino, prioActual);
             
-            List<Determinacion> listaPadres = determinacionDAO.listarTodo();
-            vnbu.cargarDeterminaciones(listaPadres);
+            refrescarListaPadres();
             vnbu.seleccionarPadrePorIndice(filaDestino);
         }
     }
 
     private void refrescarAmbasTablasNBU(String codigoPadre) {
+        refrescarListaPadres();
+        
+        if (codigoPadre != null && !codigoPadre.trim().isEmpty()) {
+            vnbu.seleccionarFilaPorCodigo(codigoPadre);
+            List<Determinacion> hijos = determinacionDAO.obtenerComponentes(codigoPadre);
+            vnbu.cargarHijos(hijos);
+        }
+    }
+
+    private void refrescarListaPadres() {
         List<Determinacion> listaCompleta = determinacionDAO.listarTodo();
         vnbu.cargarDeterminaciones(listaCompleta);
-        vnbu.seleccionarFilaPorCodigo(codigoPadre);
-        
-        List<Determinacion> hijos = determinacionDAO.obtenerComponentes(codigoPadre);
-        vnbu.cargarHijos(hijos);
     }
 }

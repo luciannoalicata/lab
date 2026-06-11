@@ -115,7 +115,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
     private void construirUI() {
         setTitle("BIOTEC LABORATORIOS — Sistema de Gestión de Laboratorio Clínico");
         setExtendedState(MAXIMIZED_BOTH);
-        setMinimumSize(new Dimension(1366, 768)); 
+        setMinimumSize(new Dimension(1520, 950)); 
         construirHeader();
         construirCuerpo();
         setLocationRelativeTo(null);
@@ -221,7 +221,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         wrapperCentro.setBackground(C_FONDO);
         
         // ¡CORRECCIÓN CRÍTICA! Quitamos el margen de 25px para que ocupe el 100% de la pantalla
-        wrapperCentro.setBorder(new EmptyBorder(0, 0, 0, 0));
+        wrapperCentro.setBorder(new EmptyBorder(15, 30, 30, 30));
         wrapperCentro.add(pnlContenido, BorderLayout.CENTER);
 
         pnlMenuIzquierdo = construirMenuLateral(true);
@@ -562,8 +562,9 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         if (pnlMenuIzquierdo != null) pnlMenuIzquierdo.setVisible(false);
         if (pnlMenuDerecho != null) pnlMenuDerecho.setVisible(false);
         if (pnlFooterCerrar != null) pnlFooterCerrar.setVisible(false); 
-        this.revalidate();
-        this.repaint();
+        this.getContentPane().invalidate();
+        this.getContentPane().validate();
+        this.getContentPane().repaint();
     }
 
     @Override

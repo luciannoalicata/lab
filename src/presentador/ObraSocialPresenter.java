@@ -11,8 +11,8 @@ public class ObraSocialPresenter {
     private final IVistaObraSocial vos;
     private final AppRouter router; 
     private final ObraSocialDAO obraSocialDAO;
+    private boolean actualizandoVista = false; // ← NUEVO: evita eventos durante actualizaciones
 
-    // 2. CAMBIA ESTO EN EL CONSTRUCTOR
     public ObraSocialPresenter(IVistaObraSocial vos, AppRouter router, ObraSocialDAO obraSocialDAO) {
         this.vos = vos;
         this.router = router;
@@ -20,17 +20,25 @@ public class ObraSocialPresenter {
     }
 
     public void iniciar() {
-        vos.setPresenter(this); // Conectamos la vista
+        vos.setPresenter(this);
         vos.limpiarCampos();
         cargarObrasSocialesEnTabla();
     }
 
     private void cargarObrasSocialesEnTabla() {
+        actualizandoVista = true; // ← Desactivar eventos
         ArrayList<ObraSocial> lista = obraSocialDAO.listarObrasSociales();
         vos.cargarObrasSocialesEnTabla(lista);
+        actualizandoVista = false; // ← Reactivar eventos
     }
 
-    // ── MÉTODOS EXPLÍCITOS LLAMADOS POR LA VISTA (Adiós al ActionPerformed) ──
+    private void cargarObrasSocialesFiltradas(ArrayList<ObraSocial> lista) {
+        actualizandoVista = true;
+        vos.cargarObrasSocialesEnTabla(lista);
+        actualizandoVista = false;
+    }
+
+    // ── MÉTODOS EXPLÍCITOS LLAMADOS POR LA VISTA ──
 
     public void onAgregarOS() {
         String cod = vos.getCodigoObraSocial();
@@ -45,8 +53,7 @@ public class ObraSocialPresenter {
         ObraSocial nueva = new ObraSocial(cod, nom, ara);
         if (obraSocialDAO.agregarObraSocial(nueva)) {
             vos.mostrarMensaje("Obra Social agregada con éxito.");
-            vos.limpiarCampos();
-            cargarObrasSocialesEnTabla();
+            limpiarYRecargar();
         } else {
             vos.mostrarMensaje("Error: El código ya existe o hubo un fallo al guardar.");
         }
@@ -56,22 +63,27 @@ public class ObraSocialPresenter {
         ObraSocial selEliminar = vos.getObraSocialSeleccionada();
         
         if (selEliminar == null) {
-             vos.mostrarMensaje("Por favor, seleccione una obra social de la tabla.");
-             return;
+            vos.mostrarMensaje("Por favor, seleccione una obra social de la tabla.");
+            return;
         }
         
         int confirm = vos.confirmarAccion("¿Eliminar la obra social " + selEliminar.getNombre() + "?", "Confirmar");
         if (confirm == 0) { 
-            if(obraSocialDAO.eliminarObraSocial(selEliminar.getCodigo())) {
-                 vos.mostrarMensaje("Obra social eliminada.");
-                 cargarObrasSocialesEnTabla();
+            if (obraSocialDAO.eliminarObraSocial(selEliminar.getCodigo())) {
+                vos.mostrarMensaje("Obra social eliminada.");
+                limpiarYRecargar();
             } else {
-                 vos.mostrarMensaje("No se pudo eliminar la obra social.");
+                vos.mostrarMensaje("No se pudo eliminar la obra social.");
             }
         }
     }
 
     public void onCambiarArancel() {
+        // ← EVITAR ejecución durante actualizaciones
+        if (actualizandoVista) {
+            return;
+        }
+        
         ObraSocial selArancel = vos.getObraSocialSeleccionada();
         
         if (selArancel == null) {
@@ -86,7 +98,7 @@ public class ObraSocialPresenter {
                 double nuevoAra = Double.parseDouble(inputArancel.replace(",", "."));
                 if (obraSocialDAO.actualizarArancel(selArancel.getCodigo(), nuevoAra)) {
                     vos.mostrarMensaje("Arancel actualizado.");
-                    cargarObrasSocialesEnTabla();
+                    limpiarYRecargar();
                 } else {
                     vos.mostrarMensaje("Fallo al actualizar el arancel en la base de datos.");
                 }
@@ -94,6 +106,14 @@ public class ObraSocialPresenter {
                 vos.mostrarMensaje("Error: El valor ingresado no es un número válido.");
             }
         }
+    }
+    
+    // ← NUEVO: Método unificado para limpiar y recargar sin disparar eventos
+    private void limpiarYRecargar() {
+        actualizandoVista = true;
+        vos.limpiarCampos();
+        cargarObrasSocialesEnTabla();
+        actualizandoVista = false;
     }
 
     public void onBuscarOS() {
@@ -105,16 +125,26 @@ public class ObraSocialPresenter {
         } else {
             filtradas = obraSocialDAO.buscarPorCodigoONombre(filtro);
         }
-        vos.cargarObrasSocialesEnTabla(filtradas);
+        cargarObrasSocialesFiltradas(filtradas);
     }
 
     public void onVolver() {
-        // Le pasamos la pelota al taxista (Router)
         router.irAInicio();
     }
 
     public void onSeleccionarOS() {
-        // En este módulo, la selección solo habilita botones visualmente
-        // La vista (VistaObraSocial) ya maneja esto, así que aquí no hace falta lógica extra.
+        // ← EVITAR ejecución durante actualizaciones
+        if (actualizandoVista) {
+            return;
+        }
+        
+        // Solo habilitar botones visualmente, no mostrar mensajes
+        ObraSocial seleccionada = vos.getObraSocialSeleccionada();
+        if (seleccionada != null) {
+            vos.habilitarBotonEliminar(true);
+            // El botón CambiarArancel se habilita en la vista
+        } else {
+            vos.habilitarBotonEliminar(false);
+        }
     }
 }

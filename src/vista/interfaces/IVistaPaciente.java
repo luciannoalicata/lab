@@ -30,13 +30,14 @@ public interface IVistaPaciente {
     String getObraSocial();
     String getCelular();
     String getTextoBusqueda();
+    Paciente getPacienteSeleccionado(); 
+    int getPacienteSeleccionadoId();
     void habilitarBotonGuardar(boolean b);
     void habilitarBotonEditar(boolean b);
     void habilitarBotonCargarResultados(boolean b);
     void habilitarBotonNuevoAnalisis(boolean b);
     void mostrarSugerenciasOS(List<String> sugerencias);
     void cargarPacientesEnTabla(ArrayList<Paciente> pacientes);
-    Paciente getPacienteSeleccionado();
     void cargarDatosPaciente(Paciente p);
     void limpiarCampos();
     void mostrarMensaje(String mensaje); 

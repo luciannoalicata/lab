@@ -205,7 +205,7 @@ public class DetalleAnalisisPresenter {
     }
 
     public void onVolver() {
-        router.cerrarDetalleAnalisis();
+        router.abrirListadoGlobalAnalisis();
     }
 
     public void onSeleccionarAnalisis() {

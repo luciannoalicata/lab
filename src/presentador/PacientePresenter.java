@@ -1,25 +1,33 @@
 package presentador;
 
 import dao.PacienteDAO;
+import dao.AuditoriaDAO;
+import dao.ObraSocialDAO; 
 import modelo.Paciente;
+import modelo.ObraSocial;
+import modelo.Usuario;
 import presentador.router.AppRouter;
 import vista.interfaces.IVistaPaciente;
 import java.util.ArrayList;
+import java.util.List;
 
 public class PacientePresenter {
 
     private final IVistaPaciente vista;
     private final AppRouter router;
     private final PacienteDAO pacienteDAO;
-    private final dao.AuditoriaDAO auditoriaDAO;
-    private final modelo.Usuario usuarioLogueado;
+    private final AuditoriaDAO auditoriaDAO;
+    private final ObraSocialDAO obraSocialDAO; 
+    private final Usuario usuarioLogueado;
+    private Paciente pacienteSeleccionadoCompleto; 
 
     public PacientePresenter(IVistaPaciente vista, AppRouter router, PacienteDAO pacienteDAO, 
-                             dao.AuditoriaDAO auditoriaDAO, modelo.Usuario usuarioLogueado) {
+                             AuditoriaDAO auditoriaDAO, ObraSocialDAO obraSocialDAO, Usuario usuarioLogueado) {
         this.vista = vista;
         this.router = router;
         this.pacienteDAO = pacienteDAO;
         this.auditoriaDAO = auditoriaDAO;
+        this.obraSocialDAO = obraSocialDAO; 
         this.usuarioLogueado = usuarioLogueado;
     }
 
@@ -34,11 +42,11 @@ public class PacientePresenter {
     }
 
     public void onGuardarPaciente() {
-        String dni = vista.getDni();
-        if (dni.isEmpty() || vista.getNombre().isEmpty()) {
-            vista.mostrarMensaje("DNI y Nombre son obligatorios");
+        if (!validarCampos()) {
             return;
         }
+
+        String dni = vista.getDni();
 
         if (pacienteDAO.existeDNI(dni)) {
             vista.mostrarMensaje("El paciente con DNI " + dni + " ya se encuentra registrado.");
@@ -67,8 +75,8 @@ public class PacientePresenter {
         }
         cargarTabla();
     }
-    
-    public void onEditarPaciente(){
+
+    public void onEditarPaciente() {
         Paciente seleccionado = vista.getPacienteSeleccionado();
         if (seleccionado == null) {
             vista.mostrarMensaje("Debe seleccionar un paciente");
@@ -84,7 +92,7 @@ public class PacientePresenter {
 
         StringBuilder cambiosViejos = new StringBuilder();
         StringBuilder cambiosNuevos = new StringBuilder();
-        
+
         if (!pViejo.getDni().equals(vista.getDni())) {
             cambiosViejos.append("DNI: ").append(pViejo.getDni()).append(" | ");
             cambiosNuevos.append("DNI: ").append(vista.getDni()).append(" | ");
@@ -94,22 +102,21 @@ public class PacientePresenter {
             cambiosNuevos.append("Apel: ").append(vista.getApellido()).append(" | ");
         }
 
-        seleccionado.setVersion(pViejo.getVersion());
-        seleccionado.setDni(vista.getDni());
-        seleccionado.setNombre(vista.getNombre());
-        seleccionado.setApellido(vista.getApellido());
-        seleccionado.setEdad(vista.getEdad());
-        seleccionado.setDireccion(vista.getDireccion());
-        seleccionado.setLocalidad(vista.getLocalidad());
-        seleccionado.setNroAfiliado(vista.getNumAfiliado());
-        seleccionado.setObraSocial(vista.getObraSocial());
-        seleccionado.setSexo(vista.getSexo());
-        seleccionado.setCelular(vista.getCelular());
+        pViejo.setDni(vista.getDni());
+        pViejo.setNombre(vista.getNombre());
+        pViejo.setApellido(vista.getApellido());
+        pViejo.setEdad(vista.getEdad());
+        pViejo.setDireccion(vista.getDireccion());
+        pViejo.setLocalidad(vista.getLocalidad());
+        pViejo.setNroAfiliado(vista.getNumAfiliado());
+        pViejo.setObraSocial(vista.getObraSocial());
+        pViejo.setSexo(vista.getSexo());
+        pViejo.setCelular(vista.getCelular());
 
-        if (pacienteDAO.actualizar(seleccionado)) {
+        if (pacienteDAO.actualizar(pViejo)) {  
             if (cambiosViejos.length() > 0) {
                 auditoriaDAO.registrar(usuarioLogueado, "EDITAR", "paciente",
-                        seleccionado.getIdPaciente(), cambiosViejos.toString(),
+                        pViejo.getIdPaciente(), cambiosViejos.toString(),
                         cambiosNuevos.toString(), "Edición exitosa");
             }
             vista.mostrarMensaje("Paciente actualizado correctamente");
@@ -121,29 +128,40 @@ public class PacientePresenter {
     }
 
     public void onCargarResultados() {
-        Paciente p = vista.getPacienteSeleccionado();
-        if (p == null) {
+        if (pacienteSeleccionadoCompleto == null) {
             vista.mostrarMensaje("Seleccione un paciente primero.");
             return;
         }
-        router.irANuevoAnalisis(p); 
+        router.irANuevoAnalisis(pacienteSeleccionadoCompleto);
     }
 
     public void onVerHistorial() {
-        Paciente p = vista.getPacienteSeleccionado();
-        if (p == null) {
+        if (pacienteSeleccionadoCompleto == null) {
             vista.mostrarMensaje("Seleccione un paciente primero.");
             return;
         }
-        // Le pasamos la pelota al Router
-        router.irAHistorial(p);
+        router.irAHistorial(pacienteSeleccionadoCompleto);
     }
 
+    // ── LÓGICA DE AUTOCOMPLETADO CORREGIDA ──
     public void onBuscarSugerenciaOS() {
-        // Asumiendo que agregas un ObraSocialDAO a este presentador, o delegas
-        // Si no tienes el ObraSocialDAO aquí, se lo pasas en el constructor igual que la AuditoriaDAO.
-        String texto = vista.getObraSocial(); // o el nombre de tu getter
-        // logica de buscar sugerencias...
+        String texto = vista.getObraSocial();
+        
+        if (texto == null || texto.trim().isEmpty()) {
+            vista.mostrarSugerenciasOS(new ArrayList<>());
+            return;
+        }
+        
+        // Usamos tu método existente que devuelve objetos ObraSocial
+        ArrayList<ObraSocial> resultados = obraSocialDAO.buscarPorCodigoONombre(texto);
+        
+        // Convertimos esos objetos a una lista de Strings con el nombre para que la vista los muestre
+        List<String> sugerencias = new ArrayList<>();
+        for (ObraSocial os : resultados) {
+            sugerencias.add(os.getNombre()); // Puedes usar os.getCodigo() + " - " + os.getNombre() si prefieres
+        }
+        
+        vista.mostrarSugerenciasOS(sugerencias);
     }
 
     public void onVolver() {
@@ -161,12 +179,69 @@ public class PacientePresenter {
     }
 
     public void onSeleccionarPaciente() {
-        Paciente p = vista.getPacienteSeleccionado();
-        if (p == null) return;
-        
-        Paciente completo = pacienteDAO.buscarPorId(p.getIdPaciente());
-        if (completo != null) {
-            vista.cargarDatosPaciente(completo);
+        int id = vista.getPacienteSeleccionadoId();  
+        if (id != -1) {
+            pacienteSeleccionadoCompleto = pacienteDAO.buscarPorId(id);
+            if (pacienteSeleccionadoCompleto != null) {
+                vista.cargarDatosPaciente(pacienteSeleccionadoCompleto);
+            }
         }
     }
+
+    public Paciente getPacienteSeleccionadoCompleto() {
+        return pacienteSeleccionadoCompleto;
+    }
+    /**
+ * Valida todos los campos del formulario antes de guardar
+ * @return true si todos los campos son válidos, false en caso contrario
+ */
+private boolean validarCampos() {
+    String dni = vista.getDni();
+    String nombre = vista.getNombre();
+    String apellido = vista.getApellido();
+    String edad = vista.getEdad();
+    String obraSocial = vista.getObraSocial();
+    
+    // DNI
+    if (!dni.matches("\\d{7,8}")) {
+        vista.mostrarMensaje("DNI inválido. Debe contener solo números y tener entre 7 y 8 dígitos.");
+        return false;
+    }
+    
+    // Nombre
+    if (!nombre.matches("^[a-zA-ZáéíóúñÑÁÉÍÓÚ\\s]+$")) {
+        vista.mostrarMensaje("Nombre inválido. No puede contener números.");
+        return false;
+    }
+    
+    // Apellido (opcional pero si se ingresa debe ser válido)
+    if (apellido != null && !apellido.isEmpty() && !apellido.matches("^[a-zA-ZáéíóúñÑÁÉÍÓÚ\\s]+$")) {
+        vista.mostrarMensaje("Apellido inválido. No puede contener números.");
+        return false;
+    }
+    
+    // Edad (opcional)
+    if (edad != null && !edad.isEmpty()) {
+        if (!edad.matches("\\d{1,2}")) {
+            vista.mostrarMensaje("Edad inválida. Debe ser un número de hasta 2 dígitos.");
+            return false;
+        }
+        int edadInt = Integer.parseInt(edad);
+        if (edadInt <= 0 || edadInt > 100) {
+            vista.mostrarMensaje("Edad inválida. Debe estar entre 0 y 99 años.");
+            return false;
+        }
+    }
+    
+    // Obra Social
+//    if (obraSocial != null && !obraSocial.isEmpty()) {
+//        List<String> obrasValidas = obtenerListaObrasSocialesValidas();
+//        if (!obrasValidas.contains(obraSocial) && !obraSocial.equals("PARTICULAR")) {
+//            vista.mostrarMensaje("Obra Social inválida. Seleccione una de las opciones sugeridas.");
+//            return false;
+//        }
+//    }
+    
+    return true;
+}
 }

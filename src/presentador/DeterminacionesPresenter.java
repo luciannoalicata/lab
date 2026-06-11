@@ -8,19 +8,16 @@ import modelo.Paciente;
 import presentador.router.AppRouter;
 import vista.interfaces.IVistaDeterminaciones;
 
-// 1. Adiós al implements ActionListener
 public class DeterminacionesPresenter {
 
     private final IVistaDeterminaciones vd;
-    private final AppRouter router; // 2. Usamos el AppRouter
+    private final AppRouter router; 
     private final DeterminacionDAO determinacionDAO;
     private final Paciente pacienteActual;
     
-    // ── ¡LA MEMORIA VIVE AQUÍ! ──
     private List<Determinacion> determinacionesSeleccionadas = new ArrayList<>();
     private List<Determinacion> listaVisualDeterminaciones = new ArrayList<>();
 
-    // 3. Constructor actualizado
     public DeterminacionesPresenter(IVistaDeterminaciones vd, AppRouter router, DeterminacionDAO determinacionDAO, Paciente pacienteActual) {
         this.vd = vd;
         this.router = router;
@@ -29,14 +26,12 @@ public class DeterminacionesPresenter {
     }
 
     public void iniciar() {
-        vd.setPresenter(this); // Conectamos la vista al presentador
+        vd.setPresenter(this); 
         determinacionesSeleccionadas.clear();
         listaVisualDeterminaciones.clear();
         vd.limpiarCampos();
         refrescarTablaSeleccion();
         
-        // Ejecutar bloquea el hilo porque es un JDialog modal,
-        // por eso lo llamamos al final de iniciar()
         vd.ejecutar(); 
     }
 
@@ -117,22 +112,36 @@ public class DeterminacionesPresenter {
         }
     }
 
+    /**
+     * CORRECCIÓN CRÍTICA APLICADA:
+     * Ahora lee la matriz de índices de la vista. Si se seleccionó un título padre,
+     * la vista expande los índices enviando también a todos sus hijos. El presentador
+     * simplemente recolecta los códigos reales y los elimina de la memoria.
+     */
     public void onEliminarDeterminacion() {
-        int fila = vd.getFilaSeleccionada();
-
-        if (fila >= 0 && fila < listaVisualDeterminaciones.size()) {
-            Determinacion detAEliminar = listaVisualDeterminaciones.get(fila);
-            String nombreFila = detAEliminar.getNombre() != null ? detAEliminar.getNombre() : "";
-
-            if (nombreFila.startsWith("---") && nombreFila.endsWith("---")) {
-                vd.mostrarMensaje("No puede eliminar un separador visual.\nSi desea quitar la práctica, elimine sus componentes médicos.");
-                return;
+        int[] filasSeleccionadas = vd.getFilasSeleccionadas();
+        if (filasSeleccionadas != null && filasSeleccionadas.length > 0) {
+            List<String> codigosAEliminar = new ArrayList<>();
+            
+            // Recolectamos los códigos de todas las filas seleccionadas (individuales o en cascada)
+            for (int fila : filasSeleccionadas) {
+                if (fila >= 0 && fila < listaVisualDeterminaciones.size()) {
+                    Determinacion det = listaVisualDeterminaciones.get(fila);
+                    
+                    // Si tiene un código válido (es una determinación hija real y no un título virtual)
+                    if (det.getCodigo() != null && !det.getCodigo().trim().isEmpty()) {
+                        codigosAEliminar.add(det.getCodigo());
+                    }
+                }
             }
 
-            determinacionesSeleccionadas.removeIf(d -> d.getCodigo().equals(detAEliminar.getCodigo()));
-            refrescarTablaSeleccion();
+            // Si recolectamos elementos para borrar, procedemos de forma masiva
+            if (!codigosAEliminar.isEmpty()) {
+                determinacionesSeleccionadas.removeIf(d -> codigosAEliminar.contains(d.getCodigo()));
+                refrescarTablaSeleccion();
+            }
         } else {
-            vd.mostrarMensaje("Por favor, seleccione una fila válida para eliminar.");
+            vd.mostrarMensaje("Por favor, seleccione una o más filas para eliminar.");
         }
     }
 
@@ -155,10 +164,11 @@ public class DeterminacionesPresenter {
             return;
         }
         
-        // Cerramos el JDialog modal actual
-        vd.cerrarPantalla();
+        if (vd != null) {
+            vd.cerrarPantalla();
+        }
         
-        // Le pasamos la pelota al Router con los datos listos
+        router.limpiarReferenciaDeterminaciones();
         router.abrirCargaResultados(pacienteActual, listaVisualDeterminaciones);
     }
 
@@ -205,5 +215,11 @@ public class DeterminacionesPresenter {
         Determinacion d = new Determinacion();
         d.setNombre(titulo);
         return d;
+    }
+
+    public void cerrarVista() {
+        if (vd != null) {
+            vd.cerrarPantalla();
+        }
     }
 }

@@ -25,6 +25,7 @@ public interface IVistaNBU {
     String getCodigoPadreSeleccionado();
     String getCodigoHijoSeleccionado();
     void seleccionarFilaPorCodigo(String codigo);
+    int getCantidadFilasPadre();
     String getCodigoHijoFila(int fila);
     String getNombreHijoFila(int fila);
     int getIndiceHijoSeleccionado();
@@ -37,4 +38,5 @@ public interface IVistaNBU {
     String getReferencia(int fila);
     void cargarDeterminaciones(List<Determinacion> lista);
     void detenerEdicionTabla();
+    boolean hayCambiosPendientes();
 }

@@ -196,4 +196,20 @@ public class MedicoDAO {
         }
         return sugerencias;
     }
+
+    public boolean actualizarMedico(Medico medico) {
+        String sql = "UPDATE medico SET nombre = ?, apellido = ?, especialidad = ?, observaciones = ? WHERE matricula = ?";
+        try (PreparedStatement stmt = con.getConnection().prepareStatement(sql)) {
+            stmt.setString(1, medico.getNombreMedico());
+            stmt.setString(2, medico.getApellidoMedico());
+            stmt.setString(3, medico.getEspecialidad());
+            stmt.setString(4, medico.getObservaciones());
+            stmt.setString(5, medico.getMatricula());
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
 }

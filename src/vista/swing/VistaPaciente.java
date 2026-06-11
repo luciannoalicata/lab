@@ -13,9 +13,10 @@ import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.Insets;
-import java.awt.Window;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.BorderFactory;
@@ -25,12 +26,11 @@ import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.JWindow;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
@@ -40,12 +40,15 @@ import presentador.PacientePresenter;
 public class VistaPaciente extends JPanel implements IVistaPaciente {
 
     private PacientePresenter presenter;
-    private JWindow ventanaSugerencias;
-    private JList<String> listaSugerencias;
+    private JPopupMenu        popupSugerencias;
+    private JList<String>     listaSugerencias;
     private DefaultListModel<String> modeloSugerencias;
+    
+    // Bandera de seguridad para el autocompletado
+    private boolean ignorarBusquedaOS = false;
 
-    // ── Paleta BIOTEC Minimalista ────────────────────────────────────
-    private final Color C_NAVY         = new Color(10, 25, 47);    // Azul Encabezado
+    // ── Paleta ───────────────────────────────────────────────────────
+    private final Color C_NAVY         = new Color(10, 25, 47);
     private final Color C_FONDO        = new Color(238, 242, 246);
     private final Color C_BLANCO       = Color.WHITE;
     private final Color C_TEXTO_FUERTE = new Color(40, 50, 60);
@@ -53,7 +56,6 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
     private final Color C_BORDE        = new Color(215, 225, 235);
     private final Color C_AZUL_MEDIO   = new Color(30, 110, 180);
     private final Color C_VERDE        = new Color(35, 160, 115);
-    private final Color C_ROJO         = new Color(220, 53, 69);
     private final Color C_CAMPO        = new Color(250, 252, 254);
     private final Color C_CABECERA_TBL = new Color(245, 248, 252);
     private final Color C_FILA_PAR     = new Color(252, 254, 255);
@@ -64,77 +66,221 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         aplicarEstilo();
         configurarBuscadorOS();
         configurarNavegacionEnter();
+        configurarDeseleccionPorClic();
+        configurarValidacionesCampos();
 
         btnCargarResultados.setEnabled(false);
         btnVerHistorial.setEnabled(false);
+
+        // Buscador Principal en tiempo real
+        txtBuscar.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override public void insertUpdate (javax.swing.event.DocumentEvent e) { buscar(); }
+            @Override public void removeUpdate (javax.swing.event.DocumentEvent e) { buscar(); }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { buscar(); }
+            private void buscar() { if (presenter != null) presenter.onBuscarPaciente(); }
+        });
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  MVP - CONEXIÓN CON EL PRESENTADOR
-    // ══════════════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════════
+    //  VALIDACIONES EN TIEMPO REAL
+    // ════════════════════════════════════════════════════════════════
+    private void configurarValidacionesCampos() {
+        
+        // Validación de NOMBRE: solo letras, espacios, acentos y ñ
+        txtNombre.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                char c = e.getKeyChar();
+                // Permitir letras (mayúsculas/minúsculas), espacios, acentos y ñ
+                if (!Character.isLetter(c) && c != ' ' && c != KeyEvent.VK_BACK_SPACE && 
+                    c != 'á' && c != 'é' && c != 'í' && c != 'ó' && c != 'ú' &&
+                    c != 'Á' && c != 'É' && c != 'Í' && c != 'Ó' && c != 'Ú' &&
+                    c != 'ñ' && c != 'Ñ') {
+                    e.consume(); // Bloquear caracteres no permitidos
+                    mostrarMensajeTemporal("El nombre solo puede contener letras y espacios.");
+                }
+            }
+        });
+        
+        // Validación de APELLIDO: solo letras, espacios, acentos y ñ
+        txtApellido.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                char c = e.getKeyChar();
+                if (!Character.isLetter(c) && c != ' ' && c != KeyEvent.VK_BACK_SPACE &&
+                    c != 'á' && c != 'é' && c != 'í' && c != 'ó' && c != 'ú' &&
+                    c != 'Á' && c != 'É' && c != 'Í' && c != 'Ó' && c != 'Ú' &&
+                    c != 'ñ' && c != 'Ñ') {
+                    e.consume();
+                    mostrarMensajeTemporal("El apellido solo puede contener letras y espacios.");
+                }
+            }
+        });
+        
+        // Validación de DNI: solo números, máximo 8 dígitos
+        txtDni.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                char c = e.getKeyChar();
+                String textoActual = txtDni.getText();
+                
+                // Permitir solo números
+                if (!Character.isDigit(c)) {
+                    e.consume();
+                    mostrarMensajeTemporal("El DNI solo puede contener números.");
+                    return;
+                }
+                
+                // Limitar a 8 dígitos
+                if (textoActual.length() >= 8) {
+                    e.consume();
+                    mostrarMensajeTemporal("El DNI no puede tener más de 8 dígitos.");
+                }
+            }
+        });
+        
+        // Validación de EDAD: solo números, máximo 3 dígitos (0-120)
+        txtEdad.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                char c = e.getKeyChar();
+                String textoActual = txtEdad.getText();
+                
+                // Permitir solo números
+                if (!Character.isDigit(c)) {
+                    e.consume();
+                    mostrarMensajeTemporal("La edad solo puede contener números.");
+                    return;
+                }
+                
+                // Limitar a 3 dígitos (máximo 120 años)
+                if (textoActual.length() >= 3) {
+                    e.consume();
+                    mostrarMensajeTemporal("La edad no puede tener más de 3 dígitos.");
+                }
+            }
+            
+            @Override
+            public void keyReleased(KeyEvent e) {
+                // Validar rango de edad al soltar la tecla
+                String texto = txtEdad.getText().trim();
+                if (!texto.isEmpty()) {
+                    try {
+                        int edad = Integer.parseInt(texto);
+                        if (edad < 0 || edad > 120) {
+                            mostrarMensajeTemporal("La edad debe estar entre 0 y 120 años.");
+                        }
+                    } catch (NumberFormatException ex) {
+                        // Ya validado en keyTyped
+                    }
+                }
+            }
+        });
+    }
+    
+    private void mostrarMensajeTemporal(String mensaje) {
+        // Mostrar mensaje en la barra de estado o como tooltip temporal
+        // Opcional: usar un JLabel de estado o simplemente ignorar para no molestar
+        // Por ahora solo mostramos en consola, pero puedes implementar un JLabel de estado
+        System.out.println("Validación: " + mensaje);
+        // Si quieres mostrar un tooltip flotante:
+        // JOptionPane.showMessageDialog(this, mensaje, "Validación", JOptionPane.WARNING_MESSAGE);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  DESELECCIÓN DE FILA AL HACER CLIC FUERA DE LA TABLA
+    // ════════════════════════════════════════════════════════════════
+    private void configurarDeseleccionPorClic() {
+        JPanel[] panelesParaDeseleccion = {
+            pnlCuerpo, pnlFormulario, pnlTablaWrapper, pnlFooter,
+            pnlBotonesEdicion, pnlHeader
+        };
+        
+        MouseAdapter deseleccionador = new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                Component componenteOrigen = e.getComponent();
+                if (componenteOrigen == grillaPacientes || 
+                    componenteOrigen == jScrollPane1 ||
+                    componenteOrigen == grillaPacientes.getTableHeader()) {
+                    return; 
+                }
+                
+                if (componenteOrigen instanceof javax.swing.JButton ||
+                    componenteOrigen instanceof javax.swing.JTextField ||
+                    componenteOrigen instanceof javax.swing.JComboBox ||
+                    componenteOrigen instanceof javax.swing.JTextArea) {
+                    return; 
+                }
+                
+                if (grillaPacientes.getSelectedRow() != -1) {
+                    grillaPacientes.clearSelection();
+                    limpiarCampos();
+                }
+            }
+        };
+        
+        for (JPanel panel : panelesParaDeseleccion) {
+            if (panel != null) panel.addMouseListener(deseleccionador);
+        }
+        this.addMouseListener(deseleccionador);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  MVP
+    // ════════════════════════════════════════════════════════════════
     @Override
     public void setPresenter(PacientePresenter presenter) {
         this.presenter = presenter;
         
-        // Conexión directa a los métodos del presentador (Sin switch)
+        limpiarListeners(btnGuardarPaciente);
+        limpiarListeners(btnEditarPaciente);
+        limpiarListeners(btnCargarResultados);
+        limpiarListeners(btnVerHistorial);
+        limpiarListeners(btnVolver);
+        
         btnGuardarPaciente.addActionListener(e -> presenter.onGuardarPaciente());
         btnEditarPaciente.addActionListener(e -> presenter.onEditarPaciente());
         btnCargarResultados.addActionListener(e -> presenter.onCargarResultados());
         btnVerHistorial.addActionListener(e -> presenter.onVerHistorial());
         btnVolver.addActionListener(e -> presenter.onVolver());
-        
-        // Buscador automático
-        txtBuscar.addKeyListener(new java.awt.event.KeyAdapter() {
-            @Override
-            public void keyReleased(java.awt.event.KeyEvent e) {
-                presenter.onBuscarPaciente();
-            }
-        });
 
-        // Evento de tabla para habilitar botones
         grillaPacientes.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
-                boolean haySeleccion = grillaPacientes.getSelectedRow() != -1;
-                // Dejamos que la vista habilite/deshabilite según la selección
-                btnCargarResultados.setEnabled(haySeleccion);
-                btnVerHistorial.setEnabled(haySeleccion);
-                
-                if (haySeleccion) {
-                    presenter.onSeleccionarPaciente();
-                }
+                boolean hay = grillaPacientes.getSelectedRow() != -1;
+                btnCargarResultados.setEnabled(hay);
+                btnVerHistorial    .setEnabled(hay);
+                if (hay) presenter.onSeleccionarPaciente();
             }
         });
     }
-
-    @Override public void ejecutar() { setVisible(true); }
-
-    @Override
-    public void limpiarFocos() {
-        this.requestFocusInWindow();
+    
+    private void limpiarListeners(javax.swing.JButton btn) {
+        for (java.awt.event.ActionListener al : btn.getActionListeners()) {
+            btn.removeActionListener(al);
+        }
     }
+
+    @Override public void ejecutar()  { setVisible(true); }
+    @Override public void limpiarFocos() { requestFocusInWindow(); }
 
     @Override
     public int confirmarAccion(String mensaje, String titulo) {
-        return javax.swing.JOptionPane.showConfirmDialog(
-                this, 
-                mensaje, 
-                titulo, 
-                javax.swing.JOptionPane.YES_NO_OPTION
-        );
+        return JOptionPane.showConfirmDialog(this, mensaje, titulo, JOptionPane.YES_NO_OPTION);
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  GETTERS Y SETTERS MVP
-    // ══════════════════════════════════════════════════════════════════
-    @Override public String getDni()           { return txtDni.getText().trim(); }
-    @Override public String getNombre()        { return txtNombre.getText().trim(); }
+    // ════════════════════════════════════════════════════════════════
+    //  GETTERS
+    // ════════════════════════════════════════════════════════════════
     @Override public String getApellido()      { return txtApellido.getText().trim(); }
+    @Override public String getNombre()        { return txtNombre.getText().trim(); }
+    @Override public String getDni()           { return txtDni.getText().trim(); }
     @Override public String getEdad()          { return txtEdad.getText().trim(); }
     @Override public String getDireccion()     { return txtDireccion.getText().trim(); }
     @Override public String getLocalidad()     { return txtLocalidad.getText().trim(); }
     @Override public String getNumAfiliado()   { return txtNAfiliado.getText().trim(); }
     @Override public String getCelular()       { return txtCelular.getText().trim(); }
-    @Override public String getSexo()          { return (cbxSexo.getSelectedIndex() >= 0) ? cbxSexo.getSelectedItem().toString() : ""; }
+    @Override public String getSexo()          { return cbxSexo.getSelectedIndex() >= 0 ? cbxSexo.getSelectedItem().toString() : ""; }
     @Override public String getObraSocial()    { return txtObraSocial.getText().trim(); }
     @Override public String getTextoBusqueda() { return txtBuscar.getText().trim(); }
 
@@ -143,27 +289,38 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
     @Override public void habilitarBotonCargarResultados(boolean b) { btnCargarResultados.setEnabled(b); }
     @Override public void habilitarBotonNuevoAnalisis(boolean b)    { btnCargarResultados.setEnabled(b); }
 
+    // ════════════════════════════════════════════════════════════════
+    //  TABLA
+    // ════════════════════════════════════════════════════════════════
     @Override
     public void cargarPacientesEnTabla(ArrayList<Paciente> pacientes) {
         DefaultTableModel modelo = new DefaultTableModel(
             new Object[][]{},
-            new String[]{"ID", "APELLIDO", "NOMBRE", "DNI", "ÚLTIMO ANÁLISIS"}
+            new String[]{"ID", "APELLIDO", "NOMBRE", "DNI", "EDAD", "ÚLTIMO ANÁLISIS"}
         ) { @Override public boolean isCellEditable(int r, int c) { return false; } };
 
-        modelo.setRowCount(0);
         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
         for (Paciente p : pacientes) {
-            String fecha = (p.getFechaUltimoAnalisis() != null) ? sdf.format(p.getFechaUltimoAnalisis()) : "Sin análisis";
-            modelo.addRow(new Object[]{ p.getIdPaciente(), p.getApellido().toUpperCase(), p.getNombre().toUpperCase(), p.getDni(), fecha });
+            String fecha = p.getFechaUltimoAnalisis() != null
+                    ? sdf.format(p.getFechaUltimoAnalisis()) : "Sin análisis";
+            modelo.addRow(new Object[]{
+                p.getIdPaciente(),
+                p.getApellido().toUpperCase(),
+                p.getNombre().toUpperCase(),
+                p.getDni(),
+                p.getEdad(),
+                fecha
+            });
         }
         grillaPacientes.setModel(modelo);
 
         DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
             @Override
-            public Component getTableCellRendererComponent(javax.swing.JTable t, Object v, boolean sel, boolean foc, int row, int col) {
+            public Component getTableCellRendererComponent(JTable t, Object v,
+                    boolean sel, boolean foc, int row, int col) {
                 super.getTableCellRendererComponent(t, v, sel, foc, row, col);
                 setHorizontalAlignment(SwingConstants.CENTER);
-                setBorder(new EmptyBorder(0, 10, 0, 10));
+                setBorder(new EmptyBorder(0, 8, 0, 8));
                 if (!sel) {
                     setBackground(row % 2 == 0 ? C_BLANCO : C_FILA_PAR);
                     setForeground(C_TEXTO_FUERTE);
@@ -171,59 +328,240 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
                 return this;
             }
         };
-        for (int i = 0; i < grillaPacientes.getColumnCount(); i++) {
+
+        DefaultTableCellRenderer leftRenderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable t, Object v,
+                    boolean sel, boolean foc, int row, int col) {
+                super.getTableCellRendererComponent(t, v, sel, foc, row, col);
+                setHorizontalAlignment(SwingConstants.LEFT);
+                setBorder(new EmptyBorder(0, 10, 0, 8));
+                if (!sel) {
+                    setBackground(row % 2 == 0 ? C_BLANCO : C_FILA_PAR);
+                    setForeground(C_TEXTO_FUERTE);
+                }
+                return this;
+            }
+        };
+
+        for (int i = 0; i < grillaPacientes.getColumnCount(); i++)
             grillaPacientes.getColumnModel().getColumn(i).setCellRenderer(renderer);
-        }
-        
-        grillaPacientes.getColumnModel().getColumn(0).setPreferredWidth(60);
-        grillaPacientes.getColumnModel().getColumn(0).setMaxWidth(80);
+
+        grillaPacientes.getColumnModel().getColumn(1).setCellRenderer(leftRenderer);
+        grillaPacientes.getColumnModel().getColumn(2).setCellRenderer(leftRenderer);
+
+        grillaPacientes.getColumnModel().getColumn(0).setPreferredWidth(50);
+        grillaPacientes.getColumnModel().getColumn(0).setMaxWidth(60);
+        grillaPacientes.getColumnModel().getColumn(1).setPreferredWidth(180);
+        grillaPacientes.getColumnModel().getColumn(2).setPreferredWidth(160);
+        grillaPacientes.getColumnModel().getColumn(3).setPreferredWidth(90);
+        grillaPacientes.getColumnModel().getColumn(3).setMaxWidth(110);
+        grillaPacientes.getColumnModel().getColumn(4).setPreferredWidth(55);  
+        grillaPacientes.getColumnModel().getColumn(4).setMaxWidth(60);
+        grillaPacientes.getColumnModel().getColumn(5).setPreferredWidth(130);
+    }
+
+    @Override
+    public int getPacienteSeleccionadoId() {
+        int fila = grillaPacientes.getSelectedRow();
+        if (fila == -1) return -1;
+        int modelRow = grillaPacientes.convertRowIndexToModel(fila);
+        return (int) grillaPacientes.getModel().getValueAt(modelRow, 0);
     }
 
     @Override
     public Paciente getPacienteSeleccionado() {
         int fila = grillaPacientes.getSelectedRow();
         if (fila == -1) return null;
+        
+        int modelRow = grillaPacientes.convertRowIndexToModel(fila);
         Paciente p = new Paciente();
-        p.setIdPaciente(Integer.parseInt(grillaPacientes.getValueAt(fila, 0).toString()));
+        p.setIdPaciente((int) grillaPacientes.getModel().getValueAt(modelRow, 0));
+        p.setApellido((String) grillaPacientes.getModel().getValueAt(modelRow, 1));
+        p.setNombre((String) grillaPacientes.getModel().getValueAt(modelRow, 2));
+        p.setDni((String) grillaPacientes.getModel().getValueAt(modelRow, 3));
+        p.setEdad(String.valueOf(grillaPacientes.getModel().getValueAt(modelRow, 4))); 
         return p;
     }
 
     @Override
     public void cargarDatosPaciente(Paciente p) {
         if (p == null) return;
-        txtDni.setText(p.getDni());
-        txtNombre.setText(p.getNombre());
-        txtApellido.setText(p.getApellido());
-        txtEdad.setText(p.getEdad());
+        ignorarBusquedaOS = true; // Desactivamos búsqueda al rellenar datos
+        
+        txtApellido .setText(p.getApellido());
+        txtNombre   .setText(p.getNombre());
+        txtDni      .setText(p.getDni());
+        txtEdad     .setText(String.valueOf(p.getEdad()));
         txtDireccion.setText(p.getDireccion());
         txtLocalidad.setText(p.getLocalidad());
         txtNAfiliado.setText(p.getNroAfiliado());
-        txtCelular.setText(p.getCelular());
-        cbxSexo.setSelectedItem(p.getSexo());
+        txtCelular  .setText(p.getCelular());
+        cbxSexo     .setSelectedItem(p.getSexo());
         txtObraSocial.setText(p.getObraSocial());
+        
+        ignorarBusquedaOS = false; // Reactivamos búsqueda
     }
 
     @Override
     public void limpiarCampos() {
-        txtDni.setText(""); txtApellido.setText(""); txtNombre.setText("");
-        txtEdad.setText(""); txtDireccion.setText(""); txtLocalidad.setText(""); 
-        txtNAfiliado.setText(""); txtCelular.setText(""); cbxSexo.setSelectedIndex(0); 
-        txtObraSocial.setText(""); txtBuscar.setText("");
-        txtDni.requestFocus();
+        ignorarBusquedaOS = true; 
+        
+        txtApellido .setText(""); txtNombre   .setText(""); txtDni      .setText("");
+        txtEdad     .setText(""); txtDireccion.setText(""); txtLocalidad.setText("");
+        txtNAfiliado.setText(""); txtCelular  .setText(""); txtObraSocial.setText("");
+        txtBuscar   .setText(""); cbxSexo.setSelectedIndex(0);
+        
         grillaPacientes.clearSelection();
+        txtApellido.requestFocus();
+        
+        ignorarBusquedaOS = false; 
     }
 
-    @Override public void mostrarMensaje(String mensaje) { JOptionPane.showMessageDialog(this, mensaje); }
+    @Override public void mostrarMensaje(String msg) { JOptionPane.showMessageDialog(this, msg); }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  ESTILO, EVENTOS Y AUTOCOMPLETADO
-    // ══════════════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════════
+    //  AUTOCOMPLETADO OBRA SOCIAL
+    // ════════════════════════════════════════════════════════════════
+    private void configurarBuscadorOS() {
+        modeloSugerencias = new DefaultListModel<>();
+        listaSugerencias  = new JList<>(modeloSugerencias);
+        listaSugerencias.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        listaSugerencias.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        listaSugerencias.setFixedCellHeight(32);
+        listaSugerencias.setBackground(C_BLANCO);
+        listaSugerencias.setSelectionBackground(new Color(220, 235, 250));
+        listaSugerencias.setSelectionForeground(C_TEXTO_FUERTE);
+
+        listaSugerencias.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+                seleccionarSugerencia();
+            }
+        });
+
+        txtObraSocial.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (popupSugerencias == null || !popupSugerencias.isVisible() || modeloSugerencias.isEmpty()) return;
+                int index = listaSugerencias.getSelectedIndex();
+                int size  = modeloSugerencias.getSize();
+                
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_DOWN:
+                        index = Math.min(index + 1, size - 1);
+                        listaSugerencias.setSelectedIndex(index);
+                        listaSugerencias.ensureIndexIsVisible(index);
+                        e.consume(); break;
+                    case KeyEvent.VK_UP:
+                        index = Math.max(index - 1, 0);
+                        listaSugerencias.setSelectedIndex(index);
+                        listaSugerencias.ensureIndexIsVisible(index);
+                        e.consume(); break;
+                    case KeyEvent.VK_ENTER:
+                        if (index != -1) { seleccionarSugerencia(); e.consume(); } break;
+                    case KeyEvent.VK_ESCAPE:
+                        popupSugerencias.setVisible(false); break;
+                }
+            }
+        });
+
+        txtObraSocial.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { dispararBusqueda(); }
+            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { dispararBusqueda(); }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { dispararBusqueda(); }
+
+            private void dispararBusqueda() {
+                if (ignorarBusquedaOS) return;
+                
+                String texto = txtObraSocial.getText().trim();
+                if (texto.length() >= 1) {
+                    if (presenter != null) presenter.onBuscarSugerenciaOS();
+                } else {
+                    if (popupSugerencias != null) popupSugerencias.setVisible(false);
+                }
+            }
+        });
+    }
+
+    @Override
+    public void mostrarSugerenciasOS(List<String> sugerencias) {
+        modeloSugerencias.clear();
+        for (String s : sugerencias) modeloSugerencias.addElement(s);
+
+        if (modeloSugerencias.isEmpty()) {
+            if (popupSugerencias != null) popupSugerencias.setVisible(false);
+            return;
+        }
+
+        if (popupSugerencias == null) {
+            popupSugerencias = new JPopupMenu();
+            popupSugerencias.setFocusable(false);
+            popupSugerencias.setBorder(BorderFactory.createEmptyBorder());
+            JScrollPane scroll = new JScrollPane(listaSugerencias);
+            scroll.setBorder(BorderFactory.createLineBorder(C_BORDE, 1));
+            popupSugerencias.add(scroll);
+        }
+
+        int alto = Math.min(200, modeloSugerencias.getSize() * 32 + 4);
+        popupSugerencias.setPopupSize(txtObraSocial.getWidth(), alto);
+        popupSugerencias.show(txtObraSocial, 0, txtObraSocial.getHeight());
+        txtObraSocial.requestFocusInWindow();
+        listaSugerencias.setSelectedIndex(0);
+    }
+
+    private void seleccionarSugerencia() {
+        String sel = listaSugerencias.getSelectedValue();
+        if (sel != null) {
+            ignorarBusquedaOS = true;
+            txtObraSocial.setText(sel);
+            ignorarBusquedaOS = false;
+            
+            if (popupSugerencias != null) popupSugerencias.setVisible(false);
+            txtNAfiliado.requestFocus();
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  NAVEGACIÓN ENTER
+    // ════════════════════════════════════════════════════════════════
+    private void configurarNavegacionEnter() {
+        KeyAdapter nav = new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() != KeyEvent.VK_ENTER) return;
+                if (popupSugerencias != null && popupSugerencias.isVisible()
+                        && !listaSugerencias.isSelectionEmpty()) return;
+                        
+                Object s = e.getSource();
+                if      (s == txtApellido)   txtNombre.requestFocus();
+                else if (s == txtNombre)     txtDni.requestFocus();
+                else if (s == txtDni)        cbxSexo.requestFocus();
+                else if (s == cbxSexo)       txtEdad.requestFocus();
+                else if (s == txtEdad)       txtDireccion.requestFocus();
+                else if (s == txtDireccion)  txtLocalidad.requestFocus();
+                else if (s == txtLocalidad)  txtCelular.requestFocus();
+                else if (s == txtCelular)    txtObraSocial.requestFocus();
+                else if (s == txtObraSocial) txtNAfiliado.requestFocus();
+                else if (s == txtNAfiliado)  btnGuardarPaciente.doClick();
+            }
+        };
+        for (javax.swing.JTextField tf : new javax.swing.JTextField[]{
+                txtApellido, txtNombre, txtDni, txtEdad,
+                txtDireccion, txtLocalidad, txtCelular, txtObraSocial, txtNAfiliado}) {
+            tf.addKeyListener(nav);
+        }
+        cbxSexo.addKeyListener(nav);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  ESTILO
+    // ════════════════════════════════════════════════════════════════
     private void aplicarEstilo() {
         setBackground(C_FONDO);
 
         pnlHeader.setBackground(C_NAVY);
-        pnlHeader.setBorder(new EmptyBorder(15, 30, 15, 30));
-        
+        pnlHeader.setBorder(new EmptyBorder(14, 28, 14, 28));
+
         lblTituloHeader.setForeground(C_BLANCO);
         lblTituloHeader.setFont(new Font("Segoe UI", Font.BOLD, 22));
 
@@ -231,23 +569,24 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
 
         pnlFormulario.setBackground(C_BLANCO);
         pnlFormulario.setBorder(BorderFactory.createCompoundBorder(
-            new EmptyBorder(0, 0, 0, 20),
+            new EmptyBorder(16, 16, 16, 16),
             BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(C_BORDE, 1, true),
-                new EmptyBorder(25, 30, 25, 30) 
+                new EmptyBorder(20, 24, 16, 24)
             )
         ));
 
         Font fontLabel = new Font("Segoe UI", Font.BOLD, 11);
-        JLabel[] labels = {lblDNI, lblNombre, lblApellido, lblSexo, lblEdad, lblDir, lblLoc, lblOS, lblNAfiliado, lblCel};
-        for (JLabel lbl : labels) {
+        for (JLabel lbl : new JLabel[]{lblApellido, lblNombre, lblDNI, lblSexo, lblEdad,
+                                        lblDir, lblLoc, lblOS, lblNAfiliado, lblCel}) {
             lbl.setFont(fontLabel);
             lbl.setForeground(C_TEXTO_SUAVE);
         }
 
-        javax.swing.JTextField[] campos = {txtDni, txtNombre, txtApellido, txtEdad, txtDireccion, txtLocalidad, txtObraSocial, txtNAfiliado, txtCelular};
-        for (javax.swing.JTextField txt : campos) {
-            estilizarCampo(txt);
+        for (javax.swing.JTextField tf : new javax.swing.JTextField[]{
+                txtApellido, txtNombre, txtDni, txtEdad,
+                txtDireccion, txtLocalidad, txtObraSocial, txtNAfiliado, txtCelular}) {
+            estilizarCampo(tf);
         }
 
         cbxSexo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
@@ -259,22 +598,21 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         ));
         cbxSexo.setPreferredSize(new Dimension(0, 36));
 
-        configurarBoton(btnGuardarPaciente, C_VERDE, "GUARDAR PACIENTE");
-        configurarBoton(btnEditarPaciente, C_AZUL_MEDIO, "ACTUALIZAR DATOS");
+        configurarBoton(btnGuardarPaciente,  C_VERDE,      "GUARDAR");
+        configurarBoton(btnEditarPaciente,   C_AZUL_MEDIO, "MODIFICAR");
         configurarBotonRetroceso(btnVolver);
-        
         configurarBoton(btnCargarResultados, C_AZUL_MEDIO, "＋ NUEVO ANÁLISIS");
-        configurarBoton(btnVerHistorial, new Color(70, 130, 180), "☰ VER HISTORIAL");
+        configurarBoton(btnVerHistorial,     new Color(70, 130, 180), "☰ HISTORIAL");
 
         pnlTablaWrapper.setBackground(C_BLANCO);
         pnlTablaWrapper.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(C_BORDE, 1, true),
-            new EmptyBorder(1, 1, 1, 1)
+            new EmptyBorder(16, 0, 16, 16),
+            BorderFactory.createLineBorder(C_BORDE, 1, true)
         ));
 
-        lblTituloTabla.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblTituloTabla.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lblTituloTabla.setForeground(C_TEXTO_FUERTE);
-        lblTituloTabla.setBorder(new EmptyBorder(12, 15, 12, 15));
+        lblTituloTabla.setBorder(new EmptyBorder(10, 14, 10, 14));
 
         grillaPacientes.setRowHeight(38);
         grillaPacientes.setFont(new Font("Segoe UI", Font.PLAIN, 13));
@@ -285,19 +623,21 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         grillaPacientes.setSelectionForeground(C_TEXTO_FUERTE);
         grillaPacientes.setIntercellSpacing(new Dimension(0, 0));
         grillaPacientes.setBorder(BorderFactory.createEmptyBorder());
+        grillaPacientes.setFillsViewportHeight(true);
 
         grillaPacientes.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         grillaPacientes.getTableHeader().setBackground(C_CABECERA_TBL);
         grillaPacientes.getTableHeader().setForeground(C_TEXTO_SUAVE);
-        grillaPacientes.getTableHeader().setPreferredSize(new Dimension(0, 42));
-        grillaPacientes.getTableHeader().setBorder(BorderFactory.createMatteBorder(1, 0, 2, 0, C_BORDE));
+        grillaPacientes.getTableHeader().setPreferredSize(new Dimension(0, 40));
+        grillaPacientes.getTableHeader().setBorder(
+            BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE));
         grillaPacientes.getTableHeader().setReorderingAllowed(false);
 
         jScrollPane1.setBorder(BorderFactory.createEmptyBorder());
         jScrollPane1.getViewport().setBackground(C_BLANCO);
 
         pnlFooter.setBackground(C_FONDO);
-        pnlFooter.setBorder(new EmptyBorder(15, 0, 0, 0));
+        pnlFooter.setBorder(new EmptyBorder(10, 16, 14, 16));
     }
 
     private void estilizarCampo(javax.swing.JTextField tf) {
@@ -310,20 +650,17 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
             new EmptyBorder(6, 10, 6, 10)
         ));
         tf.setPreferredSize(new Dimension(0, 36));
-        
         tf.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override public void focusGained(java.awt.event.FocusEvent evt) {
+            @Override public void focusGained(java.awt.event.FocusEvent e) {
                 tf.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createMatteBorder(0, 0, 2, 0, C_AZUL_MEDIO),
-                    new EmptyBorder(6, 10, 6, 10)
-                ));
+                    new EmptyBorder(6, 10, 6, 10)));
                 tf.setBackground(C_BLANCO);
             }
-            @Override public void focusLost(java.awt.event.FocusEvent evt) {
+            @Override public void focusLost(java.awt.event.FocusEvent e) {
                 tf.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
-                    new EmptyBorder(6, 10, 6, 10)
-                ));
+                    new EmptyBorder(6, 10, 6, 10)));
                 tf.setBackground(C_CAMPO);
             }
         });
@@ -338,7 +675,7 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
             BorderFactory.createLineBorder(new Color(50, 80, 120), 1, true),
             new EmptyBorder(8, 14, 8, 14)
         ));
-        tf.setPreferredSize(new Dimension(380, 42));
+        tf.setPreferredSize(new Dimension(360, 40));
     }
 
     private void configurarBoton(javax.swing.JButton btn, Color bg, String texto) {
@@ -350,27 +687,25 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         btn.setBorderPainted(false);
         btn.setOpaque(true);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(160, 42));
+        btn.setPreferredSize(new Dimension(170, 42));
     }
 
     private void configurarBotonRetroceso(javax.swing.JButton btn) {
-        btn.setText(" "); 
+        btn.setText(" ");
         btn.setBackground(C_NAVY);
         btn.setForeground(C_HEADER_TEXT);
         btn.setFont(new Font("Segoe UI", Font.BOLD, 15));
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
-        btn.setContentAreaFilled(false); 
+        btn.setContentAreaFilled(false);
         btn.setOpaque(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(0, 0, 0, 20));
-
-        ImageIcon ico = icon("/reportes/img/flecha_icon.png", 43, 43);
+        btn.setBorder(new EmptyBorder(0, 0, 0, 16));
+        ImageIcon ico = icon("/reportes/img/flecha_icon.png", 40, 40);
         if (ico != null) btn.setIcon(ico);
-        
         btn.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override public void mouseEntered(java.awt.event.MouseEvent e) { btn.setForeground(C_BLANCO); }
-            @Override public void mouseExited(java.awt.event.MouseEvent e) { btn.setForeground(C_HEADER_TEXT); }
+            @Override public void mouseExited (java.awt.event.MouseEvent e) { btn.setForeground(C_HEADER_TEXT); }
         });
     }
 
@@ -381,348 +716,201 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
                 Image img = new ImageIcon(url).getImage().getScaledInstance(w, h, Image.SCALE_SMOOTH);
                 return new ImageIcon(img);
             }
-        } catch (Exception e) { }
+        } catch (Exception e) { /* silencioso */ }
         return null;
     }
 
-    private void configurarBuscadorOS() {
-        modeloSugerencias = new DefaultListModel<>();
-        listaSugerencias = new JList<>(modeloSugerencias);
-        listaSugerencias.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        listaSugerencias.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        listaSugerencias.setFixedCellHeight(32);
-        listaSugerencias.setBackground(C_BLANCO);
-        listaSugerencias.setSelectionBackground(new Color(220, 235, 250));
-        listaSugerencias.setSelectionForeground(C_TEXTO_FUERTE);
-
-        txtObraSocial.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                if (ventanaSugerencias == null || !ventanaSugerencias.isVisible() || modeloSugerencias.isEmpty()) return;
-                int index = listaSugerencias.getSelectedIndex();
-                int size  = modeloSugerencias.getSize();
-                if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-                    index = Math.min(index + 1, size - 1);
-                    listaSugerencias.setSelectedIndex(index);
-                    listaSugerencias.ensureIndexIsVisible(index);
-                    e.consume();
-                } else if (e.getKeyCode() == KeyEvent.VK_UP) {
-                    index = Math.max(index - 1, 0);
-                    listaSugerencias.setSelectedIndex(index);
-                    listaSugerencias.ensureIndexIsVisible(index);
-                    e.consume();
-                } else if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                    if (index != -1) { seleccionarSugerencia(); e.consume(); }
-                } else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-                    ventanaSugerencias.setVisible(false);
-                }
-            }
-            @Override
-            public void keyReleased(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_DOWN || e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_ENTER || e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-                    return;
-                }
-                String texto = txtObraSocial.getText().trim();
-                if (texto.length() >= 1) {
-                    if (presenter != null) {
-                        // Reemplazar si el método se llama distinto en tu presenter
-                        // presenter.onBuscarSugerenciaOS(); 
-                    }
-                } else if (ventanaSugerencias != null) {
-                    ventanaSugerencias.setVisible(false);
-                }
-            }
-        });
-
-        listaSugerencias.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override public void mouseClicked(java.awt.event.MouseEvent e) { seleccionarSugerencia(); }
-        });
-    }
-
-    @Override
-    public void mostrarSugerenciasOS(List<String> sugerencias) {
-        modeloSugerencias.clear();
-        for (String s : sugerencias) modeloSugerencias.addElement(s);
-
-        if (modeloSugerencias.isEmpty()) {
-            if (ventanaSugerencias != null) ventanaSugerencias.setVisible(false);
-            return;
-        }
-
-        if (ventanaSugerencias == null) {
-            JScrollPane scroll = new JScrollPane(listaSugerencias);
-            scroll.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(C_BORDE, 1),
-                new EmptyBorder(2, 0, 2, 0)
-            ));
-            Window parentWindow = SwingUtilities.getWindowAncestor(this);
-            ventanaSugerencias = new JWindow(parentWindow);
-            ventanaSugerencias.setAlwaysOnTop(true);
-            ventanaSugerencias.getContentPane().add(scroll);
-            ventanaSugerencias.setFocusableWindowState(false);
-        }
-
-        java.awt.Point p = txtObraSocial.getLocationOnScreen();
-        int alto = Math.min(200, modeloSugerencias.size() * 32 + 5);
-        ventanaSugerencias.setBounds(p.x, p.y + txtObraSocial.getHeight(), txtObraSocial.getWidth(), alto);
-        ventanaSugerencias.setVisible(true);
-        listaSugerencias.setSelectedIndex(0);
-    }
-
-    private void seleccionarSugerencia() {
-        String sel = listaSugerencias.getSelectedValue();
-        if (sel != null) {
-            txtObraSocial.setText(sel);
-            ventanaSugerencias.setVisible(false);
-            txtNAfiliado.requestFocus();
-        }
-    }
-
-    private void configurarNavegacionEnter() {
-        KeyAdapter navAdapter = new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                    if (ventanaSugerencias != null && ventanaSugerencias.isVisible()
-                            && !listaSugerencias.isSelectionEmpty()) return;
-                    Object s = e.getSource();
-                    if      (s == txtDni)        txtNombre.requestFocus();
-                    else if (s == txtNombre)     txtApellido.requestFocus();
-                    else if (s == txtApellido)   cbxSexo.requestFocus();
-                    else if (s == cbxSexo)       txtEdad.requestFocus();
-                    else if (s == txtEdad)       txtDireccion.requestFocus();
-                    else if (s == txtDireccion)  txtLocalidad.requestFocus();
-                    else if (s == txtLocalidad)  txtCelular.requestFocus();
-                    else if (s == txtCelular)    txtObraSocial.requestFocus();
-                    else if (s == txtObraSocial) txtNAfiliado.requestFocus();
-                    else if (s == txtNAfiliado)  btnGuardarPaciente.doClick();
-                }
-            }
-        };
-        txtDni.addKeyListener(navAdapter);
-        txtNombre.addKeyListener(navAdapter);
-        txtApellido.addKeyListener(navAdapter);
-        txtEdad.addKeyListener(navAdapter);
-        txtDireccion.addKeyListener(navAdapter);
-        txtLocalidad.addKeyListener(navAdapter);
-        txtCelular.addKeyListener(navAdapter);
-        txtObraSocial.addKeyListener(navAdapter);
-        txtNAfiliado.addKeyListener(navAdapter);
-    }
-
-    // ══════════════════════════════════════════════════════════════════
-    //  UI BUILDER (El diseño amplio original)
-    // ══════════════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════════
+    //  initComponents
+    // ════════════════════════════════════════════════════════════════
     @SuppressWarnings("unchecked")
     private void initComponents() {
 
         pnlHeader          = new JPanel();
         lblTituloHeader    = new JLabel("GESTIÓN DE PACIENTES");
         txtBuscar          = new javax.swing.JTextField();
-        
+
         pnlCuerpo          = new JPanel();
         pnlFormulario      = new JPanel();
         pnlTablaWrapper    = new JPanel();
         lblTituloTabla     = new JLabel("Pacientes Registrados");
         pnlFooter          = new JPanel();
 
-        lblDNI             = new JLabel("DNI / DOCUMENTO");
-        lblNombre          = new JLabel("NOMBRE");
         lblApellido        = new JLabel("APELLIDO");
+        lblNombre          = new JLabel("NOMBRE");
+        lblDNI             = new JLabel("DNI / DOCUMENTO");
         lblSexo            = new JLabel("SEXO");
         lblEdad            = new JLabel("EDAD");
         lblDir             = new JLabel("DIRECCIÓN");
         lblLoc             = new JLabel("LOCALIDAD");
+        lblCel             = new JLabel("CELULAR");
         lblOS              = new JLabel("OBRA SOCIAL");
         lblNAfiliado       = new JLabel("N° AFILIADO");
-        lblCel             = new JLabel("CELULAR");
 
-        txtDni             = new javax.swing.JTextField();
-        txtNombre          = new javax.swing.JTextField();
         txtApellido        = new javax.swing.JTextField();
+        txtNombre          = new javax.swing.JTextField();
+        txtDni             = new javax.swing.JTextField();
         cbxSexo            = new javax.swing.JComboBox<>();
         txtEdad            = new javax.swing.JTextField();
         txtDireccion       = new javax.swing.JTextField();
         txtLocalidad       = new javax.swing.JTextField();
+        txtCelular         = new javax.swing.JTextField();
         txtObraSocial      = new javax.swing.JTextField();
         txtNAfiliado       = new javax.swing.JTextField();
-        txtCelular         = new javax.swing.JTextField();
 
         pnlBotonesEdicion  = new JPanel();
         btnGuardarPaciente = new javax.swing.JButton();
         btnEditarPaciente  = new javax.swing.JButton();
-        
         grillaPacientes    = new JTable();
         jScrollPane1       = new javax.swing.JScrollPane();
-        
         btnCargarResultados= new javax.swing.JButton();
         btnVerHistorial    = new javax.swing.JButton();
         btnVolver          = new javax.swing.JButton();
 
-        cbxSexo.setModel(new javax.swing.DefaultComboBoxModel<>(new String[]{"M","F","X"}));
-        
-        // ── ROOT ─────────────────────────────────────────────────────
+        cbxSexo.setModel(new javax.swing.DefaultComboBoxModel<>(new String[]{"M", "F", "X"}));
+
         setLayout(new BorderLayout());
 
-        // ── HEADER ───────────────────────────────────────────────────
         pnlHeader.setLayout(new BorderLayout());
-        
+
         JPanel pnlIzqHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         pnlIzqHeader.setOpaque(false);
         pnlIzqHeader.add(btnVolver);
-        
-        lblTituloHeader.setHorizontalAlignment(SwingConstants.LEFT);
-        lblTituloHeader.setBorder(new EmptyBorder(0, 10, 0, 0)); 
+        lblTituloHeader.setBorder(new EmptyBorder(0, 10, 0, 0));
         pnlIzqHeader.add(lblTituloHeader);
-        
-        JPanel pnlDerHeader = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+
+        JPanel pnlDerHeader = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         pnlDerHeader.setOpaque(false);
-        JLabel lblLupa = new JLabel("Buscar paciente:  ");
+        JLabel lblLupa = new JLabel("Buscar paciente:");
         lblLupa.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblLupa.setForeground(C_HEADER_TEXT);
         pnlDerHeader.add(lblLupa);
         pnlDerHeader.add(txtBuscar);
-        
+
         pnlHeader.add(pnlIzqHeader, BorderLayout.WEST);
         pnlHeader.add(pnlDerHeader, BorderLayout.EAST);
-        
         add(pnlHeader, BorderLayout.NORTH);
 
-        // ── CUERPO ───────────────────────────────────────────────────
         pnlCuerpo.setBackground(C_FONDO);
         pnlCuerpo.setLayout(new GridBagLayout());
         GridBagConstraints gc = new GridBagConstraints();
-        gc.fill = GridBagConstraints.BOTH;
+        gc.fill    = GridBagConstraints.BOTH;
         gc.weighty = 1.0;
+        gc.insets  = new Insets(0, 0, 0, 0);
 
-        // Formulario (Izquierda)
-        gc.gridx = 0; gc.gridy = 0; gc.weightx = 0;
-        pnlFormulario.setPreferredSize(new Dimension(440, 0));
-        pnlFormulario.setMinimumSize(new Dimension(400, 0));
+        gc.gridx = 0; gc.gridy = 0;
+        gc.weightx = 0;
+        pnlFormulario.setPreferredSize(new Dimension(430, 0));
+        pnlFormulario.setMinimumSize (new Dimension(380, 0));
         pnlCuerpo.add(pnlFormulario, gc);
 
-        // Tabla (Derecha)
-        gc.gridx = 1; gc.gridy = 0; gc.weightx = 1.0;
+        gc.gridx = 1;
+        gc.weightx = 1.0;
         pnlCuerpo.add(pnlTablaWrapper, gc);
 
         add(pnlCuerpo, BorderLayout.CENTER);
 
-        // ── FORMULARIO: Layout en Grilla ─────────────────────────────
         pnlFormulario.setLayout(new GridBagLayout());
         GridBagConstraints gf = new GridBagConstraints();
-        gf.fill = GridBagConstraints.HORIZONTAL;
+        gf.fill    = GridBagConstraints.HORIZONTAL;
         gf.weightx = 1.0;
+        gf.gridx   = 0;
         int r = 0;
-        
-        java.util.function.BiFunction<JLabel, Component, JPanel> crearCampo = (lbl, cmp) -> {
-            JPanel p = new JPanel(new BorderLayout(0, 4));
+
+        java.util.function.BiFunction<JLabel, Component, JPanel> campo = (lbl, cmp) -> {
+            JPanel p = new JPanel(new BorderLayout(0, 3));
             p.setOpaque(false);
             p.add(lbl, BorderLayout.NORTH);
             p.add(cmp, BorderLayout.CENTER);
             return p;
         };
 
-        java.util.function.BiFunction<Component, Component, JPanel> crearFilaDoble = (c1, c2) -> {
-            JPanel p = new JPanel(new GridLayout(1, 2, 15, 0));
+        java.util.function.BiFunction<Component, Component, JPanel> fila2 = (c1, c2) -> {
+            JPanel p = new JPanel(new GridLayout(1, 2, 12, 0));
             p.setOpaque(false);
             p.add(c1); p.add(c2);
             return p;
         };
 
-        java.util.function.Function<String, JPanel> crearSeparador = (titulo) -> {
+        java.util.function.Function<String, JPanel> sep = titulo -> {
             JPanel p = new JPanel(new BorderLayout(8, 0));
             p.setOpaque(false);
-            p.setBorder(new EmptyBorder(15, 0, 10, 0));
+            p.setBorder(new EmptyBorder(14, 0, 8, 0));
             JLabel l = new JLabel(titulo);
-            l.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            l.setFont(new Font("Segoe UI", Font.BOLD, 11));
             l.setForeground(C_AZUL_MEDIO);
-            JPanel linea = new JPanel(); linea.setBackground(C_BORDE); linea.setPreferredSize(new Dimension(0, 1));
-            JPanel pL = new JPanel(new GridBagLayout()); pL.setOpaque(false);
-            GridBagConstraints gl = new GridBagConstraints(); gl.fill = GridBagConstraints.HORIZONTAL; gl.weightx = 1.0;
+            JPanel linea = new JPanel();
+            linea.setBackground(new Color(C_BORDE.getRed(), C_BORDE.getGreen(), C_BORDE.getBlue(), 180));
+            linea.setPreferredSize(new Dimension(0, 1));
+            JPanel pL = new JPanel(new GridBagLayout());
+            pL.setOpaque(false);
+            GridBagConstraints gl = new GridBagConstraints();
+            gl.fill = GridBagConstraints.HORIZONTAL; gl.weightx = 1.0;
             pL.add(linea, gl);
-            p.add(l, BorderLayout.WEST); p.add(pL, BorderLayout.CENTER);
+            p.add(l, BorderLayout.WEST);
+            p.add(pL, BorderLayout.CENTER);
             return p;
         };
 
-        gf.gridx = 0;
-        gf.insets = new Insets(0, 0, 12, 0);
+        gf.insets = new Insets(0, 0, 10, 0);
 
-        gf.gridy = r++; pnlFormulario.add(crearSeparador.apply("DATOS PERSONALES"), gf);
-        gf.gridy = r++; pnlFormulario.add(crearCampo.apply(lblDNI, txtDni), gf);
-        gf.gridy = r++; pnlFormulario.add(crearFilaDoble.apply(crearCampo.apply(lblNombre, txtNombre), crearCampo.apply(lblApellido, txtApellido)), gf);
-        gf.gridy = r++; pnlFormulario.add(crearFilaDoble.apply(crearCampo.apply(lblSexo, cbxSexo), crearCampo.apply(lblEdad, txtEdad)), gf);
-        
-        gf.gridy = r++; pnlFormulario.add(crearSeparador.apply("CONTACTO"), gf);
-        gf.gridy = r++; pnlFormulario.add(crearCampo.apply(lblDir, txtDireccion), gf);
-        gf.gridy = r++; pnlFormulario.add(crearFilaDoble.apply(crearCampo.apply(lblLoc, txtLocalidad), crearCampo.apply(lblCel, txtCelular)), gf);
+        gf.gridy = r++; pnlFormulario.add(sep.apply("DATOS PERSONALES"), gf);
+        gf.gridy = r++; pnlFormulario.add(
+            fila2.apply(campo.apply(lblApellido, txtApellido), campo.apply(lblNombre, txtNombre)), gf);
+        gf.gridy = r++; pnlFormulario.add(campo.apply(lblDNI, txtDni), gf);
+        gf.gridy = r++; pnlFormulario.add(
+            fila2.apply(campo.apply(lblSexo, cbxSexo), campo.apply(lblEdad, txtEdad)), gf);
 
-        gf.gridy = r++; pnlFormulario.add(crearSeparador.apply("COBERTURA MÉDICA"), gf);
-        gf.gridy = r++; pnlFormulario.add(crearCampo.apply(lblOS, txtObraSocial), gf);
-        gf.gridy = r++; pnlFormulario.add(crearCampo.apply(lblNAfiliado, txtNAfiliado), gf);
+        gf.gridy = r++; pnlFormulario.add(sep.apply("CONTACTO"), gf);
+        gf.gridy = r++; pnlFormulario.add(campo.apply(lblDir, txtDireccion), gf);
+        gf.gridy = r++; pnlFormulario.add(
+            fila2.apply(campo.apply(lblLoc, txtLocalidad), campo.apply(lblCel, txtCelular)), gf);
+
+        gf.gridy = r++; pnlFormulario.add(sep.apply("COBERTURA MÉDICA"), gf);
+        gf.gridy = r++; pnlFormulario.add(campo.apply(lblOS, txtObraSocial), gf);
+        gf.gridy = r++; pnlFormulario.add(campo.apply(lblNAfiliado, txtNAfiliado), gf);
 
         pnlBotonesEdicion.setOpaque(false);
-        pnlBotonesEdicion.setLayout(new java.awt.GridLayout(1, 2, 10, 0));
+        pnlBotonesEdicion.setLayout(new GridLayout(1, 2, 10, 0));
         pnlBotonesEdicion.add(btnEditarPaciente);
         pnlBotonesEdicion.add(btnGuardarPaciente);
-        
-        gf.gridy = r++; gf.insets = new Insets(20, 0, 0, 0); 
+
+        gf.gridy = r++; gf.insets = new Insets(14, 0, 4, 0);
         pnlFormulario.add(pnlBotonesEdicion, gf);
-        
+
         gf.gridy = r++; gf.weighty = 1.0; gf.fill = GridBagConstraints.VERTICAL;
+        gf.insets = new Insets(0, 0, 0, 0);
         pnlFormulario.add(new JPanel() {{ setOpaque(false); }}, gf);
 
-        // ── TABLA ENVOLTORIO ─────────────────────────────────────────
         pnlTablaWrapper.setLayout(new BorderLayout());
         pnlTablaWrapper.add(lblTituloTabla, BorderLayout.NORTH);
         jScrollPane1.setViewportView(grillaPacientes);
         pnlTablaWrapper.add(jScrollPane1, BorderLayout.CENTER);
 
-        // ── FOOTER ───────────────────────────────────────────────────
         pnlFooter.setLayout(new BorderLayout());
-        JPanel pnlFooterAcciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
-        pnlFooterAcciones.setOpaque(false);
-        pnlFooterAcciones.add(btnVerHistorial);
-        pnlFooterAcciones.add(btnCargarResultados);
-        
-        pnlFooter.add(pnlFooterAcciones, BorderLayout.EAST);
+        JPanel pnlAcciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        pnlAcciones.setOpaque(false);
+        pnlAcciones.add(btnVerHistorial);
+        pnlAcciones.add(btnCargarResultados);
+        pnlFooter.add(pnlAcciones, BorderLayout.EAST);
         add(pnlFooter, BorderLayout.SOUTH);
     }
 
     // ── Variables ────────────────────────────────────────────────────
-    private javax.swing.JButton btnCargarResultados;
-    private javax.swing.JButton btnEditarPaciente;
-    private javax.swing.JButton btnGuardarPaciente;
-    private javax.swing.JButton btnVerHistorial;
-    private javax.swing.JButton btnVolver;
+    private javax.swing.JButton        btnCargarResultados;
+    private javax.swing.JButton        btnEditarPaciente;
+    private javax.swing.JButton        btnGuardarPaciente;
+    private javax.swing.JButton        btnVerHistorial;
+    private javax.swing.JButton        btnVolver;
     private javax.swing.JComboBox<String> cbxSexo;
-    private javax.swing.JTable grillaPacientes;
-    private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JLabel lblDNI;
-    private javax.swing.JLabel lblNombre;
-    private javax.swing.JLabel lblApellido;
-    private javax.swing.JLabel lblSexo;
-    private javax.swing.JLabel lblEdad;
-    private javax.swing.JLabel lblDir;
-    private javax.swing.JLabel lblLoc;
-    private javax.swing.JLabel lblOS;
-    private javax.swing.JLabel lblNAfiliado;
-    private javax.swing.JLabel lblCel;
-    private javax.swing.JPanel pnlHeader;
-    private javax.swing.JPanel pnlCuerpo;
-    private javax.swing.JPanel pnlFormulario;
-    private javax.swing.JPanel pnlBotonesEdicion;
-    private javax.swing.JPanel pnlTablaWrapper;
-    private javax.swing.JPanel pnlFooter;
-    private javax.swing.JLabel lblTituloHeader;
-    private javax.swing.JLabel lblTituloTabla;
-    private javax.swing.JTextField txtApellido;
-    private javax.swing.JTextField txtBuscar;
-    private javax.swing.JTextField txtCelular;
-    private javax.swing.JTextField txtDireccion;
-    private javax.swing.JTextField txtDni;
-    private javax.swing.JTextField txtLocalidad;
-    private javax.swing.JTextField txtNAfiliado;
-    private javax.swing.JTextField txtNombre;
-    private javax.swing.JTextField txtEdad;
-    private javax.swing.JTextField txtObraSocial;
+    private JTable                     grillaPacientes;
+    private javax.swing.JScrollPane    jScrollPane1;
+    private JLabel lblApellido, lblNombre, lblDNI, lblSexo, lblEdad;
+    private JLabel lblDir, lblLoc, lblOS, lblNAfiliado, lblCel;
+    private JPanel pnlHeader, pnlCuerpo, pnlFormulario, pnlBotonesEdicion;
+    private JPanel pnlTablaWrapper, pnlFooter;
+    private JLabel lblTituloHeader, lblTituloTabla;
+    private javax.swing.JTextField txtApellido, txtNombre, txtDni, txtEdad;
+    private javax.swing.JTextField txtDireccion, txtLocalidad, txtCelular;
+    private javax.swing.JTextField txtObraSocial, txtNAfiliado, txtBuscar;
 }
