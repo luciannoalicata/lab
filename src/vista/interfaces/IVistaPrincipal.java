@@ -21,7 +21,7 @@ public interface IVistaPrincipal {
     void setPresenter(PrincipalPresenter presenter);    
     int confirmarAccion(String mensaje, String titulo);
     void limpiarFocos();
-    void setUsuarioLogueado(String nombreUsuario);
+    void setUsuarioLogueado(String nombreUsuario, String rol);
     void mostrarAvisoBackup(boolean mostrar);
     void cerrarPantalla(); 
     void registrarPanel(Object vista, String nombre); 

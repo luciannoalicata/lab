@@ -41,7 +41,7 @@ public class AnalisisPresenter {
     public void onVerDetalles() {
         Analisis sel = vla.getAnalisisSeleccionado();
         if (sel != null) {
-            router.abrirDetalleAnalisis(sel.getIdAnalisis());
+            router.abrirDetalleAnalisis(sel.getIdAnalisis(),"LISTADO");
         } else {
             vla.mostrarMensaje("Seleccione un análisis.");
         }

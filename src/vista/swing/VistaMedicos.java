@@ -396,10 +396,20 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
     public void setPresenter(MedicoPresenter presenter) {
         this.presenter = presenter;
         
+        // 1. PURGA DE EVENTOS EN BOTONES
+        limpiarListeners(btnGuardarMedico);
+        limpiarListeners(btnEliminarMedico);
+        limpiarListeners(btnVolver);
+        
+        // 2. CONEXIÓN LIMPIA DE BOTONES
         btnGuardarMedico.addActionListener(e -> presenter.onGuardarMedico());
         btnEliminarMedico.addActionListener(e -> presenter.onEliminarMedico());
         btnVolver.addActionListener(e -> presenter.onVolver());
         
+        // 3. PURGA Y CONEXIÓN DEL BUSCADOR
+        for (java.awt.event.KeyListener kl : txtBuscarMedico.getKeyListeners()) {
+            txtBuscarMedico.removeKeyListener(kl);
+        }
         txtBuscarMedico.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
             public void keyReleased(java.awt.event.KeyEvent e) {
@@ -407,12 +417,26 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
             }
         });
 
-        grillaMedicos.getSelectionModel().addListSelectionListener(e -> {
-            // ← EVITAR que se ejecute durante la limpieza/recarga
+        // 4. PURGA Y CONEXIÓN DE LA TABLA
+        javax.swing.DefaultListSelectionModel modeloSeleccion = 
+                (javax.swing.DefaultListSelectionModel) grillaMedicos.getSelectionModel();
+
+        for (javax.swing.event.ListSelectionListener lsl : modeloSeleccion.getListSelectionListeners()) {
+            modeloSeleccion.removeListSelectionListener(lsl);
+        }
+
+        modeloSeleccion.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && presenter != null) {
                 presenter.onSeleccionarMedico();
             }
         });
+    }
+
+    // Método auxiliar para evitar la duplicación en memoria
+    private void limpiarListeners(javax.swing.JButton btn) {
+        for (java.awt.event.ActionListener al : btn.getActionListeners()) {
+            btn.removeActionListener(al);
+        }
     }
     
     @Override

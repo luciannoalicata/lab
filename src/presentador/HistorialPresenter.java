@@ -84,7 +84,7 @@ public class HistorialPresenter {
     public void onVerDetalles() {
         int idAnalisis = vista.getAnalisisSeleccionadoId();
         if (idAnalisis != -1) {
-            router.abrirDetalleAnalisis(idAnalisis);
+            router.abrirDetalleAnalisis(idAnalisis, "HISTORIAL");
         } else {
             vista.mostrarMensaje("Debe seleccionar un análisis para ver sus detalles.");
         }

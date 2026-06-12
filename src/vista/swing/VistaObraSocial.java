@@ -382,11 +382,22 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
     public void setPresenter(ObraSocialPresenter presenter) {
         this.presenter = presenter;
         
+        // 1. PURGA DE EVENTOS EN BOTONES (La cura definitiva para la duplicación)
+        limpiarListeners(btnAgregarObraSocial);
+        limpiarListeners(btnEliminarObraSocial);
+        limpiarListeners(btnCambiarArancel);
+        limpiarListeners(btnVolver);
+        
+        // 2. CONEXIÓN LIMPIA
         btnAgregarObraSocial.addActionListener(e -> presenter.onAgregarOS());
         btnEliminarObraSocial.addActionListener(e -> presenter.onEliminarOS());
         btnCambiarArancel.addActionListener(e -> presenter.onCambiarArancel());
         btnVolver.addActionListener(e -> presenter.onVolver());
         
+        // 3. PURGA Y CONEXIÓN DEL BUSCADOR
+        for (java.awt.event.KeyListener kl : txtBuscarObraSocial.getKeyListeners()) {
+            txtBuscarObraSocial.removeKeyListener(kl);
+        }
         txtBuscarObraSocial.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
             public void keyReleased(java.awt.event.KeyEvent e) {
@@ -394,7 +405,15 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
             }
         });
 
-        grillaObrasSociales.getSelectionModel().addListSelectionListener(e -> {
+        // 4. PURGA Y CONEXIÓN DE LA TABLA
+        javax.swing.DefaultListSelectionModel modeloSeleccion = 
+                (javax.swing.DefaultListSelectionModel) grillaObrasSociales.getSelectionModel();
+
+        for (javax.swing.event.ListSelectionListener lsl : modeloSeleccion.getListSelectionListeners()) {
+            modeloSeleccion.removeListSelectionListener(lsl);
+        }
+
+        modeloSeleccion.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 boolean filaSeleccionada = grillaObrasSociales.getSelectedRow() != -1;
 
@@ -408,6 +427,12 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
                 }
             }
         });
+    }
+
+    private void limpiarListeners(javax.swing.JButton btn) {
+        for (java.awt.event.ActionListener al : btn.getActionListeners()) {
+            btn.removeActionListener(al);
+        }
     }
 
     @Override

@@ -13,8 +13,12 @@ import java.awt.GridBagLayout;
 import java.awt.Image;
 import java.awt.Insets;
 import java.awt.Window;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -22,6 +26,7 @@ import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.DefaultCellEditor;
 import javax.swing.DefaultListModel;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -37,26 +42,25 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import javax.swing.border.MatteBorder;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import modelo.ResultadoAnalisis;
 import presentador.DetalleAnalisisPresenter;
 
-/**
- * Vista de Resultados Detallados - BIOTEC LIS
- * Diseño consistente con VistaPaciente
- */
 public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleAnalisis {
 
     private DetalleAnalisisPresenter presenter;
     private int idAnalisisActual = -1;
+    private ListSelectionListener listenerSeleccionTabla;
 
     private JWindow ventanaSugerenciasMed;
     private JList<String> listaSugerenciasMed;
     private DefaultListModel<String> modeloSugerenciasMed;
 
-    // ── Paleta BIOTEC Minimalista ────────────────────────────────────
+    // Paleta de colores
     private final Color C_NAVY = new Color(10, 25, 47);
     private final Color C_FONDO = new Color(238, 242, 246);
     private final Color C_BLANCO = Color.WHITE;
@@ -71,38 +75,183 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
     private final Color C_FILA_PAR = new Color(252, 254, 255);
     private final Color C_HEADER_TEXT = new Color(175, 205, 235);
     private final Color C_NARANJA_ALERTA = new Color(230, 126, 34);
+    private final Color C_FOCUS_BORDER = new Color(0, 0, 0);
 
     public VistaVerDetalleAnalisis() {
         initComponents();
         aplicarEsteticaPersonalizada();
         configurarBuscadorMedicoDinamico();
         configurarNavegacionEnter();
+        configurarFocoCelda();
+    }
 
-        java.awt.EventQueue.invokeLater(() -> {
-            if (grillaDetallesAnalisis.getRowCount() > 0) {
-                grillaDetallesAnalisis.setRowSelectionInterval(0, 0);
-                grillaDetallesAnalisis.setColumnSelectionInterval(3, 3);
-                grillaDetallesAnalisis.editCellAt(0, 3);
-                grillaDetallesAnalisis.requestFocusInWindow();
+    @Override
+    public void setPresenter(DetalleAnalisisPresenter presenter) {
+        this.presenter = presenter;
+        
+        // Limpiar listeners existentes de botones
+        for (java.awt.event.ActionListener al : btnImprimir.getActionListeners()) {
+            btnImprimir.removeActionListener(al);
+        }
+        for (java.awt.event.ActionListener al : btnEditar.getActionListeners()) {
+            btnEditar.removeActionListener(al);
+        }
+        for (java.awt.event.ActionListener al : btnEliminarFila.getActionListeners()) {
+            btnEliminarFila.removeActionListener(al);
+        }
+        for (java.awt.event.ActionListener al : btnCerrar.getActionListeners()) {
+            btnCerrar.removeActionListener(al);
+        }
+        
+        // Agregar listeners nuevos
+        btnImprimir.addActionListener(e -> presenter.onImprimir());
+        btnEditar.addActionListener(e -> presenter.onEditar());
+        btnEliminarFila.addActionListener(e -> presenter.onEliminarFila());
+        btnCerrar.addActionListener(e -> presenter.onVolver());
+        
+        // Limpiar listener de selección de tabla de forma segura
+        if (listenerSeleccionTabla != null) {
+            grillaDetallesAnalisis.getSelectionModel().removeListSelectionListener(listenerSeleccionTabla);
+        }
+        
+        // Crear y registrar nuevo listener
+        listenerSeleccionTabla = e -> {
+            if (!e.getValueIsAdjusting()) {
+                presenter.onSeleccionarAnalisis();
+            }
+        };
+        grillaDetallesAnalisis.getSelectionModel().addListSelectionListener(listenerSeleccionTabla);
+    }
+
+    private void configurarFocoCelda() {
+        // Forzar que la selección se mantenga en la columna 3
+        grillaDetallesAnalisis.setColumnSelectionAllowed(true);
+        grillaDetallesAnalisis.setRowSelectionAllowed(true);
+        
+        grillaDetallesAnalisis.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                int row = grillaDetallesAnalisis.getSelectedRow();
+                if (row >= 0 && esFilaEditable(row)) {
+                    grillaDetallesAnalisis.setColumnSelectionInterval(3, 3);
+                }
             }
         });
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  ESTÉTICA Y UX - Consistente con VistaPaciente
-    // ════════════════════════════════════════════════════════════════
+    // ── NAVEGACIÓN INTELIGENTE (Solo saltos) ──
+    private void configurarNavegacionEnter() {
+        javax.swing.InputMap im = grillaDetallesAnalisis.getInputMap(JTable.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+        javax.swing.ActionMap am = grillaDetallesAnalisis.getActionMap();
+        im.put(javax.swing.KeyStroke.getKeyStroke("ENTER"), "enterAction");
+
+        am.put("enterAction", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                int row = grillaDetallesAnalisis.getSelectedRow();
+                
+                if (grillaDetallesAnalisis.isEditing()) {
+                    grillaDetallesAnalisis.getCellEditor().stopCellEditing();
+                }
+
+                int total = grillaDetallesAnalisis.getRowCount();
+                for (int sig = row + 1; sig < total; sig++) {
+                    if (esFilaEditable(sig)) {
+                        grillaDetallesAnalisis.setRowSelectionInterval(sig, sig);
+                        grillaDetallesAnalisis.setColumnSelectionInterval(3, 3);
+                        grillaDetallesAnalisis.scrollRectToVisible(grillaDetallesAnalisis.getCellRect(sig, 3, true));
+                        grillaDetallesAnalisis.editCellAt(sig, 3);
+                        Component ed = grillaDetallesAnalisis.getEditorComponent();
+                        if (ed != null) ed.requestFocusInWindow();
+                        return;
+                    }
+                }
+                btnEditar.requestFocusInWindow();
+            }
+        });
+    }
+
+    // ── EL CEREBRO DEL FORMATEO AUTOMÁTICO ──
+    private void aplicarCellEditor() {
+        JTextField editorField = new JTextField();
+        editorField.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        editorField.setBorder(new EmptyBorder(0, 8, 0, 8));
+        editorField.setHorizontalAlignment(JTextField.CENTER);
+
+        DefaultCellEditor cellEditor = new DefaultCellEditor(editorField) {
+            @Override
+            public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+                String texto = value != null ? value.toString() : "";
+                
+                // Si es número formateado, le quitamos los puntos de miles para poder editarlo cómodo
+                if (texto.matches("^-?[\\d.,]+$")) {
+                    texto = texto.replace(".", "");
+                }
+                
+                return super.getTableCellEditorComponent(table, texto, isSelected, row, column);
+            }
+
+            @Override
+            public Object getCellEditorValue() {
+                Object value = super.getCellEditorValue();
+                if (value == null) return "";
+                String texto = value.toString().trim();
+                
+                if (texto.matches("^-?\\d{4,}([.,]\\d+)?$")) {
+                    try {
+                        String[] partes = texto.split("[.,]");
+                        String parteEntera = partes[0];
+                        String parteDecimal = partes.length > 1 ? partes[1] : "";
+                        
+                        java.text.DecimalFormatSymbols dfs = new java.text.DecimalFormatSymbols();
+                        dfs.setGroupingSeparator('.');
+                        java.text.DecimalFormat df = new java.text.DecimalFormat("#,###", dfs);
+                        
+                        String formateado = df.format(Long.parseLong(parteEntera));
+                        // Estandarizamos los decimales siempre con coma (,)
+                        if (partes.length > 1) {
+                            formateado += "," + parteDecimal; 
+                        }
+                        return formateado;
+                    } catch (Exception ex) {
+                        return texto;
+                    }
+                }
+                return texto;
+            }
+        };
+        
+        if (grillaDetallesAnalisis.getColumnCount() > 3) {
+            grillaDetallesAnalisis.getColumnModel().getColumn(3).setCellEditor(cellEditor);
+        }
+    }
+    
+    private boolean esFilaEditable(int row) {
+        Object id = grillaDetallesAnalisis.getModel().getValueAt(row, 0);
+        if (id == null) return false;
+        try {
+            if (Integer.parseInt(id.toString()) == -1) return false;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+        Object nombre = grillaDetallesAnalisis.getModel().getValueAt(row, 2);
+        if (nombre != null) {
+            String nombreFila = nombre.toString().trim();
+            if (nombreFila.startsWith("---") && nombreFila.endsWith("---")) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private void aplicarEsteticaPersonalizada() {
         setBackground(C_FONDO);
 
-        // ── HEADER (mismos márgenes que VistaPaciente) ────────────────
         jPanelHeader.setBackground(C_NAVY);
         jPanelHeader.setBorder(new EmptyBorder(14, 28, 14, 28));
-        
-        // Reconstruir el header correctamente
         jPanelHeader.removeAll();
         jPanelHeader.setLayout(new BorderLayout());
 
-        // Panel izquierdo: botón cerrar + título + nombre paciente
         JPanel pnlIzqHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         pnlIzqHeader.setOpaque(false);
         pnlIzqHeader.add(btnCerrar);
@@ -133,7 +282,6 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
 
         configurarBotonRetroceso(btnCerrar);
 
-        // Panel derecho: Médico solicitante
         JPanel pnlDerHeader = new JPanel(new GridBagLayout());
         pnlDerHeader.setOpaque(false);
         GridBagConstraints g = new GridBagConstraints();
@@ -156,7 +304,6 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
 
         estilizarCampoBusqueda(txtMedicoSolicitante);
 
-        // ── CONTENEDOR PRINCIPAL BLANCO (con borde sin superior) ──────
         pnlContenedorBlanco.setBackground(C_BLANCO);
         pnlContenedorBlanco.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 1, 1, 1, C_BORDE),
@@ -165,25 +312,21 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         pnlContenedorBlanco.removeAll();
         pnlContenedorBlanco.setLayout(new BorderLayout());
 
-        // ── CUERPO (Tabla) ────────────────────────────────────────────
         pnlCuerpo.setBackground(C_BLANCO);
         pnlCuerpo.removeAll();
         pnlCuerpo.setLayout(new BorderLayout());
 
-        // ── TABLA WRAPPER (igual que VistaPaciente) ───────────────────
         pnlTablaWrapper.setBackground(C_BLANCO);
         pnlTablaWrapper.setBorder(BorderFactory.createCompoundBorder(
             new EmptyBorder(0, 0, 0, 0),
             BorderFactory.createLineBorder(C_BORDE, 1, true)
         ));
 
-        // Título de la tabla
         lblTituloTabla = new JLabel("RESULTADOS DEL ANÁLISIS");
         lblTituloTabla.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lblTituloTabla.setForeground(C_TEXTO_FUERTE);
         lblTituloTabla.setBorder(new EmptyBorder(14, 16, 12, 16));
 
-        // Configuración de la Grilla
         grillaDetallesAnalisis.setRowHeight(36);
         grillaDetallesAnalisis.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         grillaDetallesAnalisis.setGridColor(new Color(235, 240, 245));
@@ -214,7 +357,6 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         pnlCuerpo.add(pnlTablaWrapper, BorderLayout.CENTER);
         pnlContenedorBlanco.add(pnlCuerpo, BorderLayout.CENTER);
 
-        // ── FOOTER (mismos márgenes que VistaPaciente) ────────────────
         jPanelFooter.setBackground(C_BLANCO);
         jPanelFooter.setBorder(BorderFactory.createCompoundBorder(
             new MatteBorder(1, 0, 0, 0, C_BORDE),
@@ -228,7 +370,6 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         jdFechaInforme.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         jdFechaInforme.setPreferredSize(new Dimension(160, 36));
 
-        // Estilo para el selector de fecha
         if (jdFechaInforme.getDateEditor() instanceof com.toedter.calendar.JTextFieldDateEditor) {
             com.toedter.calendar.JTextFieldDateEditor editor =
                 (com.toedter.calendar.JTextFieldDateEditor) jdFechaInforme.getDateEditor();
@@ -258,7 +399,6 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         pnlFooterDer.add(btnEditar);
         jPanelFooter.add(pnlFooterDer, BorderLayout.EAST);
 
-        // ── ARMADO FINAL DEL LAYOUT ───────────────────────────────────
         this.removeAll();
         this.setLayout(new BorderLayout());
         this.add(jPanelHeader, BorderLayout.NORTH);
@@ -268,7 +408,6 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         aplicarColumnas();
         aplicarRenderersConTitulos();
         
-        // Forzar actualización
         this.revalidate();
         this.repaint();
     }
@@ -312,14 +451,13 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         ImageIcon ico = icon("/reportes/img/flecha_icon.png", 40, 40);
         if (ico != null) btn.setIcon(ico);
 
-        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+        btn.addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseEntered(java.awt.event.MouseEvent e) {
+            public void mouseEntered(MouseEvent e) {
                 btn.setForeground(C_BLANCO);
             }
-
             @Override
-            public void mouseExited(java.awt.event.MouseEvent e) {
+            public void mouseExited(MouseEvent e) {
                 btn.setForeground(C_HEADER_TEXT);
             }
         });
@@ -332,16 +470,12 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                 Image img = new ImageIcon(url).getImage().getScaledInstance(w, h, Image.SCALE_SMOOTH);
                 return new ImageIcon(img);
             }
-        } catch (Exception e) {
-        }
+        } catch (Exception e) {}
         return null;
     }
 
-    // ── Anchos de columna optimizados ────────────────────────────────
     private void aplicarColumnas() {
-        if (grillaDetallesAnalisis.getColumnCount() < 6) {
-            return;
-        }
+        if (grillaDetallesAnalisis.getColumnCount() < 6) return;
 
         grillaDetallesAnalisis.getColumnModel().getColumn(0).setMinWidth(0);
         grillaDetallesAnalisis.getColumnModel().getColumn(0).setMaxWidth(0);
@@ -366,15 +500,8 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         grillaDetallesAnalisis.getColumnModel().getColumn(5).setMinWidth(250);
     }
 
-    // ── Renderer de la tabla con colores según referencia ────────────
     private void aplicarRenderersConTitulos() {
-        if (grillaDetallesAnalisis.getColumnCount() < 6) {
-            return;
-        }
-
-        grillaDetallesAnalisis.getColumnModel().getColumn(0).setMinWidth(0);
-        grillaDetallesAnalisis.getColumnModel().getColumn(0).setMaxWidth(0);
-        grillaDetallesAnalisis.getColumnModel().getColumn(0).setWidth(0);
+        if (grillaDetallesAnalisis.getColumnCount() < 6) return;
 
         DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
             @Override
@@ -386,8 +513,7 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                 boolean esTituloGenerado = false;
                 try {
                     esTituloGenerado = (id != null && Integer.parseInt(id.toString()) == -1);
-                } catch (Exception e) {
-                }
+                } catch (Exception e) {}
 
                 String nombreFila = table.getModel().getValueAt(row, 2) != null ? table.getModel().getValueAt(row, 2).toString().replaceAll("<[^>]*>", "").trim() : "";
                 boolean esSubtitulo = nombreFila.startsWith("---") && nombreFila.endsWith("---");
@@ -432,11 +558,9 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                     }
 
                 } else {
-                    // ── FILA NORMAL DE COMPONENTE ──
                     setOpaque(true);
                     setFont(col == 3 ? new Font("Segoe UI", Font.BOLD, 14) : new Font("Segoe UI", Font.PLAIN, 13));
                     
-                    // ── APLICAMOS EL SEMÁFORO DE COLORES SEGÚN REFERENCIA ──
                     if (col == 3) {
                         Object objRes = table.getModel().getValueAt(row, 3);
                         Object objRef = table.getModel().getValueAt(row, 5);
@@ -463,11 +587,13 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
 
                     setHorizontalAlignment(SwingConstants.CENTER);
 
-                    if (hasFocus) {
+                    if (hasFocus && col == 3 && esFilaEditable(row)) {
                         setBorder(BorderFactory.createCompoundBorder(
-                                BorderFactory.createLineBorder(Color.BLACK, 2),
+                                BorderFactory.createLineBorder(C_FOCUS_BORDER, 2),
                                 new EmptyBorder(0, 8, 0, 8)
                         ));
+                    } else if (isSelected && col == 3) {
+                        setBorder(new EmptyBorder(0, 12, 0, 12));
                     } else {
                         setBorder(new EmptyBorder(0, 12, 0, 12));
                     }
@@ -475,6 +601,7 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                     Object val = table.getModel().getValueAt(row, col);
                     String textoOriginal = val != null ? val.toString() : "";
 
+                    // ── ESTA ES LA SECCIÓN DEL TOOLTIP Y SALTOS DE LÍNEA PARA LOS VALORES DE REFERENCIA ──
                     if ((col == 5 || col == 2) && textoOriginal.contains(";")) {
                         String[] lineas = textoOriginal.split(";");
                         StringBuilder sb = new StringBuilder("<html>");
@@ -492,11 +619,11 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                         }
                         sb.append("</html>");
                         setText(sb.toString());
+                        setToolTipText("<html><div style='padding:5px;'>" + textoOriginal.replace(";", "<br>") + "</div></html>");
                     } else {
                         setText(textoOriginal);
+                        setToolTipText(null);
                     }
-
-                    setToolTipText(null);
                 }
 
                 int alturaPreferida = getPreferredSize().height + 10;
@@ -515,7 +642,6 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         }
     }
 
-    // ── MOTOR DE EVALUACIÓN CLÍNICA (COLORES) ─────────────────────────
     private Color evaluarAlertaResultado(String resStr, String refStr) {
         if (resStr == null || resStr.isEmpty() || refStr == null || refStr.isEmpty()) {
             return C_TEXTO_FUERTE;
@@ -569,38 +695,23 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                     }
                 }
             }
-        } catch (Exception e) {
-        }
-
+        } catch (Exception e) {}
         return C_TEXTO_FUERTE;
     }
 
     private double parsearNumeroLab(String numStr) {
         String s = numStr.replaceAll("[^0-9.,]", "");
-        if (s.isEmpty()) {
-            return Double.NaN;
-        }
-
-        if (s.contains(",")) {
-            return Double.parseDouble(s.replace(".", "").replace(",", "."));
-        }
-
+        if (s.isEmpty()) return Double.NaN;
+        if (s.contains(",")) return Double.parseDouble(s.replace(".", "").replace(",", "."));
         if (s.contains(".")) {
             long cantPuntos = s.chars().filter(ch -> ch == '.').count();
-            if (cantPuntos > 1) {
-                return Double.parseDouble(s.replace(".", ""));
-            }
+            if (cantPuntos > 1) return Double.parseDouble(s.replace(".", ""));
             String[] partes = s.split("\\.");
-            if (partes.length == 2 && partes[1].length() == 3) {
-                return Double.parseDouble(s.replace(".", ""));
-            }
+            if (partes.length == 2 && partes[1].length() == 3) return Double.parseDouble(s.replace(".", ""));
         }
         return Double.parseDouble(s);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  BUSCADORES
-    // ════════════════════════════════════════════════════════════════
     private void configurarBuscadorMedicoDinamico() {
         modeloSugerenciasMed = new DefaultListModel<>();
         listaSugerenciasMed = new JList<>(modeloSugerenciasMed);
@@ -683,145 +794,7 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                     txtMedicoSolicitante.getWidth(), Math.min(200, sugerencias.size() * 32 + 5));
             ventanaSugerenciasMed.setVisible(true);
             listaSugerenciasMed.setSelectedIndex(0);
-        } catch (Exception ex) {
-        }
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    //  GETTERS / SETTERS E INTERFAZ
-    // ════════════════════════════════════════════════════════════════
-    @Override
-    public void ejecutar() {
-        setVisible(true);
-    }
-
-    @Override
-    public void setPresenter(DetalleAnalisisPresenter presenter) {
-        this.presenter = presenter;
-
-        btnImprimir.addActionListener(e -> presenter.onImprimir());
-        btnEditar.addActionListener(e -> presenter.onEditar());
-        btnEliminarFila.addActionListener(e -> presenter.onEliminarFila());
-        btnCerrar.addActionListener(e -> presenter.onVolver());
-
-        grillaDetallesAnalisis.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                presenter.onSeleccionarAnalisis();
-            }
-        });
-    }
-
-    @Override
-    public void limpiarFocos() {
-        this.requestFocusInWindow();
-    }
-
-    @Override
-    public int confirmarAccion(String mensaje, String titulo) {
-        return JOptionPane.showConfirmDialog(this, mensaje, titulo, JOptionPane.YES_NO_OPTION);
-    }
-
-    @Override
-    public void setIdAnalisis(int id) {
-        this.idAnalisisActual = id;
-    }
-
-    @Override
-    public int getIdAnalisis() {
-        return idAnalisisActual;
-    }
-
-    @Override
-    public void setNombrePaciente(String n) {
-        lblNombrePaciente.setText(n.toUpperCase());
-    }
-
-    @Override
-    public void setFechaAnalisis(String f) {
-        lblFechaAnalisis.setText(f);
-    }
-
-    @Override
-    public void setMedicoSolicitante(String m) {
-        txtMedicoSolicitante.setText(m);
-    }
-
-    @Override
-    public String getMedicoSolicitante() {
-        return txtMedicoSolicitante.getText().trim();
-    }
-
-    @Override
-    public int getCantidadFilas() {
-        return grillaDetallesAnalisis.getRowCount();
-    }
-
-    @Override
-    public int getIdResultado(int f) {
-        Object val = grillaDetallesAnalisis.getModel().getValueAt(f, 0);
-        if (val == null) {
-            return -1;
-        }
-        try {
-            return Integer.parseInt(val.toString());
-        } catch (NumberFormatException e) {
-            return -1;
-        }
-    }
-
-    @Override
-    public String getResultadoEditado(int f) {
-        Object val = grillaDetallesAnalisis.getModel().getValueAt(f, 3);
-        return val != null ? val.toString() : "";
-    }
-
-    @Override
-    public JTable getGrilla() {
-        return grillaDetallesAnalisis;
-    }
-
-    @Override
-    public void habilitarBotonGuardar(boolean b) {
-        btnEditar.setEnabled(b);
-    }
-
-    @Override
-    public void habilitarBotonEliminar(boolean b) {
-        btnEliminarFila.setEnabled(b);
-    }
-
-    @Override
-    public void habilitarBotonImprimir(boolean b) {
-        btnImprimir.setEnabled(b);
-    }
-
-    @Override
-    public void mostrarMensaje(String msg) {
-        JOptionPane.showMessageDialog(this, msg);
-    }
-
-    @Override
-    public void setFechaInforme(Date fecha) {
-        jdFechaInforme.setDate(fecha);
-    }
-
-    @Override
-    public Date getFechaSeleccionada() {
-        return jdFechaInforme.getDate() != null ? jdFechaInforme.getDate() : new Date();
-    }
-
-    @Override
-    public void detenerEdicionTabla() {
-        if (grillaDetallesAnalisis.isEditing()) {
-            grillaDetallesAnalisis.getCellEditor().stopCellEditing();
-        }
-    }
-
-    @Override
-    public void bloquearMedicoSolicitante() {
-        txtMedicoSolicitante.setEditable(false);
-        txtMedicoSolicitante.setFocusable(false);
-        txtMedicoSolicitante.setForeground(new Color(180, 200, 220));
+        } catch (Exception ex) {}
     }
 
     @Override
@@ -838,6 +811,7 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         aplicarRenderersConTitulos();
         aplicarColumnas();
     }
+   
 
     @Override
     public void cargarResultadosDetalle(ArrayList<ResultadoAnalisis> lista) {
@@ -890,84 +864,9 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
 
         aplicarRenderersConTitulos();
         aplicarColumnas();
+        aplicarCellEditor(); // Inyectamos el CellEditor Inteligente
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  NAVEGACIÓN ENTER Y AUTO-FORMATEO
-    // ════════════════════════════════════════════════════════════════
-    private void configurarNavegacionEnter() {
-        javax.swing.InputMap im = grillaDetallesAnalisis.getInputMap(javax.swing.JTable.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
-        javax.swing.ActionMap am = grillaDetallesAnalisis.getActionMap();
-
-        im.put(javax.swing.KeyStroke.getKeyStroke("ENTER"), "enterNavegar");
-        am.put("enterNavegar", new AbstractAction() {
-            @Override
-            public void actionPerformed(java.awt.event.ActionEvent e) {
-                if (grillaDetallesAnalisis.isEditing()) {
-                    grillaDetallesAnalisis.getCellEditor().stopCellEditing();
-                }
-
-                int filaActual = grillaDetallesAnalisis.getSelectedRow();
-
-                if (filaActual != -1) {
-                    Object val = grillaDetallesAnalisis.getModel().getValueAt(filaActual, 3);
-                    if (val != null) {
-                        String texto = val.toString().trim();
-                        if (texto.matches("^-?\\d{4,}([.,]\\d+)?$")) {
-                            try {
-                                String[] partes = texto.split("[.,]");
-                                String parteEntera = partes[0];
-                                String parteDecimal = partes.length > 1 ? partes[1] : "";
-                                char separadorOriginal = partes.length > 1 ? texto.charAt(parteEntera.length()) : '.';
-                                java.text.DecimalFormatSymbols dfs = new java.text.DecimalFormatSymbols();
-                                dfs.setGroupingSeparator('.');
-                                java.text.DecimalFormat df = new java.text.DecimalFormat("#,###", dfs);
-                                String enteroFormateado = df.format(Long.parseLong(parteEntera));
-                                String formateado = enteroFormateado;
-                                if (partes.length > 1) {
-                                    formateado += separadorOriginal + parteDecimal;
-                                }
-                                grillaDetallesAnalisis.getModel().setValueAt(formateado, filaActual, 3);
-                            } catch (Exception ex) {
-                            }
-                        }
-                    }
-                }
-
-                int totalFilas = grillaDetallesAnalisis.getRowCount();
-
-                for (int sig = filaActual + 1; sig < totalFilas; sig++) {
-                    Object id = grillaDetallesAnalisis.getModel().getValueAt(sig, 0);
-                    boolean esTitulo = false;
-                    try {
-                        esTitulo = (id != null && Integer.parseInt(id.toString()) == -1);
-                    } catch (NumberFormatException ex) {
-                    }
-
-                    Object nombreObj = grillaDetallesAnalisis.getModel().getValueAt(sig, 2);
-                    boolean esSubtitulo = (nombreObj != null && nombreObj.toString().trim().startsWith("---") && nombreObj.toString().trim().endsWith("---"));
-
-                    if (!esTitulo && !esSubtitulo) {
-                        grillaDetallesAnalisis.setRowSelectionInterval(sig, sig);
-                        grillaDetallesAnalisis.setColumnSelectionInterval(3, 3);
-                        grillaDetallesAnalisis.scrollRectToVisible(grillaDetallesAnalisis.getCellRect(sig, 3, true));
-                        grillaDetallesAnalisis.editCellAt(sig, 3);
-                        Component ed = grillaDetallesAnalisis.getEditorComponent();
-                        if (ed != null) {
-                            ed.requestFocusInWindow();
-                        }
-                        return;
-                    }
-                }
-
-                btnEditar.requestFocusInWindow();
-            }
-        });
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    //  UI BUILDER (Estructura base)
-    // ════════════════════════════════════════════════════════════════
     private void initComponents() {
         jPanelHeader = new JPanel();
         lblNombrePaciente = new JLabel();
@@ -1006,19 +905,131 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         jScrollPane1.setViewportView(grillaDetallesAnalisis);
     }
 
-    // ── Variables ────────────────────────────────────────────────────
-    private JButton btnCerrar;
-    private JButton btnEditar;
-    private JButton btnEliminarFila;
-    private JButton btnImprimir;
+    private JButton btnCerrar, btnEditar, btnEliminarFila, btnImprimir;
     private JTable grillaDetallesAnalisis;
-    private JLabel jLabel1, jLabel3, jLabel4;
-    private JPanel jPanelHeader, jPanelFooter;
-    private JPanel pnlContenedorBlanco, pnlCuerpo, pnlTablaWrapper;
-    private JLabel lblTituloTabla;
+    private JLabel jLabel1, jLabel3, jLabel4, lblTituloTabla, lblNombrePaciente, lblFechaAnalisis;
+    private JPanel jPanelHeader, jPanelFooter, pnlContenedorBlanco, pnlCuerpo, pnlTablaWrapper;
     private JScrollPane jScrollPane1;
-    private JLabel lblNombrePaciente;
-    private JLabel lblFechaAnalisis;
     private JTextField txtMedicoSolicitante;
     private com.toedter.calendar.JDateChooser jdFechaInforme;
+
+    // ════════════════════════════════════════════════════════════════
+    //  IMPLEMENTACIONES DE LA INTERFAZ FALTANTES
+    // ════════════════════════════════════════════════════════════════
+    
+    @Override
+    public void ejecutar() {
+        setVisible(true);
+    }
+
+    @Override
+    public void limpiarFocos() {
+        this.requestFocusInWindow();
+    }
+
+    @Override
+    public int confirmarAccion(String mensaje, String titulo) {
+        return JOptionPane.showConfirmDialog(this, mensaje, titulo, JOptionPane.YES_NO_OPTION);
+    }
+
+    @Override
+    public void setNombrePaciente(String nombre) {
+        lblNombrePaciente.setText(nombre.toUpperCase());
+    }
+
+    @Override
+    public void mostrarMensaje(String mensaje) {
+        JOptionPane.showMessageDialog(this, mensaje);
+    }
+
+    @Override
+    public void setFechaAnalisis(String fecha) {
+        lblFechaAnalisis.setText(fecha);
+    }
+
+    @Override
+    public int getCantidadFilas() {
+        return grillaDetallesAnalisis.getRowCount();
+    }
+
+    @Override
+    public int getIdResultado(int fila) {
+        Object val = grillaDetallesAnalisis.getModel().getValueAt(fila, 0);
+        if (val == null) return -1;
+        try {
+            return Integer.parseInt(val.toString());
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    @Override
+    public void setMedicoSolicitante(String medico) {
+        txtMedicoSolicitante.setText(medico);
+    }
+
+    @Override
+    public String getMedicoSolicitante() {
+        return txtMedicoSolicitante.getText().trim();
+    }
+
+    @Override
+    public JTable getGrilla() {
+        return grillaDetallesAnalisis;
+    }
+
+    @Override
+    public String getResultadoEditado(int fila) {
+        Object val = grillaDetallesAnalisis.getModel().getValueAt(fila, 3);
+        return val != null ? val.toString() : "";
+    }
+
+    @Override
+    public void detenerEdicionTabla() {
+        if (grillaDetallesAnalisis.isEditing()) {
+            grillaDetallesAnalisis.getCellEditor().stopCellEditing();
+        }
+    }
+
+    @Override
+    public void habilitarBotonGuardar(boolean b) {
+        btnEditar.setEnabled(b);
+    }
+
+    @Override
+    public void habilitarBotonEliminar(boolean b) {
+        btnEliminarFila.setEnabled(b);
+    }
+
+    @Override
+    public void habilitarBotonImprimir(boolean b) {
+        btnImprimir.setEnabled(b);
+    }
+
+    @Override
+    public void bloquearMedicoSolicitante() {
+        txtMedicoSolicitante.setEditable(false);
+        txtMedicoSolicitante.setFocusable(false);
+        txtMedicoSolicitante.setForeground(new Color(180, 200, 220));
+    }
+
+    @Override
+    public void setIdAnalisis(int id) {
+        this.idAnalisisActual = id;
+    }
+
+    @Override
+    public int getIdAnalisis() {
+        return idAnalisisActual;
+    }
+
+    @Override
+    public void setFechaInforme(Date fecha) {
+        jdFechaInforme.setDate(fecha);
+    }
+
+    @Override
+    public Date getFechaSeleccionada() {
+        return jdFechaInforme.getDate() != null ? jdFechaInforme.getDate() : new Date();
+    }
 }

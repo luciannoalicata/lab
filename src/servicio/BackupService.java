@@ -14,7 +14,6 @@ public class BackupService {
         String nombreArchivo = "backup_biotec_" + fecha + ".sql";
         File archivoDestino = new File(rutaCarpeta, nombreArchivo);
 
-        // Usamos la ruta de XAMPP que es la que tiene tus datos
         String pathMysqldump = "/opt/lampp/bin/mysqldump"; 
         
         if (!new File(pathMysqldump).exists()) {

@@ -32,18 +32,20 @@ public class PacientePresenter {
     }
 
     public void iniciar() {
-        vista.setPresenter(this); 
+        vista.setPresenter(this);
+        vista.limpiarCampos();
         cargarTabla();
     }
-    
+
     private void cargarTabla() {
         ArrayList<Paciente> lista = pacienteDAO.listarPacientes();
         vista.cargarPacientesEnTabla(lista);
     }
 
     public void onGuardarPaciente() {
+        // 1. Ejecuta la validación ordenada
         if (!validarCampos()) {
-            return;
+            return; // Si devuelve false, se detiene aquí y ya mostró el mensaje
         }
 
         String dni = vista.getDni();
@@ -74,6 +76,35 @@ public class PacientePresenter {
             vista.mostrarMensaje("Error técnico al intentar guardar el paciente");
         }
         cargarTabla();
+    }
+
+    // ── MÉTODO DE VALIDACIÓN CORREGIDO ──
+    private boolean validarCampos() {
+        String apellido = vista.getApellido().trim();
+        String nombre = vista.getNombre().trim();
+        String dni = vista.getDni().trim();
+
+        // 1ra Barrera: Verificar que los campos obligatorios NO estén vacíos
+        if (apellido.isEmpty() || nombre.isEmpty() || dni.isEmpty()) {
+            vista.mostrarMensaje("Los campos Apellido, Nombre y DNI son obligatorios.");
+            return false;
+        }
+
+        // 2da Barrera: Verificar que el DNI tenga el formato correcto (solo números, 7 u 8 dígitos)
+        // Se ejecuta SOLO si el DNI ya tiene algo escrito
+        if (!dni.matches("\\d{7,8}")) { 
+            vista.mostrarMensaje("El DNI es inválido. Debe contener entre 7 y 8 dígitos numéricos.");
+            return false;
+        }
+
+        // Si quieres agregar validación de edad (opcional, por si escriben letras)
+        String edad = vista.getEdad().trim();
+        if (!edad.isEmpty() && !edad.matches("\\d+")) {
+            vista.mostrarMensaje("La edad debe ser un número válido.");
+            return false;
+        }
+
+        return true; // Todo está perfecto
     }
 
     public void onEditarPaciente() {
@@ -191,57 +222,5 @@ public class PacientePresenter {
     public Paciente getPacienteSeleccionadoCompleto() {
         return pacienteSeleccionadoCompleto;
     }
-    /**
- * Valida todos los campos del formulario antes de guardar
- * @return true si todos los campos son válidos, false en caso contrario
- */
-private boolean validarCampos() {
-    String dni = vista.getDni();
-    String nombre = vista.getNombre();
-    String apellido = vista.getApellido();
-    String edad = vista.getEdad();
-    String obraSocial = vista.getObraSocial();
-    
-    // DNI
-    if (!dni.matches("\\d{7,8}")) {
-        vista.mostrarMensaje("DNI inválido. Debe contener solo números y tener entre 7 y 8 dígitos.");
-        return false;
-    }
-    
-    // Nombre
-    if (!nombre.matches("^[a-zA-ZáéíóúñÑÁÉÍÓÚ\\s]+$")) {
-        vista.mostrarMensaje("Nombre inválido. No puede contener números.");
-        return false;
-    }
-    
-    // Apellido (opcional pero si se ingresa debe ser válido)
-    if (apellido != null && !apellido.isEmpty() && !apellido.matches("^[a-zA-ZáéíóúñÑÁÉÍÓÚ\\s]+$")) {
-        vista.mostrarMensaje("Apellido inválido. No puede contener números.");
-        return false;
-    }
-    
-    // Edad (opcional)
-    if (edad != null && !edad.isEmpty()) {
-        if (!edad.matches("\\d{1,2}")) {
-            vista.mostrarMensaje("Edad inválida. Debe ser un número de hasta 2 dígitos.");
-            return false;
-        }
-        int edadInt = Integer.parseInt(edad);
-        if (edadInt <= 0 || edadInt > 100) {
-            vista.mostrarMensaje("Edad inválida. Debe estar entre 0 y 99 años.");
-            return false;
-        }
-    }
-    
-    // Obra Social
-//    if (obraSocial != null && !obraSocial.isEmpty()) {
-//        List<String> obrasValidas = obtenerListaObrasSocialesValidas();
-//        if (!obrasValidas.contains(obraSocial) && !obraSocial.equals("PARTICULAR")) {
-//            vista.mostrarMensaje("Obra Social inválida. Seleccione una de las opciones sugeridas.");
-//            return false;
-//        }
-//    }
-    
-    return true;
-}
+
 }

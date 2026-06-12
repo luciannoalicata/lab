@@ -5,79 +5,95 @@ import modelo.Usuario;
 import presentador.router.AppRouter;
 import vista.interfaces.IVistaGestionUsuarios;
 
-// 1. Adiós al implements ActionListener
 public class UsuarioPresenter {
 
-    private final IVistaGestionUsuarios vgu;
-    private final AppRouter router; // 2. El Router toma el control de la navegación
+    private final IVistaGestionUsuarios vista;
+    private final AppRouter router;
     private final UsuarioDAO usuarioDAO;
     private final Usuario usuarioLogueado; 
+    private boolean guardando = false; // Flag para evitar loops
 
-    // 3. Constructor actualizado
-    public UsuarioPresenter(IVistaGestionUsuarios vgu, AppRouter router, UsuarioDAO usuarioDAO, Usuario usuarioLogueado) {
-        this.vgu = vgu;
+    public UsuarioPresenter(IVistaGestionUsuarios vista, AppRouter router, 
+                            UsuarioDAO usuarioDAO, Usuario usuarioLogueado) {
+        this.vista = vista;
         this.router = router;
         this.usuarioDAO = usuarioDAO;
         this.usuarioLogueado = usuarioLogueado;
     }
 
     public void iniciar() {
-        vgu.setPresenter(this); // Conectamos la vista al presentador
-        vgu.limpiarCampos();
-        vgu.cargarUsuarios(usuarioDAO.listarTodos());
-        // El AppRouter se encarga de mostrar la vista en pantalla
+        vista.setPresenter(this);
+        vista.limpiarCampos();
+        cargarListaUsuarios();
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  MÉTODOS EXPLÍCITOS LLAMADOS POR LA VISTA (MVP Puro)
-    // ════════════════════════════════════════════════════════════════
+    private void cargarListaUsuarios() {
+        vista.cargarUsuarios(usuarioDAO.listarTodos());
+    }
 
     public void onGuardar() {
-        String nuevoUser = vgu.getUsername();
-        String nuevaPass = vgu.getPassword();
-        String nuevoRol = vgu.getRol();
+        if (guardando) return;
+        guardando = true;
+        
+        try {
+            String nuevoUser = vista.getUsername();
+            String nuevaPass = vista.getPassword();
+            String nuevoRol = vista.getRol();
 
-        if (nuevoUser.isEmpty() || nuevaPass.isEmpty()) {
-            vgu.mostrarMensaje("Nombre y contraseña son obligatorios.");
-            return;
-        }
+            if (nuevoUser.isEmpty() || nuevaPass.isEmpty()) {
+                vista.mostrarMensaje("Nombre de usuario y contraseña son obligatorios.");
+                return;
+            }
 
-        Usuario uNuevo = new Usuario();
-        uNuevo.setUsername(nuevoUser);
-        uNuevo.setRol(nuevoRol);
+            Usuario uNuevo = new Usuario();
+            uNuevo.setUsername(nuevoUser);
+            uNuevo.setRol(nuevoRol);
 
-        if (usuarioDAO.guardar(uNuevo, nuevaPass)) {
-            vgu.mostrarMensaje("Usuario creado/actualizado con éxito.");
-            vgu.limpiarCampos(); 
-            vgu.cargarUsuarios(usuarioDAO.listarTodos());
-        } else {
-            vgu.mostrarMensaje("Error al guardar usuario (quizás ya existe).");
+            if (usuarioDAO.guardar(uNuevo, nuevaPass)) {
+                vista.mostrarMensaje("✓ Usuario guardado con éxito.");
+                vista.limpiarCampos();
+                cargarListaUsuarios();
+            } else {
+                vista.mostrarMensaje("✗ Error al guardar usuario. El nombre de usuario puede ya existir.");
+            }
+        } finally {
+            guardando = false;
         }
     }
 
     public void onEliminar() {
-        int idSeleccionado = vgu.getUsuarioSeleccionadoId();
-
-        if (idSeleccionado == -1) {
-            vgu.mostrarMensaje("Seleccione un usuario de la tabla.");
-            return;
-        }
+        if (guardando) return;
+        guardando = true;
         
-        if (idSeleccionado == this.usuarioLogueado.getIdUsuario()) {
-            vgu.mostrarMensaje("Seguridad: No puede eliminarse a sí mismo mientras está en sesión.");
-            return;
-        }
+        try {
+            int idSeleccionado = vista.getUsuarioSeleccionadoId();
 
-        int confirm = vgu.confirmarAccion("¿Está seguro de eliminar este usuario? Esta acción no se puede deshacer.", "Confirmar Eliminación");
-
-        if (confirm == 0) { 
-            if (usuarioDAO.eliminar(idSeleccionado)) {
-                vgu.mostrarMensaje("Usuario eliminado correctamente.");
-                vgu.limpiarCampos(); // Limpiamos por si había algo escrito
-                vgu.cargarUsuarios(usuarioDAO.listarTodos());
-            } else {
-                vgu.mostrarMensaje("Error al intentar eliminar el usuario.");
+            if (idSeleccionado == -1) {
+                vista.mostrarMensaje("Seleccione un usuario de la tabla para eliminar.");
+                return;
             }
+            
+            if (idSeleccionado == this.usuarioLogueado.getIdUsuario()) {
+                vista.mostrarMensaje("No puede eliminarse a sí mismo mientras está en sesión.");
+                return;
+            }
+
+            int confirm = vista.confirmarAccion(
+                "¿Está seguro de eliminar este usuario? Esta acción no se puede deshacer.", 
+                "Confirmar Eliminación"
+            );
+
+            if (confirm == 0) { 
+                if (usuarioDAO.eliminar(idSeleccionado)) {
+                    vista.mostrarMensaje("✓ Usuario eliminado correctamente.");
+                    vista.limpiarCampos();
+                    cargarListaUsuarios();
+                } else {
+                    vista.mostrarMensaje("✗ Error al intentar eliminar el usuario.");
+                }
+            }
+        } finally {
+            guardando = false;
         }
     }
 
@@ -86,8 +102,7 @@ public class UsuarioPresenter {
     }
 
     public void onSeleccionarUsuario() {
-        // Opcional: Si quieres que al hacer clic en la tabla se llenen los campos
-        // Puedes implementar la lógica aquí (requiere un método en la vista para extraer los datos de la fila).
-        // Por ahora, lo dejamos vacío para que solo cumpla con la selección visual.
+        // Sin lógica adicional - previene mensajes duplicados
+        // La vista maneja la selección visual solamente
     }
 }

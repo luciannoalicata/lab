@@ -69,15 +69,37 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
     public void setPresenter(UsuarioPresenter presenter) {
         this.presenter = presenter;
         
+        // 1. PURGA DE EVENTOS EN BOTONES (La cura para los carteles duplicados)
+        limpiarListeners(btnGuardar);
+        limpiarListeners(btnEliminar);
+        limpiarListeners(btnVolver);
+        
+        // 2. CONEXIÓN LIMPIA
         btnGuardar.addActionListener(e -> presenter.onGuardar());
         btnEliminar.addActionListener(e -> presenter.onEliminar());
         btnVolver.addActionListener(e -> presenter.onVolver());
         
-        grillaUsuarios.getSelectionModel().addListSelectionListener(e -> {
+        // 3. PURGA DE EVENTOS EN LA TABLA
+        javax.swing.DefaultListSelectionModel modeloSeleccion = 
+                (javax.swing.DefaultListSelectionModel) grillaUsuarios.getSelectionModel();
+
+        for (javax.swing.event.ListSelectionListener lsl : modeloSeleccion.getListSelectionListeners()) {
+            modeloSeleccion.removeListSelectionListener(lsl);
+        }
+
+        // 4. CONEXIÓN DE LA TABLA
+        modeloSeleccion.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && grillaUsuarios.getSelectedRow() != -1) {
                 presenter.onSeleccionarUsuario();
             }
         });
+    }
+
+    // Método auxiliar obligatorio para purgar la memoria
+    private void limpiarListeners(javax.swing.JButton btn) {
+        for (java.awt.event.ActionListener al : btn.getActionListeners()) {
+            btn.removeActionListener(al);
+        }
     }
 
     @Override

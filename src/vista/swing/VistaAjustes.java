@@ -2,6 +2,10 @@ package vista.swing;
 
 import vista.interfaces.IVistaAjustes;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import javax.swing.*;
 import javax.swing.border.*;
 import presentador.AjustesPresenter;
@@ -31,26 +35,29 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
     private final Color C_CAMPO_RO  = new Color(242, 245, 248);
     private final Color C_TEXTO     = new Color(40, 60, 85);
     private final Color C_LABEL_HDR = new Color(160, 200, 230);
+    
+    private JFileChooser fileChooser; // Reutilizar el mismo file chooser
 
     public VistaAjustes(Object parentView) {
-    super(parentView instanceof java.awt.Frame ? (java.awt.Frame) parentView : null, true);
-    initComponents();
-    aplicarEstilo();
-    poblarCombos();
-    
-    // Configurar comportamiento al cerrar con la X
-    setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-    
-    // Limpiar referencia al cerrar
-    addWindowListener(new java.awt.event.WindowAdapter() {
-        @Override
-        public void windowClosed(java.awt.event.WindowEvent e) {
-            if (presenter != null) {
-                presenter.onVolver();
+        super(parentView instanceof java.awt.Frame ? (java.awt.Frame) parentView : null, true);
+        initComponents();
+        aplicarEstilo();
+        poblarCombos();
+        
+        // Inicializar file chooser
+        fileChooser = new JFileChooser();
+        
+        setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosed(java.awt.event.WindowEvent e) {
+                if (presenter != null) {
+                    presenter.onVolver();
+                }
             }
-        }
-    });
-}
+        });
+    }
 
     // ════════════════════════════════════════════════════════════════
     //  INTERFAZ IVistaAjustes - MÉTODOS MVP
@@ -59,19 +66,77 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
     public void setPresenter(AjustesPresenter presenter) {
         this.presenter = presenter;
 
-        // 1. Conexión de Botones de Lógica de Negocio (Directo al presentador)
+        // Limpiar listeners existentes para evitar duplicados
+        limpiarListeners(btnActualizarClave);
+        limpiarListeners(btnActualizarDatos);
+        limpiarListeners(btnGuardarConfiguracion);
+        limpiarListeners(btnGuardarUB);
+        limpiarListeners(btnBuscarLogo);
+        limpiarListeners(btnBuscarFirma);
+        limpiarListeners(btnBuscarRutaPdf);
+        limpiarListeners(btnBuscarRutaBackup);
+
+        // Conexión de Botones de Lógica de Negocio
         btnActualizarClave.addActionListener(e -> presenter.onActualizarClave());
         btnActualizarDatos.addActionListener(e -> presenter.onActualizarDatos());
         btnGuardarConfiguracion.addActionListener(e -> presenter.onGuardarConfiguracion());
         btnGuardarUB.addActionListener(e -> presenter.onGuardarUB());
 
-        // 2. Conexión de Botones Visuales (Se quedan en la vista)
-        btnBuscarLogo.addActionListener(e       -> seleccionarRuta(txtBuscarLogo,  false, "Seleccionar Logo"));
-        btnBuscarFirma.addActionListener(e      -> seleccionarRuta(txtFirma,       false, "Seleccionar Firma"));
-        btnBuscarRutaPdf.addActionListener(e    -> seleccionarRuta(txtRutaPdf,     true,  "Carpeta Informes PDF"));
-        btnBuscarRutaBackup.addActionListener(e -> seleccionarRuta(txtRutaBackup,  true,  "Carpeta Backups"));
+        // Conexión de Botones Visuales
+        btnBuscarLogo.addActionListener(e -> seleccionarImagen(txtBuscarLogo, "Seleccionar Logo", false));
+        btnBuscarFirma.addActionListener(e -> seleccionarImagen(txtFirma, "Seleccionar Firma", false));
+        btnBuscarRutaPdf.addActionListener(e -> seleccionarDirectorio(txtRutaPdf, "Carpeta Informes PDF"));
+        btnBuscarRutaBackup.addActionListener(e -> seleccionarDirectorio(txtRutaBackup, "Carpeta Backups"));
     }
     
+    private void limpiarListeners(JButton btn) {
+        for (ActionListener al : btn.getActionListeners()) {
+            btn.removeActionListener(al);
+        }
+    }
+    
+    private void seleccionarImagen(JTextField campo, String titulo, boolean carpeta) {
+        SwingUtilities.invokeLater(() -> {
+            fileChooser.setDialogTitle(titulo);
+            fileChooser.setFileSelectionMode(carpeta ? JFileChooser.DIRECTORIES_ONLY : JFileChooser.FILES_ONLY);
+            
+            // Filtrar solo imágenes
+            if (!carpeta) {
+                fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
+                    "Imágenes (*.png, *.jpg, *.jpeg, *.gif)", "png", "jpg", "jpeg", "gif"));
+            } else {
+                fileChooser.setFileFilter(null);
+            }
+            
+            int resultado = fileChooser.showOpenDialog(this);
+            if (resultado == JFileChooser.APPROVE_OPTION) {
+                campo.setText(fileChooser.getSelectedFile().getAbsolutePath());
+            }
+        });
+    }
+    
+    private void seleccionarDirectorio(JTextField campo, String titulo) {
+        SwingUtilities.invokeLater(() -> {
+            fileChooser.setDialogTitle(titulo);
+            fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            fileChooser.setFileFilter(null);
+            
+            int resultado = fileChooser.showOpenDialog(this);
+            if (resultado == JFileChooser.APPROVE_OPTION) {
+                campo.setText(fileChooser.getSelectedFile().getAbsolutePath());
+            }
+        });
+    }
+    
+    private void seleccionarRuta(JTextField campo, boolean carpeta, String titulo) {
+        // Método legacy - mantener por compatibilidad
+        if (carpeta) {
+            seleccionarDirectorio(campo, titulo);
+        } else {
+            seleccionarImagen(campo, titulo, false);
+        }
+    }
+
     @Override
     public void limpiarFocos() {
         this.requestFocusInWindow();
@@ -79,12 +144,8 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
 
     @Override
     public int confirmarAccion(String mensaje, String titulo) {
-        return javax.swing.JOptionPane.showConfirmDialog(
-                this, 
-                mensaje, 
-                titulo, 
-                javax.swing.JOptionPane.YES_NO_OPTION
-        );
+        return JOptionPane.showConfirmDialog(
+                this, mensaje, titulo, JOptionPane.YES_NO_OPTION);
     }
     
     @Override
@@ -92,58 +153,102 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
         this.dispose();
     }
 
-    private void seleccionarRuta(JTextField campo, boolean carpeta, String titulo) {
-        JFileChooser fc = new JFileChooser();
-        fc.setDialogTitle(titulo);
-        if (carpeta) fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-        if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION)
-            campo.setText(fc.getSelectedFile().getAbsolutePath());
+    @Override 
+    public void ejecutar() { 
+        setVisible(true); 
     }
-
-    @Override public void ejecutar()           { setVisible(true); }
-    @Override public void mostrarMensaje(String m) { JOptionPane.showMessageDialog(this, m); }
-    @Override public void limpiarCampos()      { txtClaveActual.setText(""); txtNuevaClave.setText(""); txtRepetirNuevaClave.setText(""); }
     
-    @Override public String getClaveActual()   { return new String(txtClaveActual.getPassword()); }
-    @Override public String getNuevaClave()    { return new String(txtNuevaClave.getPassword()); }
-    @Override public String getRepetirNuevaClave() { return new String(txtRepetirNuevaClave.getPassword()); }
-    @Override public String getNombreLaboratorio()  { return txtNombreLaboratorio.getText().trim(); }
-    @Override public String getDireccion()     { return txtDireccion.getText().trim(); }
-    @Override public String getLocalidad()     { return txtLocalidad.getText().trim(); }
-    @Override public String getTelefono()      { return txtTelefono.getText().trim(); }
-    @Override public String getBioquimico()    { return txtBioquimico.getText().trim(); }
-    @Override public String getMatricula()     { return txtMatricula.getText().trim(); }
-    @Override public String getLogo()          { return txtBuscarLogo.getText().trim(); }
-    @Override public String getFirma()         { return txtFirma.getText().trim(); }
-    @Override public String getRutaPdf()       { return txtRutaPdf.getText().trim(); }
-    @Override public String getRutaBackup()    { return txtRutaBackup.getText().trim(); }
-    @Override public String getTamanoHoja()    { return cbxTamanoHoja.getSelectedItem().toString(); }
-    @Override public String getOrientacion()   { return cbxOrientacion.getSelectedItem().toString(); }
-    @Override public boolean isIncluirLogo()   { return chkIncluirLogo.isSelected(); }
-    @Override public boolean isAutoPrint()     { return chkImprimirAutom.isSelected(); }
-    @Override public String getValorUB()       { return txtValorUB.getText().trim(); }
+    @Override 
+    public void mostrarMensaje(String m) { 
+        JOptionPane.showMessageDialog(this, m); 
+    }
     
-    @Override public void setUsuarioActual(String u)           { lblUsuarioActual.setText(u.toUpperCase()); }
-    @Override public void setNombreLaboratorioACtual(String n) { txtNombreLaboratorio.setText(n); }
-    @Override public void setDireccion(String d)   { txtDireccion.setText(d); }
-    @Override public void setLocalidad(String l)   { txtLocalidad.setText(l); }
-    @Override public void setTelefono(String t)    { txtTelefono.setText(t); }
-    @Override public void setBioquimico(String b)  { txtBioquimico.setText(b); }
-    @Override public void setMatricula(String m)   { txtMatricula.setText(m); }
-    @Override public void setLogo(String l)        { txtBuscarLogo.setText(l); }
-    @Override public void setFirma(String f)       { txtFirma.setText(f); }
-    @Override public void setRutaBackup(String r)  { txtRutaBackup.setText(r); }
-    @Override public void setRutaPdf(String p)     { txtRutaPdf.setText(p); }
-    @Override public void setTamanoHoja(String t)  { cbxTamanoHoja.setSelectedItem(t); }
-    @Override public void setOrientacion(String o) { cbxOrientacion.setSelectedItem(o); }
-    @Override public void setIncluirLogo(boolean i){ chkIncluirLogo.setSelected(i); }
-    @Override public void setAutoPrint(boolean a)  { chkImprimirAutom.setSelected(a); }
-    @Override public void setValorUB(String v)     { txtValorUB.setText(v); }
-    @Override public void setBackup(String b)      { txtRutaBackup.setText(b); }
-    @Override public String getMatriculaFirma()    { return ""; }
-    @Override public String getAclaracionFirma()   { return ""; }
-    @Override public void setMatriculaFirma(String m) {}
-    @Override public void setAclaracionFirma(String a) {}
+    @Override 
+    public void limpiarCampos() { 
+        txtClaveActual.setText(""); 
+        txtNuevaClave.setText(""); 
+        txtRepetirNuevaClave.setText(""); 
+    }
+    
+    @Override 
+    public String getClaveActual()   { return new String(txtClaveActual.getPassword()); }
+    @Override 
+    public String getNuevaClave()    { return new String(txtNuevaClave.getPassword()); }
+    @Override 
+    public String getRepetirNuevaClave() { return new String(txtRepetirNuevaClave.getPassword()); }
+    @Override 
+    public String getNombreLaboratorio()  { return txtNombreLaboratorio.getText().trim(); }
+    @Override 
+    public String getDireccion()     { return txtDireccion.getText().trim(); }
+    @Override 
+    public String getLocalidad()     { return txtLocalidad.getText().trim(); }
+    @Override 
+    public String getTelefono()      { return txtTelefono.getText().trim(); }
+    @Override 
+    public String getBioquimico()    { return txtBioquimico.getText().trim(); }
+    @Override 
+    public String getMatricula()     { return txtMatricula.getText().trim(); }
+    @Override 
+    public String getLogo()          { return txtBuscarLogo.getText().trim(); }
+    @Override 
+    public String getFirma()         { return txtFirma.getText().trim(); }
+    @Override 
+    public String getRutaPdf()       { return txtRutaPdf.getText().trim(); }
+    @Override 
+    public String getRutaBackup()    { return txtRutaBackup.getText().trim(); }
+    @Override 
+    public String getTamanoHoja()    { return cbxTamanoHoja.getSelectedItem().toString(); }
+    @Override 
+    public String getOrientacion()   { return cbxOrientacion.getSelectedItem().toString(); }
+    @Override 
+    public boolean isIncluirLogo()   { return chkIncluirLogo.isSelected(); }
+    @Override 
+    public boolean isAutoPrint()     { return chkImprimirAutom.isSelected(); }
+    @Override 
+    public String getValorUB()       { return txtValorUB.getText().trim(); }
+    
+    @Override 
+    public void setUsuarioActual(String u)           { lblUsuarioActual.setText(u.toUpperCase()); }
+    @Override 
+    public void setNombreLaboratorioACtual(String n) { txtNombreLaboratorio.setText(n); }
+    @Override 
+    public void setDireccion(String d)   { txtDireccion.setText(d); }
+    @Override 
+    public void setLocalidad(String l)   { txtLocalidad.setText(l); }
+    @Override 
+    public void setTelefono(String t)    { txtTelefono.setText(t); }
+    @Override 
+    public void setBioquimico(String b)  { txtBioquimico.setText(b); }
+    @Override 
+    public void setMatricula(String m)   { txtMatricula.setText(m); }
+    @Override 
+    public void setLogo(String l)        { txtBuscarLogo.setText(l); }
+    @Override 
+    public void setFirma(String f)       { txtFirma.setText(f); }
+    @Override 
+    public void setRutaBackup(String r)  { txtRutaBackup.setText(r); }
+    @Override 
+    public void setRutaPdf(String p)     { txtRutaPdf.setText(p); }
+    @Override 
+    public void setTamanoHoja(String t)  { cbxTamanoHoja.setSelectedItem(t); }
+    @Override 
+    public void setOrientacion(String o) { cbxOrientacion.setSelectedItem(o); }
+    @Override 
+    public void setIncluirLogo(boolean i){ chkIncluirLogo.setSelected(i); }
+    @Override 
+    public void setAutoPrint(boolean a)  { chkImprimirAutom.setSelected(a); }
+    @Override 
+    public void setValorUB(String v)     { txtValorUB.setText(v); }
+    @Override 
+    public void setBackup(String b)      { txtRutaBackup.setText(b); }
+    @Override 
+    public String getMatriculaFirma()    { return ""; }
+    @Override 
+    public String getAclaracionFirma()   { return ""; }
+    @Override 
+    public void setMatriculaFirma(String m) {}
+    @Override 
+    public void setAclaracionFirma(String a) {}
 
     @Override
     public void habilitarSeccionAranceles(boolean h) {
@@ -156,8 +261,8 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
     // ════════════════════════════════════════════════════════════════
     private void aplicarEstilo() {
         setTitle("Configuración del Sistema — BIOTEC LIS");
-        setMinimumSize(new Dimension(850, 600));
-        setPreferredSize(new Dimension(950, 650)); 
+        setMinimumSize(new Dimension(950, 680));
+        setPreferredSize(new Dimension(1050, 720)); 
         setResizable(true);
         getContentPane().setBackground(C_FONDO);
 
@@ -165,32 +270,35 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
         jTabbedPane1.setBackground(C_FONDO);
         jTabbedPane1.setBorder(new EmptyBorder(0, 0, 0, 0));
 
+        // Campos de rutas (no editables)
         for (JTextField f : new JTextField[]{txtBuscarLogo, txtFirma, txtRutaPdf, txtRutaBackup}) {
             f.setEditable(false);
             f.setFont(new Font("Segoe UI", Font.PLAIN, 12)); 
             f.setBackground(C_CAMPO_RO);
-            f.setForeground(C_GRIS);
+            f.setForeground(C_TEXTO);
             f.setBorder(BorderFactory.createCompoundBorder(
                 new MatteBorder(0, 0, 1, 0, C_BORDE),
-                new EmptyBorder(6, 10, 6, 10)
+                new EmptyBorder(8, 12, 8, 12)
             ));
-            f.setPreferredSize(new Dimension(250, 36)); 
+            f.setPreferredSize(new Dimension(350, 38)); 
         }
 
+        // Campos de texto normales
         for (JTextField f : new JTextField[]{txtNombreLaboratorio, txtDireccion,
                 txtLocalidad, txtTelefono, txtBioquimico, txtMatricula}) {
-            estilizarCampo(f, 280, 36); 
+            estilizarCampo(f, 350, 40); 
         }
 
+        // Campos de contraseña
         for (JPasswordField f : new JPasswordField[]{txtClaveActual, txtNuevaClave, txtRepetirNuevaClave}) {
             f.setFont(F_CAMPO);
             f.setBackground(C_CAMPO);
             f.setForeground(C_TEXTO);
             f.setCaretColor(C_AZUL_MED);
-            f.setPreferredSize(new Dimension(280, 38)); 
+            f.setPreferredSize(new Dimension(320, 42)); 
             f.setBorder(BorderFactory.createCompoundBorder(
                 new MatteBorder(0, 0, 2, 0, C_AZUL_MED),
-                new EmptyBorder(6, 10, 6, 10)
+                new EmptyBorder(8, 12, 8, 12)
             ));
         }
 
@@ -198,32 +306,32 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
         txtValorUB.setBackground(C_CAMPO);
         txtValorUB.setForeground(C_AZUL);
         txtValorUB.setHorizontalAlignment(JTextField.CENTER);
-        txtValorUB.setPreferredSize(new Dimension(180, 70)); 
+        txtValorUB.setPreferredSize(new Dimension(200, 75)); 
         txtValorUB.setBorder(BorderFactory.createCompoundBorder(
             new LineBorder(C_AZUL_MED, 2, true),
-            new EmptyBorder(5, 10, 5, 10)
+            new EmptyBorder(8, 15, 8, 15)
         ));
 
         for (JComboBox<?> cb : new JComboBox[]{cbxTamanoHoja, cbxOrientacion}) {
             cb.setFont(F_CAMPO);
             cb.setBackground(C_CAMPO);
-            cb.setPreferredSize(new Dimension(160, 36));
+            cb.setPreferredSize(new Dimension(180, 40));
         }
 
-        estilizarBtn(btnActualizarClave,      C_AZUL_MED, "✔  ACTUALIZAR CONTRASEÑA", 240, 42);
-        estilizarBtn(btnActualizarDatos,       C_VERDE,    "💾  GUARDAR DATOS",         200, 42);
-        estilizarBtn(btnGuardarConfiguracion, C_AZUL_MED, "💾  GUARDAR PREFERENCIAS",  240, 42);
-        estilizarBtn(btnGuardarUB,             C_VERDE,    "✔  GUARDAR VALOR UB",      200, 46);
+        estilizarBtn(btnActualizarClave,      C_AZUL_MED, "✔  ACTUALIZAR CONTRASEÑA", 260, 45);
+        estilizarBtn(btnActualizarDatos,       C_VERDE,    "💾  GUARDAR DATOS",         220, 45);
+        estilizarBtn(btnGuardarConfiguracion, C_AZUL_MED, "💾  GUARDAR PREFERENCIAS",  260, 45);
+        estilizarBtn(btnGuardarUB,             C_VERDE,    "✔  GUARDAR VALOR UB",      220, 50);
 
         for (JButton b : new JButton[]{btnBuscarLogo, btnBuscarFirma, btnBuscarRutaPdf, btnBuscarRutaBackup}) {
-            b.setText("...");
+            b.setText("📁");
             b.setBackground(new Color(215, 228, 245));
             b.setForeground(C_AZUL);
-            b.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            b.setFont(new Font("Segoe UI", Font.BOLD, 16));
             b.setCursor(new Cursor(Cursor.HAND_CURSOR));
             b.setFocusPainted(false);
             b.setBorderPainted(false);
-            b.setPreferredSize(new Dimension(45, 36)); 
+            b.setPreferredSize(new Dimension(50, 38));
         }
 
         for (JCheckBox chk : new JCheckBox[]{chkIncluirLogo, chkImprimirAutom}) {
@@ -247,7 +355,7 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
         tf.setPreferredSize(new Dimension(w, h));
         tf.setBorder(BorderFactory.createCompoundBorder(
             new LineBorder(C_BORDE, 1, true),
-            new EmptyBorder(6, 10, 6, 10) 
+            new EmptyBorder(8, 12, 8, 12)
         ));
     }
 
@@ -295,10 +403,10 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
         txtFirma             = new JTextField();
         txtRutaPdf           = new JTextField();
         txtRutaBackup        = new JTextField();
-        btnBuscarLogo        = new JButton("...");
-        btnBuscarFirma       = new JButton("...");
-        btnBuscarRutaPdf     = new JButton("...");
-        btnBuscarRutaBackup  = new JButton("...");
+        btnBuscarLogo        = new JButton("📁");
+        btnBuscarFirma       = new JButton("📁");
+        btnBuscarRutaPdf     = new JButton("📁");
+        btnBuscarRutaBackup  = new JButton("📁");
         btnActualizarDatos   = new JButton();
 
         cbxTamanoHoja        = new JComboBox<>();

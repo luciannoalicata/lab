@@ -46,7 +46,7 @@ public class ObraSocialPresenter {
         double ara = vos.getArancel();
 
         if (cod.isEmpty() || nom.isEmpty() || ara < 0) {
-            vos.mostrarMensaje("Todos los campos son obligatorios o inválidos.");
+            vos.mostrarMensaje("Todos los campos son obligatorios.");
             return;
         }
 

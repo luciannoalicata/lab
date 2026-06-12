@@ -170,7 +170,7 @@ private DeterminacionesPresenter determinacionesPresenterActual;
         vp.limpiarFocos();
     }
 
-    public void abrirDetalleAnalisis(int idAnalisis) {
+    public void abrirDetalleAnalisis(int idAnalisis, String origen) {
         if (this.detallePresenter == null) {
             IVistaVerDetalleAnalisis vistaDetalle = vistaFactory.getVistaVerDetalleAnalisis();
             vp.registrarPanel(vistaDetalle, "ver_detalle_analisis");
@@ -190,11 +190,16 @@ private DeterminacionesPresenter determinacionesPresenterActual;
             );
         }
 
-        this.detallePresenter.iniciar(idAnalisis);
-
-        // 👇 IMPORTANTE: Mostrar la sección de detalle
+        this.detallePresenter.iniciar(idAnalisis, origen);
         vp.mostrarSeccion("ver_detalle_analisis");
         vp.limpiarFocos();
+    }
+
+    public void volverAHistorialPaciente(Paciente paciente) {
+        // Cerrar la vista de detalles
+        cerrarDetalleAnalisis();
+        // Abrir la vista de historial del paciente
+        irAHistorial(paciente);
     }
 
     public void abrirCargaResultados(modelo.Paciente pacienteActual, java.util.List<modelo.Determinacion> listaDeterminaciones) {

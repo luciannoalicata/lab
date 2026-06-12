@@ -20,6 +20,7 @@ import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.DefaultCellEditor;
 import javax.swing.DefaultListModel;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -41,10 +42,6 @@ import javax.swing.table.DefaultTableModel;
 import modelo.Determinacion;
 import presentador.ResultadoPresenter;
 
-/**
- * Vista de Carga de Resultados - BIOTEC LIS
- * Diseño consistente con VistaPaciente
- */
 public class VistaCargarResultados extends JPanel implements IVistaCargarResultados {
 
     private ResultadoPresenter presenter;
@@ -79,7 +76,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         configurarBuscadoresDinamicos();
         configurarNavegacionEnter();
 
-        // Enfoque inicial en la tabla
         java.awt.EventQueue.invokeLater(() -> {
             if (grillaResultados.getRowCount() > 0) {
                 grillaResultados.setRowSelectionInterval(0, 0);
@@ -91,20 +87,16 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  ESTÉTICA Y UX - Consistente con VistaPaciente
+    //  ESTÉTICA Y UX
     // ════════════════════════════════════════════════════════════════
     private void aplicarEsteticaPersonalizada() {
         setBackground(C_FONDO);
 
-        // ── HEADER (mismos márgenes que VistaPaciente) ────────────────
         jPanelHeader.setBackground(C_NAVY);
         jPanelHeader.setBorder(new EmptyBorder(14, 28, 14, 28));
-        
-        // Reconstruir el header correctamente
         jPanelHeader.removeAll();
         jPanelHeader.setLayout(new BorderLayout());
 
-        // Panel izquierdo: botón cerrar + título + nombre paciente
         JPanel pnlIzqHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         pnlIzqHeader.setOpaque(false);
         pnlIzqHeader.add(btnCerrar);
@@ -129,7 +121,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
 
         configurarBotonRetroceso(btnCerrar);
 
-        // Panel derecho: Obra Social y Médico
         JPanel pnlDerHeader = new JPanel(new GridBagLayout());
         pnlDerHeader.setOpaque(false);
         GridBagConstraints g = new GridBagConstraints();
@@ -154,7 +145,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         estilizarCampoBusqueda(txtObraSocialBusqueda);
         estilizarCampoBusqueda(txtMedicoSolicitante);
 
-        // ── CONTENEDOR PRINCIPAL BLANCO (con borde sin superior) ──────
         pnlContenedorBlanco.setBackground(C_BLANCO);
         pnlContenedorBlanco.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 1, 1, 1, C_BORDE),
@@ -163,25 +153,21 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         pnlContenedorBlanco.removeAll();
         pnlContenedorBlanco.setLayout(new BorderLayout());
 
-        // ── CUERPO (Tabla) ────────────────────────────────────────────
         pnlCuerpo.setBackground(C_BLANCO);
         pnlCuerpo.removeAll();
         pnlCuerpo.setLayout(new BorderLayout());
 
-        // ── TABLA WRAPPER (igual que VistaPaciente) ───────────────────
         pnlTablaWrapper.setBackground(C_BLANCO);
         pnlTablaWrapper.setBorder(BorderFactory.createCompoundBorder(
             new EmptyBorder(0, 0, 0, 0),
             BorderFactory.createLineBorder(C_BORDE, 1, true)
         ));
 
-        // Título de la tabla
         lblTituloTabla = new JLabel("DETERMINACIONES A CARGAR");
         lblTituloTabla.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lblTituloTabla.setForeground(C_TEXTO_FUERTE);
         lblTituloTabla.setBorder(new EmptyBorder(14, 16, 12, 16));
 
-        // Configuración de la Grilla
         grillaResultados.setRowHeight(36);
         grillaResultados.setFont(new Font("Segoe UI", Font.PLAIN, 14)); 
         grillaResultados.setGridColor(new Color(235, 240, 245));
@@ -212,7 +198,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         pnlCuerpo.add(pnlTablaWrapper, BorderLayout.CENTER);
         pnlContenedorBlanco.add(pnlCuerpo, BorderLayout.CENTER);
 
-        // ── FOOTER (mismos márgenes que VistaPaciente) ────────────────
         jPanelFooter.setBackground(C_BLANCO);
         jPanelFooter.setBorder(BorderFactory.createCompoundBorder(
             new MatteBorder(1, 0, 0, 0, C_BORDE),
@@ -228,7 +213,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         pnlFooterAcciones.add(btnGuardarResultados);
         jPanelFooter.add(pnlFooterAcciones, BorderLayout.EAST);
 
-        // ── ARMADO FINAL DEL LAYOUT ───────────────────────────────────
         this.removeAll();
         this.setLayout(new BorderLayout());
         this.add(jPanelHeader, BorderLayout.NORTH);
@@ -237,10 +221,63 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
 
         aplicarColumnas();
         aplicarRenderer();
+        aplicarCellEditor(); // <-- Inyectamos el editor inteligente
         
-        // Forzar actualización
         this.revalidate();
         this.repaint();
+    }
+
+    private void aplicarCellEditor() {
+        JTextField editorField = new JTextField();
+        editorField.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        editorField.setBorder(new EmptyBorder(0, 8, 0, 8));
+        editorField.setHorizontalAlignment(JTextField.CENTER);
+
+        DefaultCellEditor cellEditor = new DefaultCellEditor(editorField) {
+            // 1. Cuando entramos a editar, le quitamos los puntos para que sea cómodo escribir
+            @Override
+            public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+                String texto = value != null ? value.toString() : "";
+                if (texto.matches("^-?[\\d.,]+$")) {
+                    texto = texto.replace(".", "");
+                }
+                return super.getTableCellEditorComponent(table, texto, isSelected, row, column);
+            }
+
+            // 2. ¡NUEVO! Cuando terminamos de editar (por Enter, Flechas o Clic), formateamos el valor
+            @Override
+            public Object getCellEditorValue() {
+                Object value = super.getCellEditorValue();
+                if (value == null) return "";
+                String texto = value.toString().trim();
+                
+                if (texto.matches("^-?\\d{4,}([.,]\\d+)?$")) {
+                    try {
+                        String[] partes = texto.split("[.,]");
+                        String parteEntera = partes[0];
+                        String parteDecimal = partes.length > 1 ? partes[1] : "";
+                        
+                        java.text.DecimalFormatSymbols dfs = new java.text.DecimalFormatSymbols();
+                        dfs.setGroupingSeparator('.');
+                        java.text.DecimalFormat df = new java.text.DecimalFormat("#,###", dfs);
+                        
+                        String formateado = df.format(Long.parseLong(parteEntera));
+                        // Estandarizamos los decimales siempre con coma (,)
+                        if (partes.length > 1) {
+                            formateado += "," + parteDecimal; 
+                        }
+                        return formateado;
+                    } catch (Exception ex) {
+                        return texto;
+                    }
+                }
+                return texto;
+            }
+        };
+        
+        if (grillaResultados.getColumnCount() > 3) {
+            grillaResultados.getColumnModel().getColumn(3).setCellEditor(cellEditor);
+        }
     }
 
     private void estilizarCampoBusqueda(JTextField tf) {
@@ -284,12 +321,8 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         if (ico != null) btn.setIcon(ico);
         
         btn.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override public void mouseEntered(java.awt.event.MouseEvent e) {
-                btn.setForeground(C_BLANCO);
-            }
-            @Override public void mouseExited(java.awt.event.MouseEvent e) {
-                btn.setForeground(C_HEADER_TEXT);
-            }
+            @Override public void mouseEntered(java.awt.event.MouseEvent e) { btn.setForeground(C_BLANCO); }
+            @Override public void mouseExited(java.awt.event.MouseEvent e) { btn.setForeground(C_HEADER_TEXT); }
         });
     }
 
@@ -304,7 +337,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         return null;
     }
 
-    // ── Anchos de columna optimizados ────────────────────────────────
     private void aplicarColumnas() {
         if (grillaResultados.getColumnCount() < 6) return;
 
@@ -331,7 +363,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         grillaResultados.getColumnModel().getColumn(5).setMinWidth(250);
     }
 
-    // ── Renderer de la tabla ─────────────────────────────────────────
     private void aplicarRenderer() {
         if (grillaResultados.getColumnCount() < 6) return;
 
@@ -447,7 +478,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
                     } else {
                         setText(textoOriginal);
                     }
-                    
                     setToolTipText(null);
                 }
                 
@@ -466,9 +496,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  PRECIO MANUAL
-    // ════════════════════════════════════════════════════════════════
     @Override
     public double pedirPrecioManual() {
         JPanel pnl = new JPanel(new BorderLayout(0, 0));
@@ -531,9 +558,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  BUSCADORES
-    // ════════════════════════════════════════════════════════════════
     private void configurarBuscadoresDinamicos() {
         modeloSugerenciasOS = new DefaultListModel<>();
         listaSugerenciasOS  = new JList<>(modeloSugerenciasOS);
@@ -699,6 +723,7 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
 
         aplicarRenderer();
         aplicarColumnas();
+        aplicarCellEditor(); // <-- Inyectamos el editor a la nueva tabla generada
     }
 
     @Override
@@ -707,15 +732,13 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
             grillaResultados.getCellEditor().stopCellEditing();
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  GETTERS / SETTERS E INTERFAZ
-    // ════════════════════════════════════════════════════════════════
     @Override public void setNombrePaciente(String n)   { lblNombrePaciente.setText(n.toUpperCase()); }
     @Override public void setObraSocial(String os)      { txtObraSocialBusqueda.setText(os); }
     @Override public String getObraSocial()             { return txtObraSocialBusqueda.getText().trim(); }
     @Override public String getMedicoSolicitante()      { return txtMedicoSolicitante.getText().trim(); }
     @Override public void setMedicoSolicitante(String m) { txtMedicoSolicitante.setText(m); }
     @Override public int getCantidadFilas()             { return grillaResultados.getRowCount(); }
+    
     @Override 
     public String getCodigo(int f) { 
         Object v = grillaResultados.getValueAt(f, 1); 
@@ -738,6 +761,15 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
     @Override
     public void setPresenter(ResultadoPresenter presenter) {
         this.presenter = presenter;
+        
+        // Limpiamos los oyentes para evitar el "Bucle Fantasma"
+        for (java.awt.event.ActionListener al : btnGuardarResultados.getActionListeners()) {
+            btnGuardarResultados.removeActionListener(al);
+        }
+        for (java.awt.event.ActionListener al : btnCerrar.getActionListeners()) {
+            btnCerrar.removeActionListener(al);
+        }
+        
         btnGuardarResultados.addActionListener(e -> presenter.onGuardarResultados());
         btnCerrar.addActionListener(e -> presenter.onVolver());
     }
@@ -749,7 +781,9 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
 
     @Override
     public int confirmarAccion(String mensaje, String titulo) {
-        return JOptionPane.showConfirmDialog(this, mensaje, titulo, JOptionPane.YES_NO_OPTION);
+        // En lugar de YES_NO_OPTION que solo devuelve 0 o 1, usaremos YES_NO_CANCEL
+        // Para que si da en la X de la ventana, devuelva CANCEL (2) o CLOSED (-1) y no cierre la vista
+        return JOptionPane.showConfirmDialog(this, mensaje, titulo, JOptionPane.YES_NO_CANCEL_OPTION);
     }
     
     public void ocultarSugerenciasFlotantes() {
@@ -770,32 +804,12 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
             public void actionPerformed(java.awt.event.ActionEvent e) {
                 int row = grillaResultados.getSelectedRow();
                 
+                // Al detener la edición, se dispara automáticamente el getCellEditorValue() que pusimos arriba
                 if (grillaResultados.isEditing()) {
                     grillaResultados.getCellEditor().stopCellEditing();
                 }
 
-                if (row != -1) {
-                    Object val = grillaResultados.getModel().getValueAt(row, 3);
-                    if (val != null) {
-                        String texto = val.toString().trim();
-                        if (texto.matches("^-?\\d{4,}([.,]\\d+)?$")) {
-                            try {
-                                String[] partes = texto.split("[.,]");
-                                String parteEntera = partes[0];
-                                String parteDecimal = partes.length > 1 ? partes[1] : "";
-                                char separadorOriginal = partes.length > 1 ? texto.charAt(parteEntera.length()) : '.';
-                                java.text.DecimalFormatSymbols dfs = new java.text.DecimalFormatSymbols();
-                                dfs.setGroupingSeparator('.');
-                                java.text.DecimalFormat df = new java.text.DecimalFormat("#,###", dfs);
-                                String enteroFormateado = df.format(Long.parseLong(parteEntera));
-                                String formateado = enteroFormateado;
-                                if (partes.length > 1) formateado += separadorOriginal + parteDecimal;
-                                grillaResultados.getModel().setValueAt(formateado, row, 3);
-                            } catch (Exception ex) {}
-                        }
-                    }
-                }
-
+                // Lógica de navegación: buscar la siguiente fila válida para editar
                 int total = grillaResultados.getRowCount();
                 for (int sig = row + 1; sig < total; sig++) {
                     Object cod = grillaResultados.getModel().getValueAt(sig, 1);
@@ -814,12 +828,12 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
                     }
                 }
                 
+                // Si ya no hay más filas, mandamos el foco al botón de guardar
                 btnGuardarResultados.requestFocusInWindow();
             }
         });
     }
 
-    // ── MOTOR DE EVALUACIÓN CLÍNICA ───────────────────────────────────
     private Color evaluarAlertaResultado(String resStr, String refStr) {
         if (resStr == null || resStr.isEmpty() || refStr == null || refStr.isEmpty()) return C_TEXTO_FUERTE;
 
@@ -879,9 +893,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         return Double.parseDouble(s);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  UI BUILDER (Estructura base)
-    // ════════════════════════════════════════════════════════════════
     private void initComponents() {
         jPanelHeader          = new JPanel();
         lblNombrePaciente     = new JLabel();
@@ -912,7 +923,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         jScrollPane1.setViewportView(grillaResultados);
     }
 
-    // ── Variables ────────────────────────────────────────────────────
     private JButton      btnCerrar;
     private JButton      btnGuardarResultados;
     private JTable       grillaResultados;

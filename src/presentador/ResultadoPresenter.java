@@ -17,11 +17,10 @@ import modelo.Usuario;
 import presentador.router.AppRouter;
 import vista.interfaces.IVistaCargarResultados;
 
-// 1. Adiós al implements ActionListener
 public class ResultadoPresenter {
 
     private final IVistaCargarResultados vcr;
-    private final AppRouter router; // 2. El router toma el control
+    private final AppRouter router; 
     
     // El contexto operativo
     private final Paciente pacienteActual;
@@ -37,7 +36,6 @@ public class ResultadoPresenter {
     private final MedicoDAO medicoDAO;
     private final AuditoriaDAO auditoriaDAO;
 
-    // 3. Constructor actualizado (se eliminaron redundancias)
     public ResultadoPresenter(IVistaCargarResultados vcr, AppRouter router, Paciente pacienteActual, 
                                List<Determinacion> determinaciones, Usuario usuarioLogueado,
                                AnalisisDAO analisisDAO, ResultadoAnalisisDAO resultadoDAO, ObraSocialDAO obraSocialDAO, 
@@ -57,12 +55,11 @@ public class ResultadoPresenter {
     }
 
     public void iniciar() {
-        vcr.setPresenter(this); // Conectamos la vista al presentador
+        vcr.setPresenter(this); 
         vcr.setNombrePaciente(pacienteActual.getApellido() + " " + pacienteActual.getNombre());
         vcr.setObraSocial(""); 
         vcr.setMedicoSolicitante(""); 
         vcr.cargarDeterminaciones(this.determinacionesAProcesar);
-        
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -175,7 +172,7 @@ public class ResultadoPresenter {
                 vcr.mostrarMensaje("Análisis guardado con éxito.\nObra Social: " + osSeleccionada.getNombre() + "\nTotal: $" + precioFinal);
 
                  // 6. ENRUTAMOS A LA PANTALLA FINAL (A través del AppRouter)
-                router.irAPacientes(); // Como no tenías método abrirListadoGlobalAnalisis, volvemos a pacientes.
+                router.irAPacientes(); 
             }
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -203,7 +200,35 @@ public class ResultadoPresenter {
     }
 
     public void onVolver() {
-        // Enrutamos de vuelta a la pantalla anterior
+        vcr.detenerEdicionTabla();
+        
+        // Verificamos si el usuario ya escribió resultados en alguna fila
+        boolean hayDatosCargados = false;
+        for (int i = 0; i < vcr.getCantidadFilas(); i++) {
+            String res = vcr.getResultado(i);
+            if (res != null && !res.trim().isEmpty()) {
+                hayDatosCargados = true; 
+                break;
+            }
+        }
+        
+        if (hayDatosCargados) {
+            int respuesta = vcr.confirmarAccion(
+                "Hay resultados cargados sin guardar.\n\n¿Desea GUARDAR los datos antes de salir?\n(Seleccione 'No' para salir y descartar los cambios)", 
+                "Confirmar Salida"
+            );
+            
+            if (respuesta == 0) { // SI -> Guardar (esto mismo lo enruta a pacientes si es exitoso)
+                onGuardarResultados();
+                return;
+            } else if (respuesta == 1) { // NO -> Descartar y salir
+                router.irAPacientes();
+                return;
+            } else { // X o Esc -> Cancelar la navegación
+                return;
+            }
+        }
+
         router.irAPacientes();
     }
 }

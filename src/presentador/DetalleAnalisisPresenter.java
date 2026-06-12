@@ -8,7 +8,10 @@ import dao.MedicoDAO;
 import dao.PacienteDAO;
 import dao.ResultadoAnalisisDAO;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import modelo.Analisis;
 import modelo.Determinacion;
 import modelo.Paciente;
@@ -20,8 +23,8 @@ import vista.interfaces.IVistaVerDetalleAnalisis;
 
 public class DetalleAnalisisPresenter {
 
-    private final IVistaVerDetalleAnalisis vvda;
-    private final AppRouter router; 
+    private final IVistaVerDetalleAnalisis vista;
+    private final AppRouter router;
     private final AnalisisDAO analisisDAO;
     private final ResultadoAnalisisDAO resultadoDAO;
     private final PacienteDAO pacienteDAO;
@@ -30,20 +33,24 @@ public class DetalleAnalisisPresenter {
     private final ConfiguracionDAO configDAO;
     private final MedicoDAO medicoDAO;
     private final Usuario usuarioLogueado;
-    
-    // El servicio de impresión se inyecta por constructor
-    private final ReporteService reporteService; 
+    private final ReporteService reporteService;
 
     private int idAnalisisActual;
     private Paciente pacienteActual;
+    private String medicoOriginal;
+    private Map<Integer, String> valoresOriginales;
+    private boolean estaGuardando = false;
+    private String origen; 
+    public static final String ORIGEN_HISTORIAL = "HISTORIAL";
+    public static final String ORIGEN_LISTADO = "LISTADO";
 
-    public DetalleAnalisisPresenter(IVistaVerDetalleAnalisis vvda, AppRouter router, 
-                                    AnalisisDAO analisisDAO, ResultadoAnalisisDAO resultadoDAO, 
-                                    PacienteDAO pacienteDAO, DeterminacionDAO determinacionDAO, 
-                                    AuditoriaDAO auditoriaDAO, ConfiguracionDAO configDAO, 
+    public DetalleAnalisisPresenter(IVistaVerDetalleAnalisis vista, AppRouter router,
+                                    AnalisisDAO analisisDAO, ResultadoAnalisisDAO resultadoDAO,
+                                    PacienteDAO pacienteDAO, DeterminacionDAO determinacionDAO,
+                                    AuditoriaDAO auditoriaDAO, ConfiguracionDAO configDAO,
                                     MedicoDAO medicoDAO, Usuario usuarioLogueado,
                                     ReporteService reporteService) {
-        this.vvda = vvda;
+        this.vista = vista;
         this.router = router;
         this.analisisDAO = analisisDAO;
         this.resultadoDAO = resultadoDAO;
@@ -54,206 +61,405 @@ public class DetalleAnalisisPresenter {
         this.medicoDAO = medicoDAO;
         this.usuarioLogueado = usuarioLogueado;
         this.reporteService = reporteService;
+        this.valoresOriginales = new HashMap<>();
     }
 
-    public void iniciar(int idAnalisis) {
+    public void iniciar(int idAnalisis, String origen) {
         this.idAnalisisActual = idAnalisis;
-        
-        // Conectamos la vista con el presentador
-        vvda.setPresenter(this); 
+        this.origen = origen;
+        vista.setPresenter(this);
 
         Analisis analisis = analisisDAO.buscarPorId(idAnalisisActual);
         if (analisis == null) return;
 
         this.pacienteActual = pacienteDAO.buscarPorId(analisis.getIdPaciente());
+        this.medicoOriginal = analisis.getMedicoSolicitante();
 
-        // Permisos LECTOR
-        if (usuarioLogueado.getRol().equals("LECTOR")) {
-            vvda.habilitarBotonGuardar(false);
-            vvda.habilitarBotonEliminar(false);
-            vvda.bloquearMedicoSolicitante();
-            vvda.habilitarBotonImprimir(true);
-            vvda.bloquearEdicionTabla();
+        if ("LECTOR".equals(usuarioLogueado.getRol())) {
+            vista.habilitarBotonGuardar(false);
+            vista.habilitarBotonEliminar(false);
+            vista.bloquearMedicoSolicitante();
+            vista.habilitarBotonImprimir(true);
+            vista.bloquearEdicionTabla();
         }
 
-        // Carga de datos
-        String nombreC = (pacienteActual != null) ? (pacienteActual.getApellido() + " " + pacienteActual.getNombre()) : "Desconocido";
-        vvda.setNombrePaciente(nombreC);
+        String nombreCompleto = (pacienteActual != null) 
+            ? pacienteActual.getApellido() + " " + pacienteActual.getNombre() 
+            : "Desconocido";
+        vista.setNombrePaciente(nombreCompleto);
+
         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm");
-        vvda.setFechaAnalisis(sdf.format(analisis.getFecha()));
-        vvda.setFechaInforme(analisis.getFecha());
-        vvda.setIdAnalisis(idAnalisisActual);
-        vvda.setMedicoSolicitante(analisis.getMedicoSolicitante());
+        vista.setFechaAnalisis(sdf.format(analisis.getFecha()));
+        vista.setFechaInforme(analisis.getFecha());
+        vista.setIdAnalisis(idAnalisisActual);
+        vista.setMedicoSolicitante(analisis.getMedicoSolicitante());
 
         cargarTablaConTitulos();
-        
-        // El Router se encarga de mostrar la vista
         router.mostrarVistaDetalleAnalisis();
     }
 
-    private void cargarTablaConTitulos() {
-        List<ResultadoAnalisis> originales = resultadoDAO.listarPorAnalisis(idAnalisisActual);
-        List<ResultadoAnalisis> conTitulos = inyectarTitulosEnResultados(originales);
-        vvda.cargarResultadosDetalle((ArrayList<ResultadoAnalisis>) conTitulos);
-    }
-
-    // ── MÉTODOS EXPLÍCITOS LLAMADOS POR LA VISTA ──
-
-    public void onEditar() {
-        vvda.detenerEdicionTabla();
-        String nuevoMedico = vvda.getMedicoSolicitante();
-        boolean okRes = true;
-        StringBuilder cambios = new StringBuilder();
-
-        for (int i = 0; i < vvda.getCantidadFilas(); i++) {
-            int idR = vvda.getIdResultado(i);
-            if (idR == -1) continue;
-            
-            String valR = vvda.getResultadoEditado(i);
-            ResultadoAnalisis rViejo = resultadoDAO.buscarPorId(idR);
-            
-            if (rViejo != null && !rViejo.getResultado().equals(valR)) {
-                cambios.append(rViejo.getNombrePrueba()).append(": ").append(rViejo.getResultado()).append(" -> ").append(valR).append("\n");
-            }
-            if (!resultadoDAO.actualizarResultado(idR, valR)) {
-                okRes = false;
-            }
-        }
-
-        boolean okMed = analisisDAO.actualizarMedico(idAnalisisActual, nuevoMedico);
-
-        if (okRes && okMed) {
-            if (cambios.length() > 0) {
-                auditoriaDAO.registrar(usuarioLogueado, "EDITAR", "resultado", idAnalisisActual,
-                        "Valores anteriores", cambios.toString(), "Edición de resultados del análisis ID: " + idAnalisisActual);
-            }
-            vvda.mostrarMensaje("Cambios guardados con éxito.");
-            router.refrescarVistasAnalisisAbiertas(); // Le decimos al Router que actualice el fondo
-        }
-    }
-
-    public void onEliminarFila() {
-        int filaSel = vvda.getGrilla().getSelectedRow();
-        if (filaSel == -1) {
-            vvda.mostrarMensaje("Debe seleccionar una fila para eliminar.");
-            return;
-        }
-
-        int idResEliminar = vvda.getIdResultado(filaSel);
-        ResultadoAnalisis rEliminar = resultadoDAO.buscarPorId(idResEliminar);
-        if (rEliminar == null) return;
-
-        List<ResultadoAnalisis> restantes = resultadoDAO.listarIncluidosPorAnalisis(idAnalisisActual);
-
-        // CASO A: ÚLTIMA FILA
-        if (restantes.size() == 1) {
-            int confirm = vvda.confirmarAccion(
-                    "Está a punto de eliminar la última determinación de este estudio.\nSi continúa, EL ANÁLISIS COMPLETO SERÁ ELIMINADO de la base de datos.\n¿Desea continuar?", 
-                    "Advertencia Crítica");
-            
-            if (confirm == 0) {
-                String infoEliminada = "Prueba: " + rEliminar.getNombrePrueba() + " | Valor: " + rEliminar.getResultado();
-                resultadoDAO.eliminarResultado(idResEliminar);
-                analisisDAO.eliminar(idAnalisisActual);
-                auditoriaDAO.registrar(usuarioLogueado, "ELIMINAR", "analisis", idAnalisisActual, "Análisis completo eliminado al vaciarse: " + infoEliminada, "REGISTRO ELIMINADO", "Eliminación en cascada");
-                
-                vvda.mostrarMensaje("Análisis eliminado por completo al quedarse sin determinaciones.");
-                router.cerrarDetalleYRefrescarAnalisis();
-            }
-        } 
-        // CASO B: QUEDAN MÁS FILAS
-        else {
-            int confirm = vvda.confirmarAccion(
-                    "¿Está seguro de eliminar la determinación: " + rEliminar.getNombrePrueba() + "?\nEl precio del estudio se recalculará automáticamente.", 
-                    "Confirmar eliminación");
-
-            if (confirm == 0) {
-                Determinacion detOriginal = determinacionDAO.buscarPorCodigo(rEliminar.getCodigo());
-                Analisis analisisActual = analisisDAO.buscarPorId(idAnalisisActual);
-                String valorUBConfig = configDAO.getValor("valor_ub");
-                double factorDinero = (valorUBConfig != null) ? Double.parseDouble(valorUBConfig) : 1600.0;
-
-                if (detOriginal != null && analisisActual != null) {
-                    double montoARestar = detOriginal.getUb() * factorDinero;
-                    double nuevoPrecio = Math.max(0, analisisActual.getPrecio() - montoARestar);
-                    analisisDAO.actualizarPrecio(idAnalisisActual, nuevoPrecio);
-                }
-
-                String infoEliminada = "Prueba: " + rEliminar.getNombrePrueba() + " | Valor: " + rEliminar.getResultado();
-                if (resultadoDAO.eliminarResultado(idResEliminar)) {
-                    auditoriaDAO.registrar(usuarioLogueado, "ELIMINAR", "resultado", idResEliminar, infoEliminada, "REGISTRO ELIMINADO", "Precio actualizado por eliminación");
-                    cargarTablaConTitulos(); 
-                    router.refrescarVistasAnalisisAbiertas(); 
-                    vvda.mostrarMensaje("Fila eliminada y precio actualizado.");
-                }
-            }
-        }
-    }
-
-    public void onImprimir() {
-        java.util.Date fechaImpresion = vvda.getFechaSeleccionada();
-
-        // El Presentador imprime usando el servicio limpio
-        reporteService.generarInforme(idAnalisisActual, fechaImpresion);
-
-        // Actualizamos estado y auditamos
-        if (analisisDAO.cambiarEstadoGenerado(idAnalisisActual)) {
-            auditoriaDAO.registrar(this.usuarioLogueado, "IMPRIMIR", "analisis", idAnalisisActual, 
-                    null, "Informe generado", "El usuario imprimió desde la vista de Detalles.");
-            router.refrescarVistasAnalisisAbiertas();
-        }
-    }
-
-    public void onVolver() {
-        router.abrirListadoGlobalAnalisis();
-    }
-
-    public void onSeleccionarAnalisis() {
-        // La vista ya deshabilita/habilita botones según la selección. 
-        // Aquí puedes agregar lógica adicional de negocio si hace falta.
-    }
-
-    public void onBuscarSugerenciasMedicos() {
-        String busqueda = vvda.getMedicoSolicitante();
-        if (busqueda.length() < 1) {
-            vvda.mostrarSugerenciasMedicos(new ArrayList<>());
-            return;
-        }
-        List<String> sugerencias = medicoDAO.obtenerSugerenciasMedicos(busqueda);
-        vvda.mostrarSugerenciasMedicos(sugerencias);
-    }
-
-    // ── HERRAMIENTAS VISUALES ──
-    private List<ResultadoAnalisis> inyectarTitulosEnResultados(List<ResultadoAnalisis> originales) {
+    private List<ResultadoAnalisis> inyectarTitulos(List<ResultadoAnalisis> resultados) {
         List<ResultadoAnalisis> lista = new ArrayList<>();
-        String codigoPadreActual = "";
+        String grupoActual = "";
 
-        for (ResultadoAnalisis r : originales) {
-            String codigoFila = r.getCodigo();
-            if (codigoFila == null || codigoFila.trim().isEmpty()) {
-                lista.add(r); continue;
+        for (ResultadoAnalisis r : resultados) {
+            String codigo = r.getCodigo();
+            if (codigo == null || codigo.trim().isEmpty()) {
+                lista.add(r);
+                continue;
             }
 
-            String codigoPadreFila = codigoFila.contains(".") ? codigoFila.split("\\.")[0] : codigoFila;
+            String grupo = codigo.contains(".") ? codigo.split("\\.")[0] : codigo;
 
-            if (!codigoPadreFila.equals(codigoPadreActual)) {
-                Determinacion detPadre = determinacionDAO.buscarPorCodigo(codigoPadreFila);
-                String nombreTitulo = (detPadre != null) ? detPadre.getNombre() : "ESTUDIO";
-                lista.add(tituloResultado("--- " + nombreTitulo + " ---"));
-                codigoPadreActual = codigoPadreFila;
+            if (!grupo.equals(grupoActual)) {
+                Determinacion detPadre = determinacionDAO.buscarPorCodigo(grupo);
+                String nombreGrupo = (detPadre != null) ? detPadre.getNombre() : "ESTUDIO";
+                lista.add(crearFilaTitulo("--- " + nombreGrupo + " ---"));
+                grupoActual = grupo;
             }
             lista.add(r);
         }
         return lista;
     }
 
-    private ResultadoAnalisis tituloResultado(String titulo) {
+    private ResultadoAnalisis crearFilaTitulo(String titulo) {
         ResultadoAnalisis r = new ResultadoAnalisis();
-        r.setCodigo(""); 
+        r.setIdResultado(-1);
+        r.setCodigo("");
         r.setNombrePrueba(titulo);
-        r.setResultado(" "); 
+        r.setResultado("");
         r.setUnidad("");
         r.setReferencia("");
         return r;
     }
+
+    // ── LÓGICA DE COMPARACIÓN BLINDADA (REEMPLAZAR TODO ESTE BLOQUE) ──
+    private boolean hayCambios() {
+        // 1. Verificación del médico (Comparamos solo la matrícula o el texto base)
+        String medicoActual = extraerMatricula(vista.getMedicoSolicitante());
+        String medicoOrig = extraerMatricula(medicoOriginal);
+
+        if (!medicoActual.equals(medicoOrig)) {
+            return true;
+        }
+
+        // 2. Verificación de los resultados en la grilla
+        for (int i = 0; i < vista.getCantidadFilas(); i++) {
+            int id = vista.getIdResultado(i);
+            if (id == -1) continue; // Salta filas de títulos
+
+            String nuevoValor = vista.getResultadoEditado(i);
+            String valorOriginal = valoresOriginales.get(id);
+
+            // Normalizamos nulos a cadenas vacías para evitar falsos positivos ("null" vs "")
+            if (nuevoValor == null) nuevoValor = "";
+            if (valorOriginal == null) valorOriginal = "";
+
+            nuevoValor = nuevoValor.trim();
+            valorOriginal = valorOriginal.trim();
+
+            // Limpiamos los formatos numéricos (ej. "1.500,50" -> "1500,50")
+            String nuevoValorLimpio = limpiarFormatoNumero(nuevoValor);
+            String valorOriginalLimpio = limpiarFormatoNumero(valorOriginal);
+
+            if (!valorOriginalLimpio.equals(nuevoValorLimpio)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String limpiarFormatoNumero(String valor) {
+        if (valor == null || valor.isEmpty()) {
+            return "";
+        }
+        // Si tiene formato de miles con puntos, los sacamos para comparar el valor real
+        if (valor.matches("^-?\\d{1,3}(\\.\\d{3})*(,\\d+)?$")) {
+            return valor.replace(".", "");
+        }
+        return valor;
+    }
+
+    private String extraerMatricula(String texto) {
+        if (texto == null || texto.trim().isEmpty()) return "";
+        String limpio = texto.trim();
+        if (limpio.contains("-")) {
+            limpio = limpio.split("-")[0].trim();
+        }
+        return limpio;
+    }
+
+    // ── GUARDADO INTELIGENTE ──
+    public void onEditar() {
+        if (estaGuardando) return;
+        estaGuardando = true;
+
+        try {
+            vista.detenerEdicionTabla();
+
+            if (!hayCambios()) {
+                vista.mostrarMensaje("No hay cambios para guardar.");
+                return;
+            }
+
+            String inputMedico = vista.getMedicoSolicitante();
+            String matriculaActual = extraerMatricula(inputMedico);
+            String matriculaOrig = extraerMatricula(medicoOriginal);
+
+            StringBuilder bitacoraCambios = new StringBuilder();
+            int totalActualizados = 0;
+            boolean error = false;
+
+            // --- ACTUALIZAR RESULTADOS ---
+            for (int i = 0; i < vista.getCantidadFilas(); i++) {
+                int id = vista.getIdResultado(i);
+                if (id == -1) continue;
+
+                String nuevoValor = vista.getResultadoEditado(i);
+                if (nuevoValor == null) nuevoValor = "";
+                nuevoValor = nuevoValor.trim();
+
+                String valorAnterior = valoresOriginales.get(id);
+                if (valorAnterior == null) valorAnterior = "";
+                valorAnterior = valorAnterior.trim();
+
+                String nuevoLimpio = limpiarFormatoNumero(nuevoValor);
+                String anteriorLimpio = limpiarFormatoNumero(valorAnterior);
+
+                if (!anteriorLimpio.equals(nuevoLimpio)) {
+                    ResultadoAnalisis r = resultadoDAO.buscarPorId(id);
+                    if (r != null) {
+                        if (resultadoDAO.actualizarResultado(id, nuevoValor)) {
+                            totalActualizados++;
+                            if (bitacoraCambios.length() > 0) bitacoraCambios.append("\n");
+                            bitacoraCambios.append(r.getNombrePrueba())
+                                .append(": ").append(valorAnterior.isEmpty() ? "[Vacío]" : valorAnterior)
+                                .append(" -> ").append(nuevoValor.isEmpty() ? "[Vacío]" : nuevoValor);
+                            valoresOriginales.put(id, nuevoValor);
+                        } else {
+                            error = true;
+                        }
+                    }
+                }
+            }
+
+            // --- ACTUALIZAR MÉDICO ---
+            boolean medicoActualizado = false;
+            if (!matriculaActual.equals(matriculaOrig)) {
+                if (analisisDAO.actualizarMedico(idAnalisisActual, matriculaActual)) {
+                    medicoActualizado = true;
+                    if (bitacoraCambios.length() > 0) bitacoraCambios.append("\n");
+                    bitacoraCambios.append("Médico: ").append(matriculaOrig.isEmpty() ? "[Vacío]" : matriculaOrig)
+                                   .append(" -> ").append(matriculaActual);
+                    
+                    // Actualizamos la referencia original a lo que dice el campo de texto exacto
+                    medicoOriginal = inputMedico; 
+                } else {
+                    error = true;
+                }
+            }
+
+            if (!error) {
+                if (bitacoraCambios.length() > 0) {
+                    auditoriaDAO.registrar(usuarioLogueado, "EDITAR", "resultado", 
+                        idAnalisisActual, "Valores anteriores", bitacoraCambios.toString(),
+                        "Edición de resultados - Análisis ID: " + idAnalisisActual);
+                }
+
+                String mensaje = "Cambios guardados exitosamente";
+                if (totalActualizados > 0) mensaje += "\nSe actualizaron " + totalActualizados + " resultado(s)";
+                if (medicoActualizado) mensaje += "\nSe actualizó el médico solicitante";
+                
+                vista.mostrarMensaje(mensaje);
+                router.refrescarVistasAnalisisAbiertas();
+            } else {
+                vista.mostrarMensaje("✗ Error al guardar algunos cambios. Verifique e intente nuevamente.");
+            }
+        } finally {
+            estaGuardando = false;
+        }
+    }
+    
+    private void cargarTablaConTitulos() {
+    List<ResultadoAnalisis> resultados = resultadoDAO.listarPorAnalisis(idAnalisisActual);
+    valoresOriginales.clear();
+    
+    for (ResultadoAnalisis r : resultados) {
+        // Guardar valor original limpio (sin formato)
+        String valorLimpio = limpiarFormatoNumero(r.getResultado());
+        valoresOriginales.put(r.getIdResultado(), valorLimpio);
+    }
+
+    List<ResultadoAnalisis> conTitulos = inyectarTitulos(resultados);
+    vista.cargarResultadosDetalle(new ArrayList<>(conTitulos));
+}
+
+
+
+    public void onEliminarFila() {
+        if (estaGuardando) return;
+        estaGuardando = true;
+
+        try {
+            int fila = vista.getGrilla().getSelectedRow();
+            if (fila == -1) {
+                vista.mostrarMensaje("Seleccione una fila para eliminar");
+                return;
+            }
+
+            int idResultado = vista.getIdResultado(fila);
+            if (idResultado == -1) {
+                vista.mostrarMensaje("No se puede eliminar esta fila");
+                return;
+            }
+
+            ResultadoAnalisis resultado = resultadoDAO.buscarPorId(idResultado);
+            if (resultado == null) return;
+
+            List<ResultadoAnalisis> restantes = resultadoDAO.listarIncluidosPorAnalisis(idAnalisisActual);
+
+            if (restantes.size() == 1) {
+                int confirmacion = vista.confirmarAccion(
+                    "Esta es la última determinación del análisis.\n" +
+                    "Si continúa, TODO EL ANÁLISIS será eliminado.\n" +
+                    "¿Desea continuar?",
+                    "Eliminar análisis completo"
+                );
+
+                if (confirmacion == 0) {
+                    String info = "Prueba: " + resultado.getNombrePrueba() + 
+                                 " | Valor: " + resultado.getResultado();
+                    resultadoDAO.eliminarResultado(idResultado);
+                    analisisDAO.eliminar(idAnalisisActual);
+                    auditoriaDAO.registrar(usuarioLogueado, "ELIMINAR", "analisis",
+                        idAnalisisActual, "Análisis eliminado: " + info, 
+                        "ELIMINADO", "Eliminación en cascada");
+                    
+                    vista.mostrarMensaje("Análisis eliminado correctamente");
+                    router.cerrarDetalleYRefrescarAnalisis();
+                }
+            } else {
+                int confirmacion = vista.confirmarAccion(
+                    "¿Eliminar " + resultado.getNombrePrueba() + "?\n" +
+                    "El precio se recalculará automáticamente",
+                    "Confirmar eliminación"
+                );
+
+                if (confirmacion == 0) {
+                    Determinacion det = determinacionDAO.buscarPorCodigo(resultado.getCodigo());
+                    Analisis analisis = analisisDAO.buscarPorId(idAnalisisActual);
+                    String ubValor = configDAO.getValor("valor_ub");
+                    double factor = (ubValor != null) ? Double.parseDouble(ubValor) : 1600.0;
+
+                    if (det != null && analisis != null) {
+                        double monto = det.getUb() * factor;
+                        double nuevoPrecio = Math.max(0, analisis.getPrecio() - monto);
+                        analisisDAO.actualizarPrecio(idAnalisisActual, nuevoPrecio);
+                    }
+
+                    String info = "Prueba: " + resultado.getNombrePrueba() + 
+                                 " | Valor: " + resultado.getResultado();
+                    
+                    if (resultadoDAO.eliminarResultado(idResultado)) {
+                        auditoriaDAO.registrar(usuarioLogueado, "ELIMINAR", "resultado",
+                            idResultado, info, "ELIMINADO", 
+                            "Precio actualizado por eliminación");
+                        
+                        valoresOriginales.remove(idResultado);
+                        cargarTablaConTitulos();
+                        router.refrescarVistasAnalisisAbiertas();
+                        vista.mostrarMensaje("Fila eliminada y precio actualizado");
+                    }
+                }
+            }
+        } finally {
+            estaGuardando = false;
+        }
+    }
+
+    public void onImprimir() {
+        // 1. Bloqueamos el botón INMEDIATAMENTE para evitar la metralleta de clics
+        vista.habilitarBotonImprimir(false);
+
+        // 2. Mandamos el trabajo pesado a un hilo secundario para no congelar la pantalla
+        new Thread(() -> {
+            try {
+                Date fecha = vista.getFechaSeleccionada();
+                reporteService.generarInforme(idAnalisisActual, fecha);
+
+                if (analisisDAO.cambiarEstadoGenerado(idAnalisisActual)) {
+                    auditoriaDAO.registrar(usuarioLogueado, "IMPRIMIR", "analisis", 
+                        idAnalisisActual, null, "Informe generado", 
+                        "Usuario imprimió desde vista de detalles");
+                }
+
+                // 3. Volvemos al hilo principal (UI) para mostrar el mensaje y rehabilitar
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    vista.mostrarMensaje("✓ Informe procesado correctamente");
+                    router.refrescarVistasAnalisisAbiertas();
+                    vista.habilitarBotonImprimir(true);
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    vista.mostrarMensaje("❌ Error al generar el informe.");
+                    vista.habilitarBotonImprimir(true);
+                });
+            }
+        }).start();
+    }
+
+    public void onVolver() {
+        vista.detenerEdicionTabla();
+        
+        if (hayCambios()) {
+            int respuesta = vista.confirmarAccion(
+                "Hay cambios sin guardar. ¿Desea guardarlos antes de salir?",
+                "Cambios pendientes"
+            );
+            if (respuesta == 0) { // YES
+                onEditar();
+                volverAlOrigen();
+            } else if (respuesta == 1) { // NO
+                volverAlOrigen();
+            }
+        } else {
+            volverAlOrigen();
+        }
+    }
+    
+    private void volverAlOrigen() {
+        if (ORIGEN_HISTORIAL.equals(origen)) {
+            router.volverAHistorialPaciente(pacienteActual);
+        } else {
+            router.abrirListadoGlobalAnalisis();
+        }
+    }
+
+    public void onSeleccionarAnalisis() {}
+
+    public void onBuscarSugerenciasMedicos() {
+        String busqueda = vista.getMedicoSolicitante();
+        if (busqueda.length() < 1) {
+            vista.mostrarSugerenciasMedicos(new ArrayList<>());
+            return;
+        }
+
+        List<String> sugerencias = medicoDAO.obtenerSugerenciasMedicos(busqueda);
+        vista.mostrarSugerenciasMedicos(sugerencias);
+    }
+    
+
+    // Función auxiliar para evitar detectar cambios cuando solo varía un decimal vacío
+    private boolean esMismoNumero(String str1, String str2) {
+        if (str1.equals(str2)) return true;
+        try {
+            double d1 = Double.parseDouble(str1.replace(",", "."));
+            double d2 = Double.parseDouble(str2.replace(",", "."));
+            return d1 == d2;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
 }
