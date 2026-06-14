@@ -21,8 +21,14 @@ public class Analisis {
     private String pacienteApellido;
     private List<ResultadoAnalisis> resultados;
     private String pacienteDni;
-public String getPacienteDni() { return pacienteDni; }
-public void setPacienteDni(String pacienteDni) { this.pacienteDni = pacienteDni; }
+
+    public String getPacienteDni() {
+        return pacienteDni;
+    }
+
+    public void setPacienteDni(String pacienteDni) {
+        this.pacienteDni = pacienteDni;
+    }
 
     
 

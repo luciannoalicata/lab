@@ -180,17 +180,57 @@ public class DetalleAnalisisPresenter {
         return valor;
     }
 
+    // Método auxiliar para pelar el nombre del médico y dejar solo la matrícula
     private String extraerMatricula(String texto) {
         if (texto == null || texto.trim().isEmpty()) return "";
         String limpio = texto.trim();
-        if (limpio.contains("-")) {
-            limpio = limpio.split("-")[0].trim();
+        
+        // Buscamos el formato "Nombre Apellido (mp. 1234)"
+        if (limpio.contains("(mp.")) {
+            try {
+                // Extrae todo lo que está después de "(mp. " y antes del ")"
+                limpio = limpio.substring(limpio.indexOf("(mp.") + 4, limpio.indexOf(")")).trim();
+            } catch (Exception e) {
+                // Si el formato es raro, no hacemos nada y dejamos lo que escribió el usuario
+            }
         }
         return limpio;
     }
 
     // ── GUARDADO INTELIGENTE ──
     public void onEditar() {
+        // ── VALIDACIÓN DE FÓRMULA LEUCOCITARIA (SUMA = 100%) ──
+        int filas = vista.getCantidadFilas();
+        double sumaLeucos = 0;
+        boolean tieneFormula = false;
+
+        for (int i = 0; i < filas; i++) {
+            Object objNombre = vista.getGrilla().getModel().getValueAt(i, 2);
+            String nombre = objNombre != null ? objNombre.toString().toLowerCase() : "";
+            String res = vista.getResultadoEditado(i);
+
+            if (nombre.contains("cayados") || nombre.contains("neutrófilos") || nombre.contains("neutrofilos")
+                    || nombre.contains("eosinófilos") || nombre.contains("eosinofilos")
+                    || nombre.contains("basófilos") || nombre.contains("basofilos")
+                    || nombre.contains("linfocitos") || nombre.contains("monocitos")) {
+
+                if (res != null && !res.trim().isEmpty()) {
+                    tieneFormula = true;
+                    try {
+                        String clean = res.replace(",", "."); // Homogeneizar decimales
+                        sumaLeucos += Double.parseDouble(clean.replaceAll("[^0-9.]", ""));
+                    } catch (Exception e) {
+                    }
+                }
+            }
+        }
+
+        // Margen para admitir redondeos (99.0 a 101.0)
+        if (tieneFormula && (sumaLeucos < 99.0 || sumaLeucos > 101.0)) {
+            vista.mostrarMensaje("ERROR EN EL HEMOGRAMA: La suma de la fórmula leucocitaria da " + sumaLeucos + "%.\nDebe ser exactamente 100%. Por favor, revise y corrija los valores.");
+            return;
+        }
+        
         if (estaGuardando) return;
         estaGuardando = true;
 

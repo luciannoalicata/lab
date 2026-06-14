@@ -8,9 +8,13 @@ import java.io.File;
 import javax.swing.SwingUtilities;
 
 public class PrincipalPresenter {
+
     private final IVistaPrincipal vp;
     private final AppRouter router;
     private final Usuario usuarioLogueado;
+    private boolean permisoModificacion;
+    private boolean permisoCargaPacientes;
+    private boolean permisoCargaAnalisis;
 
     public PrincipalPresenter(IVistaPrincipal vp, AppRouter router, Usuario usuarioLogueado) {
         this.vp = vp;
@@ -20,16 +24,16 @@ public class PrincipalPresenter {
 
     public void iniciar() {
         vp.setPresenter(this);
-        
+
         vp.setUsuarioLogueado(usuarioLogueado.getUsername(), usuarioLogueado.getRol());
-        
+
         // ── CONTROL DE ACCESOS SEGÚN ROL (RBAC) ──
         String rol = usuarioLogueado.getRol().toUpperCase();
-        
-        boolean isAdmin      = rol.equals("ADMIN") || rol.equals("ADMINISTRADOR");
+
+        boolean isAdmin = rol.equals("ADMIN") || rol.equals("ADMINISTRADOR");
         boolean isBioquimico = rol.equals("BIOQUIMICO") || rol.equals("BIOQUÍMICO");
-        boolean isTecnico    = rol.equals("TECNICO") || rol.equals("TÉCNICO");
-        boolean isLector     = rol.equals("LECTOR");
+        boolean isTecnico = rol.equals("TECNICO") || rol.equals("TÉCNICO");
+        boolean isLector = rol.equals("LECTOR");
 
         vp.habilitarBotonPacientes(true);
         vp.habilitarBotonAnalisis(true);
@@ -41,37 +45,58 @@ public class PrincipalPresenter {
         vp.habilitarBotonGestionUsuarios(isAdmin);
         vp.habilitarBotonAuditoria(isAdmin);
         vp.habilitarBotonAjustes(isAdmin);
-        
+
         vp.ejecutar();
     }
 
     // ════════════════════════════════════════════════════════════════
     //  EVENTOS DE NAVEGACIÓN
     // ════════════════════════════════════════════════════════════════
+    public void onPacientes() {
+        router.irAPacientes();
+    }
 
-    public void onPacientes() { router.irAPacientes(); }
-    public void onAnalisis() { router.abrirListadoGlobalAnalisis(); }
-    public void onMedicos() { router.irAMedicos(); }
-    public void onObrasSociales() { router.irAObrasSociales(); }
-    public void onNBU() { router.irANBU(); }
-    public void onAjustes() { router.irAAjustes(); }
-    public void onGestionUsuarios() { router.irAUsuarios(); }
-    public void onAuditoria() { router.irAAuditoria(); }
+    public void onAnalisis() {
+        router.abrirListadoGlobalAnalisis();
+    }
+
+    public void onMedicos() {
+        router.irAMedicos();
+    }
+
+    public void onObrasSociales() {
+        router.irAObrasSociales();
+    }
+
+    public void onNBU() {
+        router.irANBU();
+    }
+
+    public void onAjustes() {
+        router.irAAjustes();
+    }
+
+    public void onGestionUsuarios() {
+        router.irAUsuarios();
+    }
+
+    public void onAuditoria() {
+        router.irAAuditoria();
+    }
 
     // ════════════════════════════════════════════════════════════════
     //  CIERRE Y BACKUPS AUTOMÁTICOS
     // ════════════════════════════════════════════════════════════════
-
     public void onCerrarSesion() {
         int confirmacion = vp.confirmarAccion("¿Está seguro de que desea cerrar sesión?", "Cerrar Sesión");
-        if (confirmacion == 0) { 
+        if (confirmacion == 0) {
             ejecutarBackupYSalir(false); // false = Solo cierra sesión, vuelve al login
         }
     }
 
     public void onCerrarAplicacionCompleta() {
         int confirmacion = vp.confirmarAccion("¿Está seguro de que desea salir completamente del sistema?", "Salir del Sistema");
-        if (confirmacion == 0) { 
+        if (confirmacion == 0) {
             ejecutarBackupYSalir(true); // true = Apaga el programa completo
         }
     }
@@ -107,5 +132,29 @@ public class PrincipalPresenter {
                 }
             });
         }).start();
+    }
+
+    public void setPermisoCargaPacientes(boolean permiso) {
+        this.permisoCargaPacientes = permiso;
+    }
+
+    public boolean tienePermisoCargaPacientes() {
+        return permisoCargaPacientes;
+    }
+
+    public void setPermisoCargaAnalisis(boolean permiso) {
+        this.permisoCargaAnalisis = permiso;
+    }
+
+    public boolean tienePermisoCargaAnalisis() {
+        return permisoCargaAnalisis;
+    }
+
+    public void setPermisoModificacion(boolean permiso) {
+        this.permisoModificacion = permiso;
+    }
+
+    public boolean tienePermisoModificacion() {
+        return permisoModificacion;
     }
 }

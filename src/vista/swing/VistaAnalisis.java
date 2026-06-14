@@ -43,6 +43,8 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
     private final Color C_BORDE        = new Color(215, 225, 235);
     private final Color C_AZUL_MEDIO   = new Color(30, 110, 180);
     private final Color C_VERDE        = new Color(35, 160, 115);
+    private final Color C_VERDE_FILA   = new Color(220, 245, 220);
+    private final Color C_VERDE_TEXTO  = new Color(20, 100, 50);
     private final Color C_CABECERA_TBL = new Color(245, 248, 252);
     private final Color C_FILA_PAR     = new Color(252, 254, 255);
     private final Color C_HEADER_TEXT  = new Color(175, 205, 235);
@@ -56,6 +58,9 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
     private JTable grillaAnalisis;
     private JScrollPane jScrollPane1;
     private JTextField txtBuscar;
+    private javax.swing.event.ListSelectionListener listenerSeleccionTabla;
+    private javax.swing.event.DocumentListener listenerBuscador;
+    private TableRowSorter<DefaultTableModel> rowSorter;
 
     public VistaAnalisis() {
         initComponents();
@@ -70,19 +75,41 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
     public void setPresenter(AnalisisPresenter presenter) {
         this.presenter = presenter; 
         
+        // ── LIMPIEZA DE LISTENERS ──
+        for (java.awt.event.ActionListener al : btnVerDetallesAnalisis.getActionListeners()) {
+            btnVerDetallesAnalisis.removeActionListener(al);
+        }
+        for (java.awt.event.ActionListener al : btnImprimirAnalisis.getActionListeners()) {
+            btnImprimirAnalisis.removeActionListener(al);
+        }
+        for (java.awt.event.ActionListener al : btnVolver.getActionListeners()) {
+            btnVolver.removeActionListener(al);
+        }
+        
         btnVerDetallesAnalisis.addActionListener(e -> presenter.onVerDetalles());
         btnImprimirAnalisis.addActionListener(e -> presenter.onImprimirAnalisis());
         btnVolver.addActionListener(e -> presenter.onVolver());
         
-        grillaAnalisis.getSelectionModel().addListSelectionListener(e -> {
+        // ── LIMPIEZA DE SELECCIÓN DE TABLA ──
+        if (listenerSeleccionTabla != null) {
+            grillaAnalisis.getSelectionModel().removeListSelectionListener(listenerSeleccionTabla);
+        }
+        
+        listenerSeleccionTabla = e -> {
             if (!e.getValueIsAdjusting()) {
                 boolean hay = grillaAnalisis.getSelectedRow() != -1;
                 habilitarBotonVerDetalles(hay);
                 habilitarBotonImprimir(hay);
             }
-        });
+        };
+        grillaAnalisis.getSelectionModel().addListSelectionListener(listenerSeleccionTabla);
 
-        txtBuscar.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+        // ── LIMPIEZA DEL BUSCADOR ──
+        if (listenerBuscador != null) {
+            txtBuscar.getDocument().removeDocumentListener(listenerBuscador);
+        }
+        
+        listenerBuscador = new javax.swing.event.DocumentListener() {
             @Override public void insertUpdate(javax.swing.event.DocumentEvent e)  { disparar(); }
             @Override public void removeUpdate(javax.swing.event.DocumentEvent e)  { disparar(); }
             @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { disparar(); }
@@ -92,7 +119,8 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
                     VistaAnalisis.this.presenter.onBuscarAnalisis();
                 }
             }
-        });
+        };
+        txtBuscar.getDocument().addDocumentListener(listenerBuscador);
     }
 
     @Override public void ejecutar() { setVisible(true); }
@@ -121,6 +149,8 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
         for (Analisis a : lista) {
             String obraSocialStr = (a.getObraSocial() != null && !a.getObraSocial().trim().isEmpty()) 
                                     ? a.getObraSocial() : "-";
+            
+            String estado = a.getEstado() != null ? a.getEstado().toUpperCase() : "";
                                     
             modelo.addRow(new Object[]{
                 a.getIdAnalisis(),
@@ -128,11 +158,13 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
                 a.getPacienteNombreCompleto().toUpperCase(),
                 a.getPacienteDni() != null ? a.getPacienteDni() : "-",
                 obraSocialStr.toUpperCase(),
-                String.format("$ %.2f", a.getPrecio())
+                String.format("$ %.2f", a.getPrecio()),
+                estado  // ← COLUMNA DE ESTADO AGREGADA
             });
         }
 
-        grillaAnalisis.setRowSorter(new TableRowSorter<>(modelo));
+        rowSorter = new TableRowSorter<>(modelo);
+        grillaAnalisis.setRowSorter(rowSorter);
         aplicarRenderers();
 
         lblContador.setText(lista.size() + (lista.size() == 1 ? " registro encontrado" : " registros encontrados"));
@@ -152,20 +184,17 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  ESTILO Y UX - Consistente con VistaMedicos y VistaPaciente
+    //  ESTILO Y UX
     // ══════════════════════════════════════════════════════════════════
     private void aplicarEstilo() {
         setBackground(C_FONDO);
 
-        // ── HEADER (mismos márgenes que VistaPaciente) ────────────────
+        // HEADER
         pnlHeader.setBackground(C_NAVY);
         pnlHeader.setBorder(new EmptyBorder(14, 28, 14, 28));
-        
-        // Reconstruir el header correctamente
         pnlHeader.removeAll();
         pnlHeader.setLayout(new BorderLayout());
         
-        // Panel izquierdo: botón volver + título
         JPanel pnlIzqHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         pnlIzqHeader.setOpaque(false);
         pnlIzqHeader.add(btnVolver);
@@ -176,7 +205,6 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
         lblTituloHeader.setBorder(new EmptyBorder(0, 10, 0, 0));
         pnlIzqHeader.add(lblTituloHeader);
         
-        // Panel derecho: buscador
         JPanel pnlDerHeader = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
         pnlDerHeader.setOpaque(false);
         JLabel lblLupa = new JLabel("Buscar análisis:");
@@ -191,7 +219,7 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
         estilizarCampoBuscador(txtBuscar);
         configurarBotonRetroceso(btnVolver);
 
-        // ── CONTENEDOR PRINCIPAL BLANCO (con borde sin superior) ──────
+        // CONTENEDOR PRINCIPAL
         pnlContenedorBlanco.setBackground(C_BLANCO);
         pnlContenedorBlanco.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 1, 1, 1, C_BORDE),
@@ -200,12 +228,12 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
         pnlContenedorBlanco.removeAll();
         pnlContenedorBlanco.setLayout(new BorderLayout());
 
-        // ── CUERPO (Tabla centrada) ───────────────────────────────────
+        // CUERPO
         pnlCuerpo.setBackground(C_BLANCO);
         pnlCuerpo.removeAll();
         pnlCuerpo.setLayout(new BorderLayout());
 
-        // ── TABLA WRAPPER (igual que VistaPaciente) ───────────────────
+        // TABLA WRAPPER
         pnlTablaWrapper.setBackground(C_BLANCO);
         pnlTablaWrapper.setBorder(BorderFactory.createCompoundBorder(
             new EmptyBorder(0, 0, 0, 0),
@@ -258,7 +286,7 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
         pnlCuerpo.add(pnlTablaWrapper, BorderLayout.CENTER);
         pnlContenedorBlanco.add(pnlCuerpo, BorderLayout.CENTER);
 
-        // ── FOOTER (mismos márgenes que VistaPaciente) ────────────────
+        // FOOTER
         pnlFooter.setBackground(C_FONDO);
         pnlFooter.setBorder(new EmptyBorder(10, 16, 14, 16));
         pnlFooter.removeAll();
@@ -273,14 +301,13 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
         pnlFooterAcciones.add(btnImprimirAnalisis);
         pnlFooter.add(pnlFooterAcciones, BorderLayout.EAST);
 
-        // ── ARMADO FINAL DEL LAYOUT ───────────────────────────────────
+        // ARMADO FINAL
         this.removeAll();
         this.setLayout(new BorderLayout());
         this.add(pnlHeader, BorderLayout.NORTH);
         this.add(pnlContenedorBlanco, BorderLayout.CENTER);
         this.add(pnlFooter, BorderLayout.SOUTH);
         
-        // Forzar actualización
         this.revalidate();
         this.repaint();
     }
@@ -349,18 +376,45 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
     //  RENDERERS DE TABLA
     // ══════════════════════════════════════════════════════════════
     private void aplicarRenderers() {
-        DefaultTableCellRenderer center = crearRenderer(SwingConstants.CENTER);
-        DefaultTableCellRenderer left   = crearRenderer(SwingConstants.LEFT);
-        DefaultTableCellRenderer right  = crearRenderer(SwingConstants.RIGHT);
+        DefaultTableCellRenderer renderizadorColores = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
-        grillaAnalisis.getColumnModel().getColumn(0).setCellRenderer(center); 
-        grillaAnalisis.getColumnModel().getColumn(1).setCellRenderer(center); 
-        grillaAnalisis.getColumnModel().getColumn(2).setCellRenderer(left);   
-        grillaAnalisis.getColumnModel().getColumn(3).setCellRenderer(center); 
-        grillaAnalisis.getColumnModel().getColumn(4).setCellRenderer(left);   
-        grillaAnalisis.getColumnModel().getColumn(5).setCellRenderer(right);  
+                // Alineación según la columna
+                if (column == 0 || column == 1 || column == 3) setHorizontalAlignment(SwingConstants.CENTER);
+                else if (column == 5) setHorizontalAlignment(SwingConstants.RIGHT);
+                else setHorizontalAlignment(SwingConstants.LEFT);
 
-        int[] anchos = {70, 100, 280, 120, 200, 110}; 
+                setBorder(new EmptyBorder(0, 12, 0, 12));
+
+                if (isSelected) {
+                    setBackground(table.getSelectionBackground());
+                    setForeground(table.getSelectionForeground());
+                } else {
+                    // Obtener el estado de la columna 6 (ESTADO)
+                    Object estadoObj = table.getValueAt(row, 6);
+                    String estado = (estadoObj != null) ? estadoObj.toString() : "";
+                    
+                    if ("GENERADO".equals(estado)) {
+                        setBackground(C_VERDE_FILA);
+                        setForeground(C_VERDE_TEXTO);
+                    } else {
+                        setBackground(row % 2 == 0 ? C_BLANCO : C_FILA_PAR);
+                        setForeground(C_TEXTO_FUERTE);
+                    }
+                }
+                return this;
+            }
+        };
+
+        for (int i = 0; i < grillaAnalisis.getColumnCount(); i++) {
+            grillaAnalisis.getColumnModel().getColumn(i).setCellRenderer(renderizadorColores);
+        }
+
+        // Anchos de columna
+        int[] anchos = {70, 100, 280, 120, 200, 110, 80};
         for (int i = 0; i < anchos.length; i++) {
             grillaAnalisis.getColumnModel().getColumn(i).setPreferredWidth(anchos[i]);
             grillaAnalisis.getColumnModel().getColumn(i).setMinWidth(anchos[i] - 20);
@@ -370,26 +424,11 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
         grillaAnalisis.getColumnModel().getColumn(1).setMaxWidth(130);
         grillaAnalisis.getColumnModel().getColumn(3).setMaxWidth(150);
         grillaAnalisis.getColumnModel().getColumn(5).setMaxWidth(140);
-    }
-
-    private DefaultTableCellRenderer crearRenderer(int alineacion) {
-        return new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int row, int col) {
-                super.getTableCellRendererComponent(t, v, sel, foc, row, col);
-                setHorizontalAlignment(alineacion);
-                setBorder(new EmptyBorder(0, 12, 0, 12));
-                if (!sel) {
-                    setBackground(row % 2 == 0 ? C_BLANCO : C_FILA_PAR);
-                    setForeground(C_TEXTO_FUERTE);
-                }
-                return this;
-            }
-        };
+        grillaAnalisis.getColumnModel().getColumn(6).setMaxWidth(90);
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  UI BUILDER (Estructura base)
+    //  UI BUILDER
     // ══════════════════════════════════════════════════════════════════
     private void initComponents() {
         pnlHeader       = new JPanel();
@@ -409,9 +448,10 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
         btnVerDetallesAnalisis = new JButton();
         btnImprimirAnalisis    = new JButton();
 
+        // Modelo con columna de ESTADO
         DefaultTableModel modelo = new DefaultTableModel(
             new Object[][]{},
-            new String[]{"ID", "FECHA", "PACIENTE", "DNI", "OBRA SOCIAL", "TOTAL $"}
+            new String[]{"ID", "FECHA", "PACIENTE", "DNI", "OBRA SOCIAL", "TOTAL $", "ESTADO"}
         ) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
             @Override public Class<?> getColumnClass(int c) {

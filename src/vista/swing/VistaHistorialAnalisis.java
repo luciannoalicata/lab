@@ -326,8 +326,10 @@ public class VistaHistorialAnalisis extends JPanel implements IVistaHistorialAna
                     setForeground(table.getSelectionForeground());
                 } else {
                     Object estadoObj = table.getValueAt(row, 5); // Índice de columna ESTADO
-                    String estado = (estadoObj != null) ? estadoObj.toString() : "COMPLETO";
-                    if ("GENERADO".equals(estado) || "COMPLETO".equals(estado)) {
+                    String estado = (estadoObj != null) ? estadoObj.toString() : "";
+                    
+                    // SOLO PINTA VERDE SI ESTÁ "GENERADO" (No "COMPLETO")
+                    if ("GENERADO".equals(estado)) {
                         setBackground(COLOR_VERDE_FILA);
                         setForeground(COLOR_VERDE_TEXTO);
                     } else {

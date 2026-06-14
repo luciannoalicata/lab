@@ -27,15 +27,16 @@ import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableRowSorter;
 import modelo.ObraSocial;
 import presentador.ObraSocialPresenter;
 
 public class VistaObraSocial extends JPanel implements IVistaObraSocial {
 
     private ObraSocialPresenter presenter;
+    private ListSelectionListener listenerSeleccionTabla;
     
     // ── Paleta BIOTEC Minimalista ────────────────────────────────────
     private final Color C_NAVY         = new Color(10, 25, 47);
@@ -51,6 +52,8 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
     private final Color C_CABECERA_TBL = new Color(245, 248, 252);
     private final Color C_FILA_PAR     = new Color(252, 254, 255);
     private final Color C_HEADER_TEXT  = new Color(175, 205, 235);
+    
+    private boolean seleccionandoProgramaticamente = false;
 
     public VistaObraSocial() {
         initComponents();
@@ -382,7 +385,7 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
     public void setPresenter(ObraSocialPresenter presenter) {
         this.presenter = presenter;
         
-        // 1. PURGA DE EVENTOS EN BOTONES (La cura definitiva para la duplicación)
+        // 1. PURGA DE EVENTOS EN BOTONES
         limpiarListeners(btnAgregarObraSocial);
         limpiarListeners(btnEliminarObraSocial);
         limpiarListeners(btnCambiarArancel);
@@ -394,7 +397,7 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
         btnCambiarArancel.addActionListener(e -> presenter.onCambiarArancel());
         btnVolver.addActionListener(e -> presenter.onVolver());
         
-        // 3. PURGA Y CONEXIÓN DEL BUSCADOR
+        // 3. BUSCADOR
         for (java.awt.event.KeyListener kl : txtBuscarObraSocial.getKeyListeners()) {
             txtBuscarObraSocial.removeKeyListener(kl);
         }
@@ -405,28 +408,22 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
             }
         });
 
-        // 4. PURGA Y CONEXIÓN DE LA TABLA
-        javax.swing.DefaultListSelectionModel modeloSeleccion = 
-                (javax.swing.DefaultListSelectionModel) grillaObrasSociales.getSelectionModel();
-
-        for (javax.swing.event.ListSelectionListener lsl : modeloSeleccion.getListSelectionListeners()) {
-            modeloSeleccion.removeListSelectionListener(lsl);
+        // 4. TABLA - CONEXIÓN SEGURA (con referencia guardada)
+        if (listenerSeleccionTabla != null) {
+            grillaObrasSociales.getSelectionModel().removeListSelectionListener(listenerSeleccionTabla);
         }
 
-        modeloSeleccion.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
+        listenerSeleccionTabla = e -> {
+            if (!e.getValueIsAdjusting() && !seleccionandoProgramaticamente) {
                 boolean filaSeleccionada = grillaObrasSociales.getSelectedRow() != -1;
-
-                // Habilitar/deshabilitar botones visualmente
                 habilitarBotonEliminar(filaSeleccionada);
                 btnCambiarArancel.setEnabled(filaSeleccionada);
-
-                // ← NO mostrar mensajes aquí, solo llamar al presenter
                 if (filaSeleccionada && presenter != null) {
                     presenter.onSeleccionarOS();
                 }
             }
-        });
+        };
+        grillaObrasSociales.getSelectionModel().addListSelectionListener(listenerSeleccionTabla);
     }
 
     private void limpiarListeners(javax.swing.JButton btn) {
@@ -466,15 +463,19 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
 
     @Override
     public void cargarObrasSocialesEnTabla(ArrayList<ObraSocial> obs) {
+        seleccionandoProgramaticamente = true;
+        
         DefaultTableModel modelo = (DefaultTableModel) grillaObrasSociales.getModel();
         modelo.setRowCount(0);
+        
         for (ObraSocial o : obs) {
             modelo.addRow(new Object[]{o.getCodigo(), o.getNombre(), String.format("$ %.2f", o.getArancel())});
         }
+        
+        // Limpiar selección
         grillaObrasSociales.clearSelection();
-        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(modelo);
-        grillaObrasSociales.setRowSorter(sorter);
-
+        
+        // Configurar renderer
         DefaultTableCellRenderer render = new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
@@ -493,22 +494,29 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
         for (int i = 0; i < grillaObrasSociales.getColumnCount(); i++) {
             grillaObrasSociales.getColumnModel().getColumn(i).setCellRenderer(render);
         }
-            habilitarBotonEliminar(false);
-            btnCambiarArancel.setEnabled(false);
+        
+        // Configurar anchos de columna
         grillaObrasSociales.getColumnModel().getColumn(0).setPreferredWidth(120);
         grillaObrasSociales.getColumnModel().getColumn(0).setMaxWidth(150);
+        grillaObrasSociales.getColumnModel().getColumn(1).setPreferredWidth(280);
         grillaObrasSociales.getColumnModel().getColumn(2).setPreferredWidth(150);
         grillaObrasSociales.getColumnModel().getColumn(2).setMaxWidth(180);
+        
+        // Resetear estado de botones
+        habilitarBotonEliminar(false);
+        btnCambiarArancel.setEnabled(false);
+        
+        seleccionandoProgramaticamente = false;
     }
 
     @Override
     public ObraSocial getObraSocialSeleccionada() {
         int fila = grillaObrasSociales.getSelectedRow();
         if (fila == -1) return null;
-        int modelRow = grillaObrasSociales.convertRowIndexToModel(fila);
+        
         ObraSocial o = new ObraSocial();
-        o.setCodigo(grillaObrasSociales.getModel().getValueAt(modelRow, 0).toString());
-        o.setNombre(grillaObrasSociales.getModel().getValueAt(modelRow, 1).toString());
+        o.setCodigo(grillaObrasSociales.getValueAt(fila, 0).toString());
+        o.setNombre(grillaObrasSociales.getValueAt(fila, 1).toString());
         return o;
     }
 

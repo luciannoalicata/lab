@@ -95,7 +95,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
     }
 
     private void construirUI() {
-        setTitle("BIOTEC LABORATORIOS — Sistema de Gestión de Laboratorio Clínico");
+        setTitle("BIOTEC LABORATORIOS");
         setExtendedState(MAXIMIZED_BOTH);
         setMinimumSize(new Dimension(1380, 900));
         setBackground(C_FONDO);
@@ -358,7 +358,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         if (btnCerrarSesion == null) {
             btnCerrarSesion = new JButton();
         }
-        btnCerrarSesion.setText("  ⏻  CERRAR SESIÓN");
+        btnCerrarSesion.setText("➡️  CERRAR SESIÓN");
         btnCerrarSesion.setBackground(C_ROJO);
         btnCerrarSesion.setForeground(C_BLANCO);
         btnCerrarSesion.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -533,6 +533,29 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
     public void habilitarBotonGestionUsuarios(boolean b) { if (btnGestionUsuarios != null) btnGestionUsuarios.setEnabled(b); }
     @Override 
     public void habilitarBotonAuditoria(boolean b)       { if (btnAuditoria != null) btnAuditoria.setEnabled(b); }
+    
+    @Override
+    public void habilitarCargaPacientes(boolean b) {
+        // CORREGIDO: Ya no apaga el botón del menú, le pasa el permiso al presentador
+        if (presenter != null) {
+            presenter.setPermisoCargaPacientes(b);
+        }
+    }
+
+    @Override
+    public void habilitarCargaAnalisis(boolean b) {
+        // CORREGIDO: Ya no apaga el botón del menú, le pasa el permiso al presentador
+        if (presenter != null) {
+            presenter.setPermisoCargaAnalisis(b);
+        }
+    }
+
+    @Override
+    public void habilitarModificacionRegistros(boolean b) {
+        if (presenter != null) {
+            presenter.setPermisoModificacion(b);
+        }
+    }
 
     @Override
     public void registrarPanel(Object vista, String nombre) {

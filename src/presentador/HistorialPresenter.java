@@ -63,19 +63,30 @@ public class HistorialPresenter {
     // ── MÉTODOS DE LOS BOTONES ──
     public void onGenerarInforme() {
         int idAnalisis = vista.getAnalisisSeleccionadoId();
-        Date fechaImpresion = vista.getFechaSeleccionada();
+        java.util.Date fechaImpresion = vista.getFechaSeleccionada();
 
         if (idAnalisis != -1) {
-            // ¡Llamada limpia, solo datos de negocio!
-            reporteService.generarInforme(idAnalisis, fechaImpresion);
+            
+            // Usamos un hilo secundario igual que en el AnalisisPresenter para no congelar la GUI
+            new Thread(() -> {
+                try {
+                    // ¡Llamada limpia, solo datos de negocio!
+                    reporteService.generarInforme(idAnalisis, fechaImpresion);
 
-            if (analisisDAO.cambiarEstadoGenerado(idAnalisis)) {
-                
-                auditoriaDAO.registrar(this.usuarioLogueado, "IMPRIMIR", "analisis", idAnalisis, 
-                        null, "Informe generado", "Impresión desde Historial");
-                
-                cargarTabla();
-            }
+                    if (analisisDAO.cambiarEstadoGenerado(idAnalisis)) {
+                        auditoriaDAO.registrar(this.usuarioLogueado, "IMPRIMIR", "analisis", idAnalisis, 
+                                null, "Informe generado", "Impresión desde Historial");
+                        
+                        // Refrescamos la tabla desde el hilo principal de Swing
+                        javax.swing.SwingUtilities.invokeLater(() -> {
+                            cargarTabla(); // Repintará de verde
+                        });
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+
         } else {
             vista.mostrarMensaje("Debe seleccionar un análisis.");
         }

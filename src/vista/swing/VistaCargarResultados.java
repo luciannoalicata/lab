@@ -221,7 +221,7 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
 
         aplicarColumnas();
         aplicarRenderer();
-        aplicarCellEditor(); // <-- Inyectamos el editor inteligente
+        aplicarCellEditor(); 
         
         this.revalidate();
         this.repaint();
@@ -234,7 +234,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         editorField.setHorizontalAlignment(JTextField.CENTER);
 
         DefaultCellEditor cellEditor = new DefaultCellEditor(editorField) {
-            // 1. Cuando entramos a editar, le quitamos los puntos para que sea cómodo escribir
             @Override
             public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
                 String texto = value != null ? value.toString() : "";
@@ -244,7 +243,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
                 return super.getTableCellEditorComponent(table, texto, isSelected, row, column);
             }
 
-            // 2. ¡NUEVO! Cuando terminamos de editar (por Enter, Flechas o Clic), formateamos el valor
             @Override
             public Object getCellEditorValue() {
                 Object value = super.getCellEditorValue();
@@ -262,7 +260,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
                         java.text.DecimalFormat df = new java.text.DecimalFormat("#,###", dfs);
                         
                         String formateado = df.format(Long.parseLong(parteEntera));
-                        // Estandarizamos los decimales siempre con coma (,)
                         if (partes.length > 1) {
                             formateado += "," + parteDecimal; 
                         }
@@ -498,64 +495,7 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
 
     @Override
     public double pedirPrecioManual() {
-        JPanel pnl = new JPanel(new BorderLayout(0, 0));
-        pnl.setBackground(C_BLANCO);
-        pnl.setPreferredSize(new Dimension(380, 180));
-
-        JPanel header = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 14));
-        header.setBackground(C_NAVY);
-        JLabel lblT = new JLabel("PARTICULAR — Ingreso de Precio");
-        lblT.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        lblT.setForeground(C_BLANCO);
-        header.add(lblT);
-        pnl.add(header, BorderLayout.NORTH);
-
-        JPanel body = new JPanel(new BorderLayout(0, 10));
-        body.setBackground(C_BLANCO);
-        body.setBorder(new EmptyBorder(20, 25, 20, 25));
-
-        JLabel lblSub = new JLabel("Ingrese el precio total del estudio ($):");
-        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lblSub.setForeground(C_TEXTO_SUAVE);
-
-        JTextField txtPrecio = new JTextField();
-        txtPrecio.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        txtPrecio.setForeground(C_NAVY);
-        txtPrecio.setCaretColor(C_NAVY);
-        txtPrecio.setHorizontalAlignment(JTextField.CENTER);
-        txtPrecio.setBackground(C_CAMPO);
-        txtPrecio.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(C_BORDE, 1, true),
-            new EmptyBorder(6, 10, 6, 10)
-        ));
-        txtPrecio.setPreferredSize(new Dimension(0, 46));
-        txtPrecio.addKeyListener(new KeyAdapter() {
-            @Override public void keyTyped(KeyEvent e) {
-                char c = e.getKeyChar();
-                String actual = txtPrecio.getText();
-                if (!Character.isDigit(c) && c != '.' && c != ',' && c != KeyEvent.VK_BACK_SPACE) e.consume();
-                if ((c == '.' || c == ',') && (actual.contains(".") || actual.contains(","))) e.consume();
-            }
-        });
-
-        body.add(lblSub, BorderLayout.NORTH);
-        body.add(txtPrecio, BorderLayout.CENTER);
-        pnl.add(body, BorderLayout.CENTER);
-
-        Window parentWindow = SwingUtilities.getWindowAncestor(this);
-        int resultado = JOptionPane.showConfirmDialog(parentWindow, pnl, "Precio PARTICULAR",
-            JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-            
-        if (resultado != JOptionPane.OK_OPTION) return -1;
-        String texto = txtPrecio.getText().trim().replace(',', '.');
-        if (texto.isEmpty()) return -1;
-        try {
-            double valor = Double.parseDouble(texto);
-            return valor >= 0 ? valor : -1;
-        } catch (NumberFormatException ex) {
-            mostrarMensaje("El precio ingresado no es válido.");
-            return -1;
-        }
+        return -1; // OBSOLETO: Se maneja por UB automático ahora.
     }
 
     private void configurarBuscadoresDinamicos() {
@@ -671,7 +611,7 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  CARGAR DETERMINACIONES
+    //  CARGAR DETERMINACIONES Y CÁLCULOS AUTOMÁTICOS
     // ════════════════════════════════════════════════════════════════
     @Override
     public void cargarDeterminaciones(List<Determinacion> lista) {
@@ -721,11 +661,81 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
             });
         }
 
+        // ── DETECTOR INTELIGENTE PARA CÁLCULOS HEMATIMÉTRICOS ──
+        modelo.addTableModelListener(e -> {
+            // Se ejecuta de manera asíncrona justo después de que la celda se guarde en la tabla
+            if (!calculando && e.getColumn() == 3 && e.getType() == javax.swing.event.TableModelEvent.UPDATE) {
+                SwingUtilities.invokeLater(() -> calcularIndicesHematimetricos());
+            }
+        });
+
         aplicarRenderer();
         aplicarColumnas();
-        aplicarCellEditor(); // <-- Inyectamos el editor a la nueva tabla generada
+        aplicarCellEditor(); 
     }
 
+    private void calcularIndicesHematimetricos() {
+        calculando = true;
+        try {
+            int filas = grillaResultados.getRowCount();
+            double rbc = -1, hb = -1, hto = -1;
+            int idxVCM = -1, idxHCM = -1, idxCHCM = -1;
+
+            // 1. Escanear tabla buscando los nombres EXACTOS de tu base de datos
+            for (int i = 0; i < filas; i++) {
+                String nombreOriginal = getNombrePrueba(i);
+                String res = getResultado(i);
+                
+                if (nombreOriginal == null || nombreOriginal.isEmpty()) continue;
+                
+                // Pasamos a minúsculas para evitar problemas si alguien lo escribió como "GLOB. ROJOS"
+                String nombreStr = nombreOriginal.trim().toLowerCase();
+
+                // Extraer valores base
+                if (nombreStr.equals("glob. rojos")) {
+                    rbc = parsearNumeroLab(res);
+                } else if (nombreStr.equals("hemoglobina")) {
+                    hb = parsearNumeroLab(res);
+                } else if (nombreStr.equals("hematocrito")) {
+                    hto = parsearNumeroLab(res);
+                } 
+                
+                // Ubicar filas destino para inyectar índices
+                else if (nombreStr.equals("vcm")) {
+                    idxVCM = i;
+                } else if (nombreStr.equals("hcm")) {
+                    idxHCM = i;
+                } else if (nombreStr.equals("chcm")) {
+                    idxCHCM = i;
+                }
+            }
+
+            // Si los glóbulos rojos los ingresan enteros (ej 4500000 o 4.500.000), los convertimos a millones para la fórmula
+            if (rbc > 0 && rbc > 100) {
+                rbc = rbc / 1000000.0;
+            }
+
+            java.text.DecimalFormatSymbols dfs = new java.text.DecimalFormatSymbols();
+            dfs.setDecimalSeparator(',');
+            java.text.DecimalFormat df = new java.text.DecimalFormat("0.0", dfs);
+
+            // 2. Realizar los cálculos si tenemos los datos suficientes
+            if (rbc > 0 && hto > 0 && idxVCM != -1) {
+                grillaResultados.setValueAt(df.format((hto * 10) / rbc), idxVCM, 3);
+            }
+            if (rbc > 0 && hb > 0 && idxHCM != -1) {
+                grillaResultados.setValueAt(df.format((hb * 10) / rbc), idxHCM, 3);
+            }
+            if (hto > 0 && hb > 0 && idxCHCM != -1) {
+                grillaResultados.setValueAt(df.format((hb * 100) / hto), idxCHCM, 3);
+            }
+
+        } catch (Exception e) {
+            // Silencioso para evitar frenar al bioquímico si hay un error de tipeo en otra celda
+        } finally {
+            calculando = false;
+        }
+    }
     @Override
     public void detenerEdicionTabla() {
         if (grillaResultados.isEditing())
@@ -762,7 +772,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
     public void setPresenter(ResultadoPresenter presenter) {
         this.presenter = presenter;
         
-        // Limpiamos los oyentes para evitar el "Bucle Fantasma"
         for (java.awt.event.ActionListener al : btnGuardarResultados.getActionListeners()) {
             btnGuardarResultados.removeActionListener(al);
         }
@@ -781,8 +790,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
 
     @Override
     public int confirmarAccion(String mensaje, String titulo) {
-        // En lugar de YES_NO_OPTION que solo devuelve 0 o 1, usaremos YES_NO_CANCEL
-        // Para que si da en la X de la ventana, devuelva CANCEL (2) o CLOSED (-1) y no cierre la vista
         return JOptionPane.showConfirmDialog(this, mensaje, titulo, JOptionPane.YES_NO_CANCEL_OPTION);
     }
     
@@ -804,12 +811,10 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
             public void actionPerformed(java.awt.event.ActionEvent e) {
                 int row = grillaResultados.getSelectedRow();
                 
-                // Al detener la edición, se dispara automáticamente el getCellEditorValue() que pusimos arriba
                 if (grillaResultados.isEditing()) {
                     grillaResultados.getCellEditor().stopCellEditing();
                 }
 
-                // Lógica de navegación: buscar la siguiente fila válida para editar
                 int total = grillaResultados.getRowCount();
                 for (int sig = row + 1; sig < total; sig++) {
                     Object cod = grillaResultados.getModel().getValueAt(sig, 1);
@@ -828,7 +833,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
                     }
                 }
                 
-                // Si ya no hay más filas, mandamos el foco al botón de guardar
                 btnGuardarResultados.requestFocusInWindow();
             }
         });
@@ -883,12 +887,17 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
     private double parsearNumeroLab(String numStr) {
         String s = numStr.replaceAll("[^0-9.,]", "");
         if (s.isEmpty()) return Double.NaN;
-        if (s.contains(",")) return Double.parseDouble(s.replace(".", "").replace(",", "."));
-        if (s.contains(".")) {
-            long cantPuntos = s.chars().filter(ch -> ch == '.').count();
-            if (cantPuntos > 1) return Double.parseDouble(s.replace(".", ""));
-            String[] partes = s.split("\\.");
-            if (partes.length == 2 && partes[1].length() == 3) return Double.parseDouble(s.replace(".", ""));
+        
+        if (s.contains(".") && s.contains(",")) {
+            return Double.parseDouble(s.replace(".", "").replace(",", "."));
+        }
+        if (s.contains(",")) {
+            return Double.parseDouble(s.replace(",", "."));
+        }
+        
+        long cantPuntos = s.chars().filter(ch -> ch == '.').count();
+        if (cantPuntos > 1) {
+            return Double.parseDouble(s.replace(".", ""));
         }
         return Double.parseDouble(s);
     }
@@ -908,7 +917,14 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         pnlCuerpo             = new JPanel();
         pnlTablaWrapper       = new JPanel();
         jScrollPane1          = new JScrollPane();
-        grillaResultados      = new JTable();
+        
+        // ── FORZAR NAVEGACIÓN ÚNICAMENTE EN LA COLUMNA DE RESULTADO ──
+        grillaResultados      = new JTable() {
+            @Override
+            public void changeSelection(int rowIndex, int columnIndex, boolean toggle, boolean extend) {
+                super.changeSelection(rowIndex, 3, toggle, extend);
+            }
+        };
 
         jPanelFooter          = new JPanel();
         btnGuardarResultados  = new JButton();

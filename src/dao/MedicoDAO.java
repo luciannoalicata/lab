@@ -137,16 +137,15 @@ public class MedicoDAO {
                    + "WHERE matricula LIKE ? OR apellido LIKE ? OR nombre LIKE ? ORDER BY apellido ASC LIMIT 8";
                    
         try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
-            String filtro = busqueda + "%"; // Empieza con... (aprovecha el índice)
+            String filtro = busqueda + "%"; 
             ps.setString(1, filtro);
             ps.setString(2, filtro);
             ps.setString(3, filtro);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    String item = rs.getString("matricula") + " - "
-                            + rs.getString("apellido") + " "
-                            + rs.getString("nombre");
+                    // AQUÍ ESTÁ EL NUEVO FORMATO: Juan Pérez (mp. 123)
+                    String item = rs.getString("nombre") + " " + rs.getString("apellido") + " (mp. " + rs.getString("matricula") + ")";
                     sugerencias.add(item);
                 }
             }

@@ -42,7 +42,6 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
 import javax.swing.border.MatteBorder;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -55,6 +54,7 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
     private DetalleAnalisisPresenter presenter;
     private int idAnalisisActual = -1;
     private ListSelectionListener listenerSeleccionTabla;
+    private boolean calculando = false;
 
     private JWindow ventanaSugerenciasMed;
     private JList<String> listaSugerenciasMed;
@@ -124,7 +124,6 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
     }
 
     private void configurarFocoCelda() {
-        // Forzar que la selección se mantenga en la columna 3
         grillaDetallesAnalisis.setColumnSelectionAllowed(true);
         grillaDetallesAnalisis.setRowSelectionAllowed(true);
         
@@ -139,7 +138,7 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         });
     }
 
-    // ── NAVEGACIÓN INTELIGENTE (Solo saltos) ──
+    // ── NAVEGACIÓN INTELIGENTE (Solo saltos por columna Resultados) ──
     private void configurarNavegacionEnter() {
         javax.swing.InputMap im = grillaDetallesAnalisis.getInputMap(JTable.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
         javax.swing.ActionMap am = grillaDetallesAnalisis.getActionMap();
@@ -183,7 +182,6 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
             public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
                 String texto = value != null ? value.toString() : "";
                 
-                // Si es número formateado, le quitamos los puntos de miles para poder editarlo cómodo
                 if (texto.matches("^-?[\\d.,]+$")) {
                     texto = texto.replace(".", "");
                 }
@@ -208,7 +206,6 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                         java.text.DecimalFormat df = new java.text.DecimalFormat("#,###", dfs);
                         
                         String formateado = df.format(Long.parseLong(parteEntera));
-                        // Estandarizamos los decimales siempre con coma (,)
                         if (partes.length > 1) {
                             formateado += "," + parteDecimal; 
                         }
@@ -811,8 +808,8 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         aplicarRenderersConTitulos();
         aplicarColumnas();
     }
-   
-
+    
+    // ── CARGA INICIAL CON EL LISTENER ASÍNCRONO DE CÁLCULO ──
     @Override
     public void cargarResultadosDetalle(ArrayList<ResultadoAnalisis> lista) {
         DefaultTableModel modelo = new DefaultTableModel(
@@ -861,10 +858,73 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                 r.getReferencia()
             });
         }
+        
+        // ── LISTENER PARA CÁLCULOS ──
+        modelo.addTableModelListener(e -> {
+            if (!calculando && e.getColumn() == 3 && e.getType() == javax.swing.event.TableModelEvent.UPDATE) {
+                SwingUtilities.invokeLater(() -> calcularIndicesHematimetricos());
+            }
+        });
 
         aplicarRenderersConTitulos();
         aplicarColumnas();
-        aplicarCellEditor(); // Inyectamos el CellEditor Inteligente
+        aplicarCellEditor(); 
+    }
+
+    private void calcularIndicesHematimetricos() {
+        calculando = true;
+        try {
+            int filas = grillaDetallesAnalisis.getRowCount();
+            double rbc = -1, hb = -1, hto = -1;
+            int idxVCM = -1, idxHCM = -1, idxCHCM = -1;
+
+            for (int i = 0; i < filas; i++) {
+                Object objNombre = grillaDetallesAnalisis.getValueAt(i, 2);
+                String nombreOriginal = objNombre != null ? objNombre.toString() : "";
+                String res = getResultadoEditado(i);
+                
+                if (nombreOriginal.isEmpty()) continue;
+                
+                String nombreStr = nombreOriginal.trim().toLowerCase();
+
+                if (nombreStr.equals("glob. rojos")) {
+                    rbc = parsearNumeroLab(res);
+                } else if (nombreStr.equals("hemoglobina")) {
+                    hb = parsearNumeroLab(res);
+                } else if (nombreStr.equals("hematocrito")) {
+                    hto = parsearNumeroLab(res);
+                } 
+                else if (nombreStr.equals("vcm")) {
+                    idxVCM = i;
+                } else if (nombreStr.equals("hcm")) {
+                    idxHCM = i;
+                } else if (nombreStr.equals("chcm")) {
+                    idxCHCM = i;
+                }
+            }
+
+            if (rbc > 0 && rbc > 100) {
+                rbc = rbc / 1000000.0;
+            }
+
+            java.text.DecimalFormatSymbols dfs = new java.text.DecimalFormatSymbols();
+            dfs.setDecimalSeparator(',');
+            java.text.DecimalFormat df = new java.text.DecimalFormat("0.0", dfs);
+
+            if (rbc > 0 && hto > 0 && idxVCM != -1) {
+                grillaDetallesAnalisis.setValueAt(df.format((hto * 10) / rbc), idxVCM, 3);
+            }
+            if (rbc > 0 && hb > 0 && idxHCM != -1) {
+                grillaDetallesAnalisis.setValueAt(df.format((hb * 10) / rbc), idxHCM, 3);
+            }
+            if (hto > 0 && hb > 0 && idxCHCM != -1) {
+                grillaDetallesAnalisis.setValueAt(df.format((hb * 100) / hto), idxCHCM, 3);
+            }
+
+        } catch (Exception e) {
+        } finally {
+            calculando = false;
+        }
     }
 
     private void initComponents() {
@@ -881,7 +941,14 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         pnlCuerpo = new JPanel();
         pnlTablaWrapper = new JPanel();
         jScrollPane1 = new JScrollPane();
-        grillaDetallesAnalisis = new JTable();
+        
+        // Se instanció aquí el JTable para forzar la navegación estricta
+        grillaDetallesAnalisis = new JTable() {
+            @Override
+            public void changeSelection(int rowIndex, int columnIndex, boolean toggle, boolean extend) {
+                super.changeSelection(rowIndex, 3, toggle, extend);
+            }
+        };
 
         jPanelFooter = new JPanel();
         btnEditar = new JButton();
@@ -1032,4 +1099,4 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
     public Date getFechaSeleccionada() {
         return jdFechaInforme.getDate() != null ? jdFechaInforme.getDate() : new Date();
     }
-}
+}   

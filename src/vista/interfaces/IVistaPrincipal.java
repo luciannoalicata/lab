@@ -38,4 +38,7 @@ public interface IVistaPrincipal {
     void habilitarBotonGestionUsuarios(boolean b);
     void habilitarBotonAuditoria(boolean b);
     void mostrarMensaje(String mensaje);
+    void habilitarCargaPacientes(boolean b);
+    void habilitarCargaAnalisis(boolean b);
+    void habilitarModificacionRegistros(boolean b);
 }

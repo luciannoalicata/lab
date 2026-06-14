@@ -10,6 +10,7 @@ public class SesionPresenter {
     private final IVistaLogin vista;
     private final AppRouter router;
     private final UsuarioDAO usuarioDAO;
+    private boolean ingresando = false; 
 
     public SesionPresenter(IVistaLogin vista, AppRouter router, UsuarioDAO usuarioDAO) {
         this.vista = vista;
@@ -22,23 +23,32 @@ public class SesionPresenter {
         vista.ejecutar();
     }
 
-    public void onIngresar() {
-        String username = vista.getUsuario();
-        String password = vista.getClave();
 
-        if (username.isEmpty() || password.isEmpty()) {
-            vista.mostrarMensaje("Por favor, complete todos los campos.");
+    public void onIngresar() {
+        if (ingresando) {
             return;
         }
+        ingresando = true;
 
-        Usuario u = usuarioDAO.login(username, password); // Asegúrate que sea autenticar o login según tu DAO
+        try {
+            String username = vista.getUsuario();
+            String password = vista.getClave();
 
-        if (u != null) {
-            vista.cerrarPantalla();
-            // LLAMAMOS AL MÉTODO QUE ESTÁ EN APPROUTER.JAVA
-            router.onLoginExitoso(u); 
-        } else {
-            vista.mostrarMensaje("Usuario o contraseña incorrectos.");
+            if (username.isEmpty() || password.isEmpty()) {
+                vista.mostrarMensaje("Por favor, complete todos los campos.");
+                return;
+            }
+
+            Usuario u = usuarioDAO.login(username, password);
+
+            if (u != null) {
+                vista.cerrarPantalla();
+                router.onLoginExitoso(u);
+            } else {
+                vista.mostrarMensaje("Usuario o contraseña incorrectos.");
+            }
+        } finally {
+            ingresando = false;
         }
     }
 }

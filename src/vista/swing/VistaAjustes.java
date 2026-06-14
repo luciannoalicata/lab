@@ -260,9 +260,10 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
     //  ESTILO
     // ════════════════════════════════════════════════════════════════
     private void aplicarEstilo() {
-        setTitle("Configuración del Sistema — BIOTEC LIS");
-        setMinimumSize(new Dimension(950, 680));
-        setPreferredSize(new Dimension(1050, 720)); 
+        setTitle("CONFIGURACIÓN DEL SISTEMA");
+        setMinimumSize(new Dimension(1000, 680));
+        // Ampliamos el ancho a 1150px para darles respiro a los nuevos textfields más largos
+        setPreferredSize(new Dimension(1150, 720)); 
         setResizable(true);
         getContentPane().setBackground(C_FONDO);
 
@@ -270,7 +271,7 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
         jTabbedPane1.setBackground(C_FONDO);
         jTabbedPane1.setBorder(new EmptyBorder(0, 0, 0, 0));
 
-        // Campos de rutas (no editables)
+        // Campos de rutas (no editables) - Aumentados a 420px de ancho
         for (JTextField f : new JTextField[]{txtBuscarLogo, txtFirma, txtRutaPdf, txtRutaBackup}) {
             f.setEditable(false);
             f.setFont(new Font("Segoe UI", Font.PLAIN, 12)); 
@@ -280,13 +281,13 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
                 new MatteBorder(0, 0, 1, 0, C_BORDE),
                 new EmptyBorder(8, 12, 8, 12)
             ));
-            f.setPreferredSize(new Dimension(350, 38)); 
+            f.setPreferredSize(new Dimension(420, 38)); 
         }
 
-        // Campos de texto normales
+        // Campos de texto normales institucionales - Aumentados a 420px de ancho
         for (JTextField f : new JTextField[]{txtNombreLaboratorio, txtDireccion,
                 txtLocalidad, txtTelefono, txtBioquimico, txtMatricula}) {
-            estilizarCampo(f, 350, 40); 
+            estilizarCampo(f, 420, 40); 
         }
 
         // Campos de contraseña
@@ -319,12 +320,19 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
         }
 
         estilizarBtn(btnActualizarClave,      C_AZUL_MED, "✔  ACTUALIZAR CONTRASEÑA", 260, 45);
-        estilizarBtn(btnActualizarDatos,       C_VERDE,    "💾  GUARDAR DATOS",         220, 45);
+        estilizarBtn(btnActualizarDatos,       C_VERDE,   "💾  GUARDAR DATOS",         220, 45);
         estilizarBtn(btnGuardarConfiguracion, C_AZUL_MED, "💾  GUARDAR PREFERENCIAS",  260, 45);
-        estilizarBtn(btnGuardarUB,             C_VERDE,    "✔  GUARDAR VALOR UB",      220, 50);
+        estilizarBtn(btnGuardarUB,             C_VERDE,   "✔  GUARDAR VALOR UB",      220, 50);
+
+        ImageIcon iconCarpeta = icon("/reportes/img/carpeta_icon.png", 22, 22);
 
         for (JButton b : new JButton[]{btnBuscarLogo, btnBuscarFirma, btnBuscarRutaPdf, btnBuscarRutaBackup}) {
-            b.setText("📁");
+            if (iconCarpeta != null) {
+                b.setIcon(iconCarpeta);
+                b.setText(""); // Ocultamos el emoji si encuentra la imagen
+            } else {
+                b.setText("📁"); // Salvavidas si no encuentra la imagen
+            }
             b.setBackground(new Color(215, 228, 245));
             b.setForeground(C_AZUL);
             b.setFont(new Font("Segoe UI", Font.BOLD, 16));
@@ -374,6 +382,18 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
     private void poblarCombos() {
         cbxTamanoHoja.setModel(new DefaultComboBoxModel<>(new String[]{"A4", "A5"}));
         cbxOrientacion.setModel(new DefaultComboBoxModel<>(new String[]{"Vertical", "Horizontal"}));
+    }
+    
+    // Método auxiliar para escalar iconos
+    private ImageIcon icon(String ruta, int w, int h) {
+        try {
+            java.net.URL url = getClass().getResource(ruta);
+            if (url != null) {
+                Image img = new ImageIcon(url).getImage().getScaledInstance(w, h, Image.SCALE_SMOOTH);
+                return new ImageIcon(img);
+            }
+        } catch (Exception e) {}
+        return null;
     }
 
     // ════════════════════════════════════════════════════════════════

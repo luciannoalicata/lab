@@ -3,6 +3,7 @@ package servicio;
 import dao.AnalisisDAO;
 import dao.ConfiguracionDAO;
 import dao.DeterminacionDAO;
+import dao.MedicoDAO;
 import dao.PacienteDAO;
 import dao.ResultadoAnalisisDAO;
 import java.io.File;
@@ -29,20 +30,23 @@ public class ReporteService {
     private ConfiguracionDAO configDAO;
     private AnalisisDAO analisisDAO;
     private PacienteDAO pacienteDAO;
+    private MedicoDAO medicoDAO;
     private ResultadoAnalisisDAO resultadoDAO;
     private DeterminacionDAO determinacionDAO;
 
     public ReporteService(ConfiguracionDAO configDAO, AnalisisDAO analisisDAO,
             PacienteDAO pacienteDAO, ResultadoAnalisisDAO resultadoDAO,
-            DeterminacionDAO determinacionDAO) {
+            DeterminacionDAO determinacionDAO, MedicoDAO medicoDAO) {
+        
         this.configDAO = configDAO;
         this.analisisDAO = analisisDAO;
         this.pacienteDAO = pacienteDAO;
         this.resultadoDAO = resultadoDAO;
         this.determinacionDAO = determinacionDAO;
+        this.medicoDAO = medicoDAO;
     }
 
-    public void generarInforme(int idAnalisis, Date fechaImpresion) {
+public void generarInforme(int idAnalisis, Date fechaImpresion) {
 
         List<java.io.FileInputStream> streamsAbiertos = new ArrayList<>();
         JDialog dialog = null;
@@ -85,12 +89,16 @@ public class ReporteService {
                 return;
             }
 
-            // ── TÍTULOS DINÁMICOS ──
+            // ── TÍTULOS DINÁMICOS Y FORMATEO ──
             List<modelo.ResultadoAnalisis> listaConTitulos = new ArrayList<>();
             String codigoPadreActual = "";
 
             for (modelo.ResultadoAnalisis r : resultadosFiltrados) {
                 String codigoFila = r.getCodigo();
+
+                if (r.getReferencia() != null && r.getReferencia().contains(";")) {
+                    r.setReferencia(r.getReferencia().replace(";", "\n").trim());
+                }
 
                 if (codigoFila == null || codigoFila.trim().isEmpty()) {
                     if (r.getNombrePrueba() != null) {
@@ -167,17 +175,29 @@ public class ReporteService {
             net.sf.jasperreports.engine.JasperReport jasperReport = net.sf.jasperreports.engine.JasperCompileManager.compileReport(reporteStream);
             java.util.Map<String, Object> params = new HashMap<>();
 
-            String medico = analisis.getMedicoSolicitante();
-            params.put("medicoSolicitante", (medico == null || medico.trim().isEmpty() || medico.equals("-")) ? "" : medico.trim());
+            // ── RECONSTRUCCIÓN DEL MÉDICO PARA EL PDF ──
+            String matriculaDB = analisis.getMedicoSolicitante();
+            String medicoParaPDF = "";
+            
+            if (matriculaDB != null && !matriculaDB.trim().isEmpty() && !matriculaDB.equals("-")) {
+                modelo.Medico medicoReal = medicoDAO.buscarPorMatricula(matriculaDB.trim());
+                if (medicoReal != null) {
+                    medicoParaPDF = medicoReal.getNombreMedico() + " " + medicoReal.getApellidoMedico() + " (mp. " + medicoReal.getMatricula() + ")";
+                } else {
+                    medicoParaPDF = matriculaDB; // Por si el médico se borró de la base de datos
+                }
+            }
+            params.put("medicoSolicitante", medicoParaPDF);
+            
             params.put("fechaAnalisis", fechaImpresion);
             params.put("precio", analisis.getPrecio());
 
-            params.put("labNombre", getValorConfig("lab_nombre", "BIOTEC LABORATORIOS"));
-            params.put("labDireccion", getValorConfig("lab_direccion", ""));
-            params.put("labLocalidad", getValorConfig("lab_localidad", ""));
-            params.put("labTelefono", getValorConfig("lab_telefono", ""));
-            params.put("labBioquimico", getValorConfig("lab_bioquimico", ""));
-            params.put("labMatricula", getValorConfig("lab_matricula", ""));
+            params.put("labNombre", configDAO.getValor("lab_nombre") != null ? configDAO.getValor("lab_nombre") : "BIOTEC LABORATORIOS");
+            params.put("labDireccion", configDAO.getValor("lab_direccion") != null ? configDAO.getValor("lab_direccion") : "");
+            params.put("labLocalidad", configDAO.getValor("lab_localidad") != null ? configDAO.getValor("lab_localidad") : "");
+            params.put("labTelefono", configDAO.getValor("lab_telefono") != null ? configDAO.getValor("lab_telefono") : "");
+            params.put("labBioquimico", configDAO.getValor("lab_bioquimico") != null ? configDAO.getValor("lab_bioquimico") : "");
+            params.put("labMatricula", configDAO.getValor("lab_matricula") != null ? configDAO.getValor("lab_matricula") : "");
 
             params.put("pacienteNombre", paciente.getApellido() + " " + paciente.getNombre());
             params.put("pacienteDni", paciente.getDni());
@@ -227,13 +247,13 @@ public class ReporteService {
             net.sf.jasperreports.engine.JasperPrint jasperPrint = net.sf.jasperreports.engine.JasperFillManager.fillReport(jasperReport, params, ds);
 
             // ── EXPORTAR PDF AUTOMÁTICO ──
+            boolean pdfGuardadoExito = false;
+            String rutaPdfGenerado = "";
+
             try {
                 String valAuto = configDAO.getValor("print_auto");
                 boolean autoPrint = valAuto != null && (valAuto.trim().equalsIgnoreCase("true") || valAuto.trim().equals("1"));
                 String carpetaPdf = configDAO.getValor("ruta_pdf");
-
-                System.out.println("AutoPrint: " + autoPrint);
-                System.out.println("Carpeta PDF configurada: " + carpetaPdf);
 
                 if (autoPrint && carpetaPdf != null && !carpetaPdf.trim().isEmpty()) {
 
@@ -251,8 +271,7 @@ public class ReporteService {
 
                     java.io.File folder = new java.io.File(carpetaPdf);
                     if (!folder.exists()) {
-                        boolean creado = folder.mkdirs();
-                        System.out.println("Carpeta creada: " + creado + " - " + carpetaPdf);
+                        folder.mkdirs();
                     }
 
                     if (folder.exists()) {
@@ -260,12 +279,8 @@ public class ReporteService {
                         net.sf.jasperreports.engine.JasperExportManager.exportReportToPdfFile(jasperPrint, pdfFile.getAbsolutePath());
                         System.out.println("PDF guardado en: " + pdfFile.getAbsolutePath());
 
-                        javax.swing.SwingUtilities.invokeLater(() -> {
-                            javax.swing.JOptionPane.showMessageDialog(null,
-                                    "PDF guardado en:\n" + pdfFile.getAbsolutePath(),
-                                    "Informe generado",
-                                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
-                        });
+                        pdfGuardadoExito = true;
+                        rutaPdfGenerado = pdfFile.getAbsolutePath();
                     } else {
                         System.err.println("No se pudo crear la carpeta: " + carpetaPdf);
                     }
@@ -275,14 +290,13 @@ public class ReporteService {
                 exPdf.printStackTrace();
             }
 
-            // ── MOSTRAR VISOR (CON PARACHE ANTI-CRASH) ──
+            // ── MOSTRAR VISOR (CON PARCHE ANTI-CRASH Y WHATSAPP) ──
             final JDialog dialogFinal = new JDialog((java.awt.Frame) null, "Visor de Informe - BIOTEC", true);
             dialogFinal.setSize(1024, 800);
             dialogFinal.setLocationRelativeTo(null);
 
             net.sf.jasperreports.swing.JRViewer viewer = new net.sf.jasperreports.swing.JRViewer(jasperPrint);
 
-            // ── VERIFICACIÓN INTEGRADA DE IMPRESORAS OPERATIVAS ──
             try {
                 javax.print.PrintService[] impresoras = java.awt.print.PrinterJob.lookupPrintServices();
                 if (impresoras == null || impresoras.length == 0) {
@@ -308,7 +322,49 @@ public class ReporteService {
 
             dialogFinal.getContentPane().add(viewer);
 
+            final boolean finalPdfGuardado = pdfGuardadoExito;
+            final String finalRutaPdf = rutaPdfGenerado;
+
             dialogFinal.addWindowListener(new java.awt.event.WindowAdapter() {
+
+                @Override
+                public void windowOpened(java.awt.event.WindowEvent e) {
+                    if (finalPdfGuardado) {
+                        Object[] opciones = {"Cerrar", "Enviar por WhatsApp"};
+
+                        int eleccion = javax.swing.JOptionPane.showOptionDialog(dialogFinal,
+                                "✓ PDF guardado exitosamente en:\n" + finalRutaPdf + "\n\n¿Desea notificar al paciente ahora?",
+                                "Informe Generado - BIOTEC",
+                                javax.swing.JOptionPane.YES_NO_OPTION,
+                                javax.swing.JOptionPane.INFORMATION_MESSAGE,
+                                null,
+                                opciones,
+                                opciones[0]);
+
+                        if (eleccion == 1) {
+                            String celular = paciente.getCelular();
+
+                            if (celular != null && !celular.trim().isEmpty()) {
+                                try {
+                                    String celularLimpio = celular.replaceAll("[^0-9]", "");
+                                    String mensaje = "Hola *" + paciente.getNombre().trim() + "*, te informamos que los resultados de tus análisis clínicos en *BIOTEC* ya están listos. \n\nPuedes pasar a retirarlos o solicitarlos en formato PDF respondiendo a este mensaje.";
+                                    String url = "https://api.whatsapp.com/send?phone=" + celularLimpio + "&text=" + java.net.URLEncoder.encode(mensaje, "UTF-8");
+
+                                    if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.BROWSE)) {
+                                        java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
+                                    } else {
+                                        javax.swing.JOptionPane.showMessageDialog(dialogFinal, "No se pudo abrir el navegador automáticamente en este sistema.");
+                                    }
+                                } catch (Exception exWsp) {
+                                    javax.swing.JOptionPane.showMessageDialog(dialogFinal, "Error al intentar abrir WhatsApp: " + exWsp.getMessage());
+                                }
+                            } else {
+                                javax.swing.JOptionPane.showMessageDialog(dialogFinal, "El paciente no tiene un número de celular registrado en el sistema.", "Atención", javax.swing.JOptionPane.WARNING_MESSAGE);
+                            }
+                        }
+                    }
+                }
+
                 @Override
                 public void windowClosed(java.awt.event.WindowEvent e) {
                     dialogFinal.dispose();
