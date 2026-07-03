@@ -28,7 +28,6 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
     private final Color C_TEXTO_SUAVE = new Color(100, 115, 130);
     private final Color C_TEXTO_FUERTE= new Color(40, 50, 60);
     private final Color C_LABEL_HDR   = new Color(175, 205, 235);
-    private final Color C_SOMBRA      = new Color(0, 0, 0, 30);
     private final Color C_HOVER_BG    = new Color(245, 250, 255);
     private final Color C_HOVER_BORDER = new Color(180, 210, 240);
 
@@ -62,23 +61,6 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         configurarCierreVentana();
     }
     
-//    private void configurarCierreVentana() {
-//        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-//        addWindowListener(new WindowAdapter() {
-//            @Override
-//            public void windowClosing(WindowEvent e) {
-//                int confirmacion = confirmarAccion(
-//                    "¿Está seguro de que desea salir del sistema?", 
-//                    "Salir del Sistema"
-//                );
-//                if (confirmacion == 0) {
-//                    dispose();
-//                    System.exit(0);
-//                }
-//            }
-//        });
-//    }
-
     @Override
     public void setPresenter(PrincipalPresenter presenter) {
         this.presenter = presenter;
@@ -97,7 +79,10 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
     private void construirUI() {
         setTitle("BIOTEC LABORATORIOS");
         setExtendedState(MAXIMIZED_BOTH);
-        setMinimumSize(new Dimension(1380, 900));
+        
+        // EL PUNTO DE ORO: 1120x680. 
+        // Entra perfecto en pantallas de 14" y evita que se recorten los campos del paciente.
+        setMinimumSize(new Dimension(1120, 680));
         setBackground(C_FONDO);
         
         construirHeader();
@@ -198,7 +183,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
 
         pnlCentroWrapper = new JPanel(new BorderLayout());
         pnlCentroWrapper.setBackground(C_FONDO);
-        pnlCentroWrapper.setBorder(new EmptyBorder(20, 30, 30, 30));
+        pnlCentroWrapper.setBorder(new EmptyBorder(16, 20, 20, 20)); 
 
         cardLayout = new CardLayout();
         pnlContenido = new JPanel(cardLayout);
@@ -207,6 +192,8 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         
         pnlContenido.add(construirPanelInicio(), "inicio");
 
+        // Adiós ScrollGlobal. Evitamos que la ruedita se confunda con las grillas.
+        // Al poner un setMinimumSize en el Frame, garantizamos que siempre haya espacio.
         pnlCentroWrapper.add(pnlContenido, BorderLayout.CENTER);
 
         pnlMenuIzquierdo = construirMenuLateral(true);
@@ -230,18 +217,20 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         JPanel panel = new JPanel();
         panel.setBackground(C_BLANCO);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setPreferredSize(new Dimension(420, 0));
-        panel.setMinimumSize(new Dimension(380, 0));
+        
+        // Tamaños ajustados para que no invadan el centro al achicar
+        panel.setPreferredSize(new Dimension(280, 0)); 
+        panel.setMinimumSize(new Dimension(240, 0));
 
         if (esIzquierdo) {
             panel.setBorder(BorderFactory.createCompoundBorder(
                 new MatteBorder(0, 0, 0, 1, C_BORDE),
-                new EmptyBorder(0, 24, 0, 24)
+                new EmptyBorder(0, 16, 0, 16)
             ));
         } else {
             panel.setBorder(BorderFactory.createCompoundBorder(
                 new MatteBorder(0, 1, 0, 0, C_BORDE),
-                new EmptyBorder(0, 24, 0, 24)
+                new EmptyBorder(0, 16, 0, 16)
             ));
         }
 
@@ -249,19 +238,19 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
 
         if (esIzquierdo) {
             panel.add(crearBotonMenu(btnPacientes, "PACIENTES", "Gestión de pacientes", "paciente_icon.png"));
-            panel.add(Box.createVerticalStrut(12));
+            panel.add(Box.createVerticalStrut(10));
             panel.add(crearBotonMenu(btnAnalisis, "LISTA ANÁLISIS", "Resultados y estudios", "auditoria_icon.png"));
-            panel.add(Box.createVerticalStrut(12));
+            panel.add(Box.createVerticalStrut(10));
             panel.add(crearBotonMenu(btnMedicos, "PROFESIONALES", "Médicos solicitantes", "medico_icon.png"));
-            panel.add(Box.createVerticalStrut(12));
+            panel.add(Box.createVerticalStrut(10));
             panel.add(crearBotonMenu(btnObrasSociales, "OBRAS SOCIALES", "Coberturas y aranceles", "obs_icon.png"));
         } else {
             panel.add(crearBotonMenu(btnNBU, "NBU", "Prácticas y determinaciones", "nbu_icon.png"));
-            panel.add(Box.createVerticalStrut(12));
+            panel.add(Box.createVerticalStrut(10));
             panel.add(crearBotonMenu(btnAuditoria, "AUDITORÍA", "Seguridad y eventos", "auditoria_icon.png"));
-            panel.add(Box.createVerticalStrut(12));
+            panel.add(Box.createVerticalStrut(10));
             panel.add(crearBotonMenu(btnGestionUsuarios, "USUARIOS", "Permisos y accesos", "usuarios_icon.png"));
-            panel.add(Box.createVerticalStrut(12));
+            panel.add(Box.createVerticalStrut(10));
             panel.add(crearBotonMenu(btnAjustes, "CONFIGURACIÓN", "Ajustes del sistema", "ajustes_icon.png"));
         }
 
@@ -279,41 +268,43 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         btn.setFocusPainted(false);
         btn.setOpaque(true);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(360, 90));
-        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
+        
+        btn.setPreferredSize(new Dimension(260, 80));
+        btn.setMinimumSize(new Dimension(200, 75)); 
+        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 85));
         
         btn.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(C_BORDE, 1, true),
-            new EmptyBorder(12, 16, 12, 16)
+            new EmptyBorder(10, 12, 10, 12)
         ));
 
         JLabel lblIco = new JLabel();
-        lblIco.setPreferredSize(new Dimension(70, 70));
+        lblIco.setPreferredSize(new Dimension(50, 50));
         lblIco.setHorizontalAlignment(SwingConstants.CENTER);
-        ImageIcon ico = icon("/reportes/img/" + iconoFile, 56, 56);
+        ImageIcon ico = icon("/reportes/img/" + iconoFile, 40, 40); 
         if (ico != null) lblIco.setIcon(ico);
 
         JPanel pnlTexto = new JPanel();
         pnlTexto.setOpaque(false);
         pnlTexto.setLayout(new BoxLayout(pnlTexto, BoxLayout.Y_AXIS));
-        pnlTexto.setBorder(new EmptyBorder(0, 16, 0, 0));
+        pnlTexto.setBorder(new EmptyBorder(0, 12, 0, 0));
 
         JLabel lblTitulo = new JLabel(titulo);
-        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 15));
         lblTitulo.setForeground(C_TEXTO_FUERTE);
 
         JLabel lblSub = new JLabel(subtitulo);
-        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lblSub.setForeground(C_TEXTO_SUAVE);
 
         pnlTexto.add(lblTitulo);
-        pnlTexto.add(Box.createVerticalStrut(6));
+        pnlTexto.add(Box.createVerticalStrut(2));
         pnlTexto.add(lblSub);
 
         JLabel flecha = new JLabel("›");
-        flecha.setFont(new Font("Segoe UI", Font.PLAIN, 30));
+        flecha.setFont(new Font("Segoe UI", Font.PLAIN, 28));
         flecha.setForeground(new Color(200, 210, 220));
-        flecha.setBorder(new EmptyBorder(0, 12, 0, 8));
+        flecha.setBorder(new EmptyBorder(0, 4, 0, 2));
 
         JPanel contenido = new JPanel(new BorderLayout());
         contenido.setOpaque(false);
@@ -329,7 +320,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
                 btn.setBackground(C_HOVER_BG);
                 btn.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(C_HOVER_BORDER, 1, true),
-                    BorderFactory.createEmptyBorder(12, 16, 12, 16)
+                    BorderFactory.createEmptyBorder(10, 12, 10, 12)
                 ));
                 flecha.setForeground(C_AZUL_MEDIO);
                 lblTitulo.setForeground(C_AZUL_OSCURO);
@@ -340,7 +331,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
                 btn.setBackground(C_BLANCO);
                 btn.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(C_BORDE, 1, true),
-                    new EmptyBorder(12, 16, 12, 16)
+                    new EmptyBorder(10, 12, 10, 12)
                 ));
                 flecha.setForeground(new Color(200, 210, 220));
                 lblTitulo.setForeground(C_TEXTO_FUERTE);
@@ -349,7 +340,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
 
         JPanel wrapper = new JPanel(new BorderLayout());
         wrapper.setOpaque(false);
-        wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, 105));
+        wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
         wrapper.add(btn, BorderLayout.CENTER);
         return wrapper;
     }
@@ -389,58 +380,69 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         card.setBackground(C_BLANCO);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
 
+        // Pegamento arriba (empuja suavemente hacia abajo)
+        card.add(Box.createVerticalGlue());
+
         JLabel lblLogo = new JLabel();
         lblLogo.setAlignmentX(Component.CENTER_ALIGNMENT);
         lblLogo.setHorizontalAlignment(SwingConstants.CENTER);
         try {
             java.net.URL url = getClass().getResource("/reportes/img/biotec_logo.png");
             if (url != null) {
-                Image img = new ImageIcon(url).getImage().getScaledInstance(320, -1, Image.SCALE_SMOOTH);
+                Image img = new ImageIcon(url).getImage().getScaledInstance(280, -1, Image.SCALE_SMOOTH);
                 lblLogo.setIcon(new ImageIcon(img));
                 lblLogo.setText("");
             } else {
                 lblLogo.setText("BIOTEC");
-                lblLogo.setFont(new Font("Segoe UI", Font.BOLD, 52));
+                lblLogo.setFont(new Font("Segoe UI", Font.BOLD, 48));
                 lblLogo.setForeground(C_AZUL_OSCURO);
             }
         } catch (Exception e) {
             lblLogo.setText("BIOTEC");
-            lblLogo.setFont(new Font("Segoe UI", Font.BOLD, 52));
+            lblLogo.setFont(new Font("Segoe UI", Font.BOLD, 48));
             lblLogo.setForeground(C_AZUL_OSCURO);
         }
         card.add(lblLogo);
-        card.add(Box.createVerticalStrut(45));
+        card.add(Box.createRigidArea(new Dimension(0, 15)));
 
         String fechaStr = new SimpleDateFormat("EEEE, dd 'de' MMMM 'de' yyyy").format(new Date());
         fechaStr = fechaStr.substring(0, 1).toUpperCase() + fechaStr.substring(1);
         
         JLabel lblFechaCard = new JLabel(fechaStr);
-        lblFechaCard.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        lblFechaCard.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         lblFechaCard.setForeground(C_TEXTO_SUAVE);
         lblFechaCard.setAlignmentX(Component.CENTER_ALIGNMENT);
         card.add(lblFechaCard);
-        card.add(Box.createVerticalStrut(35));
+        card.add(Box.createRigidArea(new Dimension(0, 20)));
 
-        JPanel pnlChips = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
+        JPanel pnlChips = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
         pnlChips.setOpaque(false);
         pnlChips.setAlignmentX(Component.CENTER_ALIGNMENT);
         pnlChips.add(crearChip("● Sistema Operativo", C_VERDE));
         pnlChips.add(crearChip("● Servidor Conectado", C_AZUL_MEDIO));
         card.add(pnlChips);
+        
+        // Pegamento abajo (empuja suavemente hacia arriba)
+        card.add(Box.createVerticalGlue());
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.anchor = GridBagConstraints.CENTER;
+        // Le damos un peso relativo para que el pegamento funcione
+        gbc.weightx = 1.0; 
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        
         panel.add(card, gbc);
         return panel;
     }
 
     private JLabel crearChip(String texto, Color color) {
         JLabel lbl = new JLabel(texto);
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lbl.setForeground(color);
         lbl.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(color.getRed(), color.getGreen(), color.getBlue(), 60), 1, true),
-            new EmptyBorder(10, 20, 10, 20)
+            new EmptyBorder(8, 16, 8, 16)
         ));
         lbl.setBackground(new Color(color.getRed(), color.getGreen(), color.getBlue(), 12));
         lbl.setOpaque(true);
@@ -536,7 +538,6 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
     
     @Override
     public void habilitarCargaPacientes(boolean b) {
-        // CORREGIDO: Ya no apaga el botón del menú, le pasa el permiso al presentador
         if (presenter != null) {
             presenter.setPermisoCargaPacientes(b);
         }
@@ -544,7 +545,6 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
 
     @Override
     public void habilitarCargaAnalisis(boolean b) {
-        // CORREGIDO: Ya no apaga el botón del menú, le pasa el permiso al presentador
         if (presenter != null) {
             presenter.setPermisoCargaAnalisis(b);
         }
@@ -583,17 +583,15 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
     }
     
     private void configurarCierreVentana() {
-        // Evita que la ventana se cierre sola de golpe
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
         addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
-                // Le pasamos el control al presentador para que pregunte y haga el backup
                 if (presenter != null) {
                     presenter.onCerrarAplicacionCompleta();
                 } else {
-                    System.exit(0); // Por si el presentador falló al cargar
+                    System.exit(0); 
                 }
             }
         });
@@ -615,7 +613,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         if (pnlMenuIzquierdo != null) pnlMenuIzquierdo.setVisible(true);
         if (pnlMenuDerecho != null) pnlMenuDerecho.setVisible(true);
         if (pnlFooterCerrar != null) pnlFooterCerrar.setVisible(true);
-        if (pnlCentroWrapper != null) pnlCentroWrapper.setBorder(new EmptyBorder(20, 30, 30, 30));
+        if (pnlCentroWrapper != null) pnlCentroWrapper.setBorder(new EmptyBorder(16, 20, 20, 20));
         
         revalidate();
         repaint();

@@ -151,7 +151,7 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
                                     ? a.getObraSocial() : "-";
             
             String estado = a.getEstado() != null ? a.getEstado().toUpperCase() : "";
-                                    
+                                        
             modelo.addRow(new Object[]{
                 a.getIdAnalisis(),
                 sdf.format(a.getFecha()),
@@ -262,7 +262,6 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
         header.setBackground(C_CABECERA_TBL);
         header.setForeground(C_TEXTO_SUAVE);
         header.setBorder(new MatteBorder(0, 0, 2, 0, C_BORDE));
-        header.setPreferredSize(new Dimension(0, 40));
 
         jScrollPane1.setBorder(BorderFactory.createEmptyBorder());
         jScrollPane1.getViewport().setBackground(C_BLANCO);
@@ -292,8 +291,9 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
         pnlFooter.removeAll();
         pnlFooter.setLayout(new BorderLayout());
         
-        configurarBoton(btnVerDetallesAnalisis, C_AZUL_MEDIO, "VER DETALLES", 160, 42);
-        configurarBoton(btnImprimirAnalisis, C_VERDE, "IMPRIMIR", 150, 42);
+        // Botones dinámicos mediante Padding, sin dimensiones estrictas
+        configurarBoton(btnVerDetallesAnalisis, C_AZUL_MEDIO, "VER DETALLES");
+        configurarBoton(btnImprimirAnalisis, C_VERDE, "IMPRIMIR");
 
         JPanel pnlFooterAcciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         pnlFooterAcciones.setOpaque(false);
@@ -317,14 +317,16 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
         tf.setBackground(new Color(25, 45, 75)); 
         tf.setForeground(C_BLANCO);
         tf.setCaretColor(C_BLANCO);
+        // Usamos setColumns en lugar de setPreferredSize
+        tf.setColumns(20);
         tf.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(50, 80, 120), 1, true),
             new EmptyBorder(8, 14, 8, 14)
         ));
-        tf.setPreferredSize(new Dimension(320, 38));
     }
 
-    private void configurarBoton(JButton btn, Color bg, String texto, int w, int h) {
+    // Configuración de botón adaptable
+    private void configurarBoton(JButton btn, Color bg, String texto) {
         btn.setText(texto);
         btn.setBackground(bg);
         btn.setForeground(C_BLANCO);
@@ -333,7 +335,8 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
         btn.setBorderPainted(false);
         btn.setOpaque(true);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(w, h));
+        // El tamaño se ajusta al contenido gracias al Padding
+        btn.setBorder(new EmptyBorder(10, 20, 10, 20)); 
     }
 
     private void configurarBotonRetroceso(JButton btn) {
@@ -413,18 +416,18 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
             grillaAnalisis.getColumnModel().getColumn(i).setCellRenderer(renderizadorColores);
         }
 
-        // Anchos de columna
-        int[] anchos = {70, 100, 280, 120, 200, 110, 80};
+        // Anchos preferidos dinámicos, eliminando restricciones de max width en columnas flexibles
+        int[] anchos = {70, 110, 280, 130, 220, 120, 100};
         for (int i = 0; i < anchos.length; i++) {
             grillaAnalisis.getColumnModel().getColumn(i).setPreferredWidth(anchos[i]);
-            grillaAnalisis.getColumnModel().getColumn(i).setMinWidth(anchos[i] - 20);
         }
         
+        // Mantenemos fijos únicamente los datos que no varían su extensión (ID, Fechas, Estado)
         grillaAnalisis.getColumnModel().getColumn(0).setMaxWidth(90);
         grillaAnalisis.getColumnModel().getColumn(1).setMaxWidth(130);
         grillaAnalisis.getColumnModel().getColumn(3).setMaxWidth(150);
-        grillaAnalisis.getColumnModel().getColumn(5).setMaxWidth(140);
-        grillaAnalisis.getColumnModel().getColumn(6).setMaxWidth(90);
+        grillaAnalisis.getColumnModel().getColumn(5).setMaxWidth(150);
+        grillaAnalisis.getColumnModel().getColumn(6).setMaxWidth(120);
     }
 
     // ══════════════════════════════════════════════════════════════════

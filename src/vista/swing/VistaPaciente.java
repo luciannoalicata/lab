@@ -91,12 +91,11 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
             @Override
             public void keyTyped(KeyEvent e) {
                 char c = e.getKeyChar();
-                // Permitir letras (mayúsculas/minúsculas), espacios, acentos y ñ
                 if (!Character.isLetter(c) && c != ' ' && c != KeyEvent.VK_BACK_SPACE && 
                     c != 'á' && c != 'é' && c != 'í' && c != 'ó' && c != 'ú' &&
                     c != 'Á' && c != 'É' && c != 'Í' && c != 'Ó' && c != 'Ú' &&
                     c != 'ñ' && c != 'Ñ') {
-                    e.consume(); // Bloquear caracteres no permitidos
+                    e.consume(); 
                     mostrarMensajeTemporal("El nombre solo puede contener letras y espacios.");
                 }
             }
@@ -124,14 +123,12 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
                 char c = e.getKeyChar();
                 String textoActual = txtDni.getText();
                 
-                // Permitir solo números
                 if (!Character.isDigit(c)) {
                     e.consume();
                     mostrarMensajeTemporal("El DNI solo puede contener números.");
                     return;
                 }
                 
-                // Limitar a 8 dígitos
                 if (textoActual.length() >= 8) {
                     e.consume();
                     mostrarMensajeTemporal("El DNI no puede tener más de 8 dígitos.");
@@ -146,14 +143,12 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
                 char c = e.getKeyChar();
                 String textoActual = txtEdad.getText();
                 
-                // Permitir solo números
                 if (!Character.isDigit(c)) {
                     e.consume();
                     mostrarMensajeTemporal("La edad solo puede contener números.");
                     return;
                 }
                 
-                // Limitar a 3 dígitos (máximo 120 años)
                 if (textoActual.length() >= 3) {
                     e.consume();
                     mostrarMensajeTemporal("La edad no puede tener más de 3 dígitos.");
@@ -162,7 +157,6 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
             
             @Override
             public void keyReleased(KeyEvent e) {
-                // Validar rango de edad al soltar la tecla
                 String texto = txtEdad.getText().trim();
                 if (!texto.isEmpty()) {
                     try {
@@ -179,12 +173,7 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
     }
     
     private void mostrarMensajeTemporal(String mensaje) {
-        // Mostrar mensaje en la barra de estado o como tooltip temporal
-        // Opcional: usar un JLabel de estado o simplemente ignorar para no molestar
-        // Por ahora solo mostramos en consola, pero puedes implementar un JLabel de estado
         System.out.println("Validación: " + mensaje);
-        // Si quieres mostrar un tooltip flotante:
-        // JOptionPane.showMessageDialog(this, mensaje, "Validación", JOptionPane.WARNING_MESSAGE);
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -314,27 +303,12 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         }
         grillaPacientes.setModel(modelo);
 
-        DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
+        DefaultTableCellRenderer centradoRenderer = new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable t, Object v,
                     boolean sel, boolean foc, int row, int col) {
                 super.getTableCellRendererComponent(t, v, sel, foc, row, col);
-                setHorizontalAlignment(SwingConstants.CENTER);
-                setBorder(new EmptyBorder(0, 8, 0, 8));
-                if (!sel) {
-                    setBackground(row % 2 == 0 ? C_BLANCO : C_FILA_PAR);
-                    setForeground(C_TEXTO_FUERTE);
-                }
-                return this;
-            }
-        };
-
-        DefaultTableCellRenderer leftRenderer = new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable t, Object v,
-                    boolean sel, boolean foc, int row, int col) {
-                super.getTableCellRendererComponent(t, v, sel, foc, row, col);
-                setHorizontalAlignment(SwingConstants.LEFT);
+                setHorizontalAlignment(SwingConstants.CENTER); 
                 setBorder(new EmptyBorder(0, 10, 0, 8));
                 if (!sel) {
                     setBackground(row % 2 == 0 ? C_BLANCO : C_FILA_PAR);
@@ -344,20 +318,18 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
             }
         };
 
-        for (int i = 0; i < grillaPacientes.getColumnCount(); i++)
-            grillaPacientes.getColumnModel().getColumn(i).setCellRenderer(renderer);
+        for (int i = 0; i < grillaPacientes.getColumnCount(); i++) {
+            grillaPacientes.getColumnModel().getColumn(i).setCellRenderer(centradoRenderer);
+        }
 
-        grillaPacientes.getColumnModel().getColumn(1).setCellRenderer(leftRenderer);
-        grillaPacientes.getColumnModel().getColumn(2).setCellRenderer(leftRenderer);
-
+        // Anchos relativos (PreferredWidth) sin restringir a los monitores grandes
         grillaPacientes.getColumnModel().getColumn(0).setPreferredWidth(50);
-        grillaPacientes.getColumnModel().getColumn(0).setMaxWidth(60);
+        grillaPacientes.getColumnModel().getColumn(0).setMaxWidth(70); // ID sí queda fijo
         grillaPacientes.getColumnModel().getColumn(1).setPreferredWidth(180);
         grillaPacientes.getColumnModel().getColumn(2).setPreferredWidth(160);
-        grillaPacientes.getColumnModel().getColumn(3).setPreferredWidth(90);
-        grillaPacientes.getColumnModel().getColumn(3).setMaxWidth(110);
-        grillaPacientes.getColumnModel().getColumn(4).setPreferredWidth(55);  
-        grillaPacientes.getColumnModel().getColumn(4).setMaxWidth(60);
+        grillaPacientes.getColumnModel().getColumn(3).setPreferredWidth(100);
+        grillaPacientes.getColumnModel().getColumn(4).setPreferredWidth(60);  
+        grillaPacientes.getColumnModel().getColumn(4).setMaxWidth(80); // Edad sí queda fija
         grillaPacientes.getColumnModel().getColumn(5).setPreferredWidth(130);
     }
 
@@ -387,7 +359,7 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
     @Override
     public void cargarDatosPaciente(Paciente p) {
         if (p == null) return;
-        ignorarBusquedaOS = true; // Desactivamos búsqueda al rellenar datos
+        ignorarBusquedaOS = true; 
         
         txtApellido .setText(p.getApellido());
         txtNombre   .setText(p.getNombre());
@@ -400,7 +372,7 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         cbxSexo     .setSelectedItem(p.getSexo());
         txtObraSocial.setText(p.getObraSocial());
         
-        ignorarBusquedaOS = false; // Reactivamos búsqueda
+        ignorarBusquedaOS = false; 
     }
 
     @Override
@@ -594,9 +566,8 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         cbxSexo.setForeground(C_TEXTO_FUERTE);
         cbxSexo.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
-            new EmptyBorder(4, 4, 4, 4)
+            new EmptyBorder(8, 10, 8, 10) // Márgenes dinámicos en lugar de setPreferredSize
         ));
-        cbxSexo.setPreferredSize(new Dimension(0, 36));
 
         configurarBoton(btnGuardarPaciente,  C_VERDE,      "GUARDAR");
         configurarBoton(btnEditarPaciente,   C_AZUL_MEDIO, "MODIFICAR");
@@ -645,22 +616,23 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         tf.setBackground(C_CAMPO);
         tf.setForeground(C_TEXTO_FUERTE);
         tf.setCaretColor(C_AZUL_MEDIO);
+        // Márgenes dinámicos en lugar de alturas fijas en píxeles
         tf.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
-            new EmptyBorder(6, 10, 6, 10)
+            new EmptyBorder(10, 12, 10, 12) 
         ));
-        tf.setPreferredSize(new Dimension(0, 36));
+        
         tf.addFocusListener(new java.awt.event.FocusAdapter() {
             @Override public void focusGained(java.awt.event.FocusEvent e) {
                 tf.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createMatteBorder(0, 0, 2, 0, C_AZUL_MEDIO),
-                    new EmptyBorder(6, 10, 6, 10)));
+                    new EmptyBorder(10, 12, 10, 12)));
                 tf.setBackground(C_BLANCO);
             }
             @Override public void focusLost(java.awt.event.FocusEvent e) {
                 tf.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
-                    new EmptyBorder(6, 10, 6, 10)));
+                    new EmptyBorder(10, 12, 10, 12)));
                 tf.setBackground(C_CAMPO);
             }
         });
@@ -671,11 +643,12 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         tf.setBackground(new Color(25, 45, 75));
         tf.setForeground(C_BLANCO);
         tf.setCaretColor(C_BLANCO);
+        // Se definen columnas en vez de dimensiones fijas
+        tf.setColumns(20); 
         tf.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(50, 80, 120), 1, true),
             new EmptyBorder(8, 14, 8, 14)
         ));
-        tf.setPreferredSize(new Dimension(360, 40));
     }
 
     private void configurarBoton(javax.swing.JButton btn, Color bg, String texto) {
@@ -687,7 +660,8 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         btn.setBorderPainted(false);
         btn.setOpaque(true);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(170, 42));
+        // Ajuste mediante padding para que el botón crezca proporcionalmente con el texto y DPI
+        btn.setBorder(new EmptyBorder(10, 20, 10, 20)); 
     }
 
     private void configurarBotonRetroceso(javax.swing.JButton btn) {
@@ -767,7 +741,7 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         btnVerHistorial    = new javax.swing.JButton();
         btnVolver          = new javax.swing.JButton();
 
-        cbxSexo.setModel(new javax.swing.DefaultComboBoxModel<>(new String[]{"M", "F", "X"}));
+        cbxSexo.setModel(new javax.swing.DefaultComboBoxModel<>(new String[]{"","M", "F", "X"}));
 
         setLayout(new BorderLayout());
 
@@ -798,14 +772,14 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         gc.weighty = 1.0;
         gc.insets  = new Insets(0, 0, 0, 0);
 
+        // FORMULARIO: Pasa a usar porcentajes relativos (35% de la pantalla)
         gc.gridx = 0; gc.gridy = 0;
-        gc.weightx = 0;
-        pnlFormulario.setPreferredSize(new Dimension(430, 0));
-        pnlFormulario.setMinimumSize (new Dimension(380, 0));
+        gc.weightx = 0.35; 
         pnlCuerpo.add(pnlFormulario, gc);
 
+        // TABLA: Ocupa el 65% restante de la pantalla
         gc.gridx = 1;
-        gc.weightx = 1.0;
+        gc.weightx = 0.65;
         pnlCuerpo.add(pnlTablaWrapper, gc);
 
         add(pnlCuerpo, BorderLayout.CENTER);

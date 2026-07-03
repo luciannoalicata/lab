@@ -32,9 +32,14 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
         
         setTitle("BIOTEC LIS - Acceso al Sistema");
         setUndecorated(true);
-        setSize(new Dimension(480, 580));
+        
+        // 1. EL SECRETO DE LA ADAPTABILIDAD: Usar pack() en lugar de setSize()
+        // pack() calcula dinámicamente el tamaño basándose en el contenido y el DPI de la pantalla.
+        pack(); 
         setLocationRelativeTo(null);
-        setShape(new RoundRectangle2D.Double(0, 0, 480, 580, 20, 20));
+        
+        // 2. Bordes redondeados dinámicos (calculados DESPUÉS del pack)
+        setShape(new RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), 20, 20));
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -43,35 +48,23 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
     @Override
     public void setPresenter(SesionPresenter presenter) {
         this.presenter = presenter;
-
-        // Limpiar listeners existentes para evitar duplicados
         for (java.awt.event.ActionListener al : btnIngresar.getActionListeners()) {
             btnIngresar.removeActionListener(al);
         }
-
-        // Conectar el botón al método del presentador
         btnIngresar.addActionListener(e -> presenter.onIngresar());
     }
 
     @Override 
-    public void ejecutar() { 
-        setVisible(true); 
-    }
+    public void ejecutar() { setVisible(true); }
     
     @Override 
-    public String getUsuario() { 
-        return txtUsuario.getText().trim(); 
-    }
+    public String getUsuario() { return txtUsuario.getText().trim(); }
     
     @Override 
-    public String getClave() { 
-        return new String(txtClave.getPassword()); 
-    }
+    public String getClave() { return new String(txtClave.getPassword()); }
     
     @Override 
-    public void mostrarMensaje(String mensaje) { 
-        JOptionPane.showMessageDialog(this, mensaje); 
-    }
+    public void mostrarMensaje(String mensaje) { JOptionPane.showMessageDialog(this, mensaje); }
     
     @Override
     public void limpiarCampos() {
@@ -81,14 +74,10 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
     }
     
     @Override
-    public void cerrarPantalla() {
-        this.dispose();
-    }
+    public void cerrarPantalla() { this.dispose(); }
     
     @Override
-    public void limpiarFocos() {
-        this.requestFocusInWindow();
-    }
+    public void limpiarFocos() { this.requestFocusInWindow(); }
 
     @Override
     public int confirmarAccion(String mensaje, String titulo) {
@@ -101,18 +90,11 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
     private void aplicarEsteticaProfesional() {
         getContentPane().setBackground(C_FONDO);
         
-        // Panel principal con sombra y bordes redondeados
         pnlLoginCard.setOpaque(true);
         pnlLoginCard.setBackground(C_BLANCO);
         pnlLoginCard.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(230, 235, 240), 1),
-            new EmptyBorder(35, 42, 35, 42)
-        ));
-        
-        // Sombra para el panel
-        pnlLoginCard.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(220, 225, 230), 1),
-            new EmptyBorder(35, 42, 35, 42)
+            new EmptyBorder(25, 42, 35, 42) // Ligeramente ajustado arriba para la X
         ));
 
         // Logo o icono decorativo
@@ -156,54 +138,52 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
         btnIngresar.setBorderPainted(false);
         btnIngresar.setOpaque(true);
         btnIngresar.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnIngresar.setPreferredSize(new Dimension(0, 48));
+        btnIngresar.setPreferredSize(new Dimension(320, 48)); // Ancho base de 320px
         
-        // Efecto hover
         btnIngresar.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override 
-            public void mouseEntered(java.awt.event.MouseEvent e) { 
-                btnIngresar.setBackground(C_ACENTO); 
-            }
-            @Override 
-            public void mouseExited(java.awt.event.MouseEvent e) { 
-                btnIngresar.setBackground(C_PRIMARIO); 
-            }
+            @Override public void mouseEntered(java.awt.event.MouseEvent e) { btnIngresar.setBackground(C_ACENTO); }
+            @Override public void mouseExited(java.awt.event.MouseEvent e) { btnIngresar.setBackground(C_PRIMARIO); }
         });
 
         // Footer elegante
         lblFooter.setForeground(C_TEXTO_SECUNDARIO);
         lblFooter.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         
-        // Línea decorativa en el footer
         JSeparator separator = new JSeparator();
         separator.setForeground(new Color(220, 225, 230));
         separator.setPreferredSize(new Dimension(0, 1));
         
-        // Botón de cerrar (X) personalizado
+        // 3. Botón de cerrar ADAPTATIVO (Sin setBounds)
         JButton btnCerrar = new JButton("✕");
-        btnCerrar.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnCerrar.setFont(new Font("Segoe UI", Font.BOLD, 16));
         btnCerrar.setForeground(C_TEXTO_SECUNDARIO);
         btnCerrar.setBackground(C_BLANCO);
         btnCerrar.setBorderPainted(false);
         btnCerrar.setFocusPainted(false);
+        btnCerrar.setContentAreaFilled(false);
         btnCerrar.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnCerrar.setBounds(440, 15, 30, 30);
+        btnCerrar.setMargin(new Insets(0, 0, 0, 0));
         
         btnCerrar.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override public void mouseEntered(java.awt.event.MouseEvent e) { 
-                btnCerrar.setForeground(C_PRIMARIO); 
-            }
-            @Override public void mouseExited(java.awt.event.MouseEvent e) { 
-                btnCerrar.setForeground(C_TEXTO_SECUNDARIO); 
-            }
+            @Override public void mouseEntered(java.awt.event.MouseEvent e) { btnCerrar.setForeground(C_PRIMARIO); }
+            @Override public void mouseExited(java.awt.event.MouseEvent e) { btnCerrar.setForeground(C_TEXTO_SECUNDARIO); }
         });
         btnCerrar.addActionListener(e -> System.exit(0));
+
+        // Contenedor superior para alinear la X a la derecha
+        JPanel pnlHeader = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        pnlHeader.setOpaque(false);
+        pnlHeader.add(btnCerrar);
         
         pnlLoginCard.setLayout(new GridBagLayout());
         GridBagConstraints gc = new GridBagConstraints();
         gc.fill = GridBagConstraints.HORIZONTAL;
         gc.weightx = 1.0;
         int r = 0;
+
+        // Fila 0: El header con el botón de cerrar
+        gc.gridy = r++; gc.insets = new Insets(0, 0, 10, -10); // Margen negativo para pegarlo al borde
+        pnlLoginCard.add(pnlHeader, gc);
 
         gc.gridy = r++; gc.insets = new Insets(0, 0, 30, 0);
         pnlLoginCard.add(pnlLogo, gc);
@@ -234,10 +214,6 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
 
         getContentPane().setLayout(new GridBagLayout());
         getContentPane().add(pnlLoginCard, new GridBagConstraints());
-        
-        // Agregar botón cerrar al JDialog (no al panel)
-        ((JPanel)getContentPane()).add(btnCerrar);
-        ((JPanel)getContentPane()).setComponentZOrder(btnCerrar, 0);
     }
 
     private void estilizarCampo(JTextField tf) {
@@ -249,19 +225,18 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
             BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE_CAMPO),
             new EmptyBorder(10, 14, 10, 14)
         ));
-        tf.setPreferredSize(new Dimension(0, 46));
+        // Se define un ancho base en lugar de 0 para que pack() tenga referencias
+        tf.setPreferredSize(new Dimension(320, 46)); 
         
         tf.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override 
-            public void focusGained(java.awt.event.FocusEvent evt) {
+            @Override public void focusGained(java.awt.event.FocusEvent evt) {
                 tf.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createMatteBorder(0, 0, 2, 0, C_PRIMARIO),
                     new EmptyBorder(10, 14, 10, 14)
                 ));
                 tf.setBackground(C_BLANCO);
             }
-            @Override 
-            public void focusLost(java.awt.event.FocusEvent evt) {
+            @Override public void focusLost(java.awt.event.FocusEvent evt) {
                 tf.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE_CAMPO),
                     new EmptyBorder(10, 14, 10, 14)
@@ -271,41 +246,9 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
         });
     }
 
-    private void estilizarCampo(JPasswordField pf) {
-        pf.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        pf.setBackground(C_CAMPO);
-        pf.setForeground(C_TEXTO_PRIMARIO);
-        pf.setCaretColor(C_PRIMARIO);
-        pf.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE_CAMPO),
-            new EmptyBorder(10, 14, 10, 14)
-        ));
-        pf.setPreferredSize(new Dimension(0, 46));
-        
-        pf.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override 
-            public void focusGained(java.awt.event.FocusEvent evt) {
-                pf.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createMatteBorder(0, 0, 2, 0, C_PRIMARIO),
-                    new EmptyBorder(10, 14, 10, 14)
-                ));
-                pf.setBackground(C_BLANCO);
-            }
-            @Override 
-            public void focusLost(java.awt.event.FocusEvent evt) {
-                pf.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE_CAMPO),
-                    new EmptyBorder(10, 14, 10, 14)
-                ));
-                pf.setBackground(C_CAMPO);
-            }
-        });
-    }
-
     private void configurarNavegacionTeclado() {
         java.awt.event.KeyAdapter enterAdapter = new java.awt.event.KeyAdapter() {
-            @Override 
-            public void keyPressed(java.awt.event.KeyEvent e) {
+            @Override public void keyPressed(java.awt.event.KeyEvent e) {
                 if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
                     if (e.getSource() == txtUsuario) {
                         txtClave.requestFocus();

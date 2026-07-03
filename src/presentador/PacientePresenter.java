@@ -108,13 +108,25 @@ public class PacientePresenter {
     }
 
     public void onEditarPaciente() {
-        Paciente seleccionado = vista.getPacienteSeleccionado();
+        modelo.Paciente seleccionado = vista.getPacienteSeleccionado();
         if (seleccionado == null) {
             vista.mostrarMensaje("Debe seleccionar un paciente");
             return;
         }
 
-        Paciente pViejo = pacienteDAO.buscarPorId(seleccionado.getIdPaciente());
+        // --- NUEVA VALIDACIÓN: SEXO ---
+        String sexoSeleccionado = vista.getSexo();
+        if (sexoSeleccionado == null || sexoSeleccionado.trim().isEmpty() || sexoSeleccionado.equals("Seleccione...")) {
+            vista.mostrarMensaje("Por favor, seleccione el sexo del paciente (M, F o X).");
+            return;
+        }
+        
+        // Blindaje adicional: Asegurar que solo sea 1 carácter para evitar el Data Truncated
+        if (sexoSeleccionado.length() > 1) {
+            sexoSeleccionado = sexoSeleccionado.substring(0, 1).toUpperCase();
+        }
+
+        modelo.Paciente pViejo = pacienteDAO.buscarPorId(seleccionado.getIdPaciente());
         if (pViejo == null) {
             vista.mostrarMensaje("Error: El paciente ya no existe en la base de datos.");
             cargarTabla();
@@ -141,9 +153,10 @@ public class PacientePresenter {
         pViejo.setLocalidad(vista.getLocalidad());
         pViejo.setNroAfiliado(vista.getNumAfiliado());
         pViejo.setObraSocial(vista.getObraSocial());
-        pViejo.setSexo(vista.getSexo());
+        pViejo.setSexo(sexoSeleccionado); // <- Usamos la variable ya blindada
         pViejo.setCelular(vista.getCelular());
 
+        // Manejo de concurrencia y actualización
         if (pacienteDAO.actualizar(pViejo)) {  
             if (cambiosViejos.length() > 0) {
                 auditoriaDAO.registrar(usuarioLogueado, "EDITAR", "paciente",
