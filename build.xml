@@ -10,8 +10,8 @@
 <project name="Laboratorio" default="default" basedir=".">
     <description>Builds, tests, and runs the project Laboratorio.</description>
     <import file="nbproject/build-impl.xml"/>
-    <!--
 
+    <!--
     There exist several targets which are by default empty and which can be 
     used for execution of your tasks. These targets are usually executed 
     before and after some main targets. They are: 
@@ -70,4 +70,21 @@
     nbproject/build-impl.xml file. 
 
     -->
+
+    <!-- ============================================================ -->
+    <!-- COPIA ARCHIVOS DE RECURSOS AL COMPILAR                       -->
+    <!-- ============================================================ -->
+    <target name="-post-compile">
+        <copy todir="${build.classes.dir}">
+            <fileset dir="${src.dir}">
+                <include name="**/*.properties"/>
+                <include name="**/*.xml"/>
+                <include name="**/*.png"/>
+                <include name="**/*.jpg"/>
+                <include name="**/*.gif"/>
+ 		<include name="**/*.ico"/>
+            </fileset>
+        </copy>
+    </target>
+
 </project>

@@ -31,11 +31,11 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
     private final Color C_FONDO     = new Color(238, 244, 250);
     private final Color C_BLANCO    = Color.WHITE;
     private final Color C_BORDE     = new Color(210, 220, 232);
-    private final Color C_CAMPO     = new Color(248, 251, 255);
-    private final Color C_CAMPO_RO  = new Color(242, 245, 248);
-    private final Color C_TEXTO     = new Color(40, 60, 85);
+    private final Color C_CAMPO = new Color(248, 251, 255);
+    private final Color C_CAMPO_RO = new Color(242, 245, 248);
+    private final Color C_TEXTO = new Color(40, 60, 85);
     private final Color C_LABEL_HDR = new Color(160, 200, 230);
-    
+
     private JFileChooser fileChooser;
 
     public VistaAjustes(Object parentView) {
@@ -43,13 +43,23 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
         initComponents();
         aplicarEstiloCompacto();
         poblarCombos();
-        
+
         fileChooser = new JFileChooser();
-        
+
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         setMinimumSize(new Dimension(700, 480));
         setPreferredSize(new Dimension(780, 540));
-        
+
+        // ── ICONO ──
+        try {
+            java.net.URL url = getClass().getResource("/reportes/img/logo_sw.png");
+            if (url != null) {
+                Image img = new ImageIcon(url).getImage();
+                setIconImage(img);
+            }
+        } catch (Exception e) {
+        }
+
         addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosed(java.awt.event.WindowEvent e) {

@@ -9,6 +9,7 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Image;
 import java.awt.Insets;
 import java.awt.Window;
 import java.awt.event.KeyAdapter;
@@ -18,6 +19,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListModel;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -47,17 +49,17 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
     private boolean cargandoDatos = false;
 
     // ── Paleta BIOTEC Profesional ────────────────────────────────────
-    private final Color COLOR_AZUL_OSCURO  = new Color(0, 51, 102);
-    private final Color COLOR_AZUL_MEDIO   = new Color(0, 102, 153);
-    private final Color COLOR_VERDE        = new Color(0, 153, 102);
-    private final Color COLOR_ROJO         = new Color(220, 70, 70);
-    private final Color COLOR_FONDO        = new Color(245, 248, 250);
-    private final Color COLOR_BLANCO       = Color.WHITE;
-    private final Color COLOR_BORDE        = new Color(210, 220, 230);
+    private final Color COLOR_AZUL_OSCURO = new Color(0, 51, 102);
+    private final Color COLOR_AZUL_MEDIO = new Color(0, 102, 153);
+    private final Color COLOR_VERDE = new Color(0, 153, 102);
+    private final Color COLOR_ROJO = new Color(220, 70, 70);
+    private final Color COLOR_FONDO = new Color(245, 248, 250);
+    private final Color COLOR_BLANCO = Color.WHITE;
+    private final Color COLOR_BORDE = new Color(210, 220, 230);
     private final Color COLOR_CABECERA_TBL = new Color(235, 242, 248);
-    private final Color COLOR_FILA_PAR     = new Color(250, 253, 255);
-    private final Color COLOR_TEXTO_LABEL  = new Color(60, 80, 100);
-    private final Color COLOR_SELECCION    = new Color(200, 225, 245);
+    private final Color COLOR_FILA_PAR = new Color(250, 253, 255);
+    private final Color COLOR_TEXTO_LABEL = new Color(60, 80, 100);
+    private final Color COLOR_SELECCION = new Color(200, 225, 245);
 
     public VistaDeterminaciones() {
         super((java.awt.Frame) null, true);
@@ -65,7 +67,17 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
         configurarEsteticaProfesional();
         configurarBuscadorDeterminaciones();
         setMinimumSize(new Dimension(750, 550));
-        setLocationRelativeTo(null); // Centrar en pantalla
+        setLocationRelativeTo(null);
+
+        // ── ICONO ──
+        try {
+            java.net.URL url = getClass().getResource("/reportes/img/logo_sw.png");
+            if (url != null) {
+                Image img = new ImageIcon(url).getImage();
+                setIconImage(img);
+            }
+        } catch (Exception e) {
+        }
 
         ((DefaultTableModel) grillaDeterminaciones.getModel()).setRowCount(0);
 
@@ -79,21 +91,36 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
         });
 
         txtDeterminacion.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            @Override public void insertUpdate(javax.swing.event.DocumentEvent e)  { buscar(); }
-            @Override public void removeUpdate(javax.swing.event.DocumentEvent e)  { buscar(); }
-            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { buscar(); }
-            private void buscar() { if (presenter != null) presenter.onBuscarSugerencias(); }
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                buscar();
+            }
+
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                buscar();
+            }
+
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                buscar();
+            }
+
+            private void buscar() {
+                if (presenter != null) {
+                    presenter.onBuscarSugerencias();
+                }
+            }
         });
     }
 
     // ════════════════════════════════════════════════════════════════
     //  INTERFAZ MVP
     // ════════════════════════════════════════════════════════════════
-
     @Override
     public void setPresenter(DeterminacionesPresenter presenter) {
         this.presenter = presenter;
-        
+
         limpiarListeners(btnAgregarDeterminacion);
         limpiarListeners(btnEliminar);
         limpiarListeners(btnContinuar);

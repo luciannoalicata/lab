@@ -77,22 +77,37 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
     }
 
     private void construirUI() {
-        setTitle("BIOTEC LABORATORIOS");
-        setBackground(C_FONDO);
-        construirHeader();
-        construirCuerpo();
-        pack();
+    setTitle("BIOTEC LABORATORIOS");
+    setBackground(C_FONDO);
+    construirHeader();
+    construirCuerpo();
+    pack();
 
-        // Tamaño mínimo: 75% de la pantalla (evita que se desacomode)
-        Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
-        setMinimumSize(new Dimension(
-                (int) (screen.width * 0.85),
-                (int) (screen.height * 0.85)
-        ));
+    // Tamaño mínimo: 85% de la pantalla
+    Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+    setMinimumSize(new Dimension(
+            (int) (screen.width * 0.85),
+            (int) (screen.height * 0.85)
+    ));
 
-        setExtendedState(JFrame.MAXIMIZED_BOTH);
-        setLocationRelativeTo(null);
+    setExtendedState(JFrame.MAXIMIZED_BOTH);
+    setLocationRelativeTo(null);
+    
+    // ── ICONO CORRECTO ──
+    try {
+        java.net.URL url = getClass().getResource("/reportes/img/logo_sw.png");
+        if (url != null) {
+            // Usar Toolkit para cargar .ico
+            Image img = Toolkit.getDefaultToolkit().getImage(url);
+            setIconImage(img);
+            System.out.println("Icono cargado correctamente.");
+        } else {
+            System.out.println("No se encontró el icono en: /reportes/img/logo_sw.png");
+        }
+    } catch (Exception e) {
+        System.out.println("Error al cargar el icono: " + e.getMessage());
     }
+}
 
     private void construirHeader() {
         if (pnlHeader == null) return;
