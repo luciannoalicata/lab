@@ -55,7 +55,15 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
     }
 
     @Override 
-    public void ejecutar() { setVisible(true); }
+    public void ejecutar() { 
+        // 1. Armamos el hilo gráfico ANTES de congelar el código con setVisible
+        SwingUtilities.invokeLater(() -> {
+            txtUsuario.requestFocusInWindow();
+        });
+        
+        // 2. Ahora sí, hacemos visible la pantalla (aquí el código se congela)
+        setVisible(true); 
+    }
     
     @Override 
     public String getUsuario() { return txtUsuario.getText().trim(); }
@@ -102,10 +110,10 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
         pnlLogo.setOpaque(false);
         pnlLogo.setLayout(new BoxLayout(pnlLogo, BoxLayout.Y_AXIS));
         
-        JLabel lblIcono = new JLabel("🔬", SwingConstants.CENTER);
-        lblIcono.setFont(new Font("Segoe UI", Font.PLAIN, 48));
-        lblIcono.setForeground(C_PRIMARIO);
-        lblIcono.setAlignmentX(Component.CENTER_ALIGNMENT);
+        //JLabel lblIcono = new JLabel("🔬", SwingConstants.CENTER);
+        //lblIcono.setFont(new Font("Segoe UI", Font.PLAIN, 48));
+        //lblIcono.setForeground(C_PRIMARIO);
+       // lblIcono.setAlignmentX(Component.CENTER_ALIGNMENT);
         
         lblTitulo.setForeground(C_PRIMARIO);
         lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 34));
@@ -115,7 +123,7 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
         lblSubtitulo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblSubtitulo.setAlignmentX(Component.CENTER_ALIGNMENT);
         
-        pnlLogo.add(lblIcono);
+        //pnlLogo.add(lblIcono);
         pnlLogo.add(Box.createVerticalStrut(10));
         pnlLogo.add(lblTitulo);
         pnlLogo.add(Box.createVerticalStrut(5));
@@ -154,7 +162,7 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
         separator.setPreferredSize(new Dimension(0, 1));
         
         // 3. Botón de cerrar ADAPTATIVO (Sin setBounds)
-        JButton btnCerrar = new JButton("✕");
+        JButton btnCerrar = new JButton("X");
         btnCerrar.setFont(new Font("Segoe UI", Font.BOLD, 16));
         btnCerrar.setForeground(C_TEXTO_SECUNDARIO);
         btnCerrar.setBackground(C_BLANCO);

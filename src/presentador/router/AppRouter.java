@@ -52,7 +52,7 @@ public class AppRouter {
         );
     }
 
-// ── NAVEGACIÓN PRINCIPAL ─────────────────────────────────────────
+    // ── NAVEGACIÓN PRINCIPAL ─────────────────────────────────────────
     public void irAInicio() {
         vp.desactivarModoInmersion(); // <--- Vuelve a mostrar los menús laterales
         vp.volverInicio();
@@ -92,8 +92,6 @@ public class AppRouter {
         vp.limpiarFocos();
     }
 
-    // Declaras la variable arriba en tu AppRouter: 
-    // private presentador.ObraSocialPresenter osPresenter;
     public void irAObrasSociales() {
         if (this.osPresenter == null) {
             vista.interfaces.IVistaObraSocial vistaOS = vistaFactory.getVistaObraSocial();
@@ -114,7 +112,7 @@ public class AppRouter {
             vp.registrarPanel(vista, "nbu");
             nbuPresenter = new NBUPresenter(vista, this, daoFactory.getDeterminacionDAO());
         }
-        nbuPresenter.iniciar(); // <--- ¡AQUÍ ESTABA EL ERROR! Decía medicoPresenter.iniciar()
+        nbuPresenter.iniciar(); 
         vp.activarModoInmersion();
         vp.mostrarSeccion("nbu");
         vp.limpiarFocos();
@@ -161,7 +159,7 @@ public class AppRouter {
                 daoFactory.getAuditoriaDAO(),
                 this.usuarioLogueado,
                 p,
-                this.reporteService // <--- ¡AQUÍ ESTÁ LA PIEZA QUE FALTABA!
+                this.reporteService 
         );
 
         historialPresenter.iniciar();
@@ -272,8 +270,8 @@ public class AppRouter {
                     this, // AppRouter
                     daoFactory.getAnalisisDAO(), // AnalisisDAO
                     this.reporteService, // ReporteService
-                    daoFactory.getAuditoriaDAO(), // AuditoriaDAO (AGREGADO)
-                    this.usuarioLogueado // Usuario (AGREGADO)
+                    daoFactory.getAuditoriaDAO(), // AuditoriaDAO
+                    this.usuarioLogueado // Usuario
             );
         }
 
@@ -282,8 +280,6 @@ public class AppRouter {
         vp.mostrarSeccion("analisis_global");
         vp.limpiarFocos();
     }
-    // Declaras la variable arriba en tu AppRouter:
-    // private UsuarioPresenter usuarioPresenter;
 
     public void irAUsuarios() {
         if (this.usuarioPresenter == null) {
@@ -304,8 +300,6 @@ public class AppRouter {
         vp.limpiarFocos();
     }
 
-    // Declaras la variable arriba en tu AppRouter:
-    // private AuditoriaPresenter auditoriaPresenter;
     public void irAAuditoria() {
         if (this.auditoriaPresenter == null) {
             vista.interfaces.IVistaAuditoria vistaAuditoria = vistaFactory.getVistaAuditoria();
@@ -332,23 +326,22 @@ public class AppRouter {
             this.ajustesPresenter = new AjustesPresenter(
                     vistaAjustes,
                     this,
-                    daoFactory.getConfigDAO(), // <--- Faltaba este
+                    daoFactory.getConfigDAO(), 
                     daoFactory.getUsuarioDAO(),
                     daoFactory.getAuditoriaDAO(),
-                    this.usuarioLogueado // <--- Faltaba este
+                    this.usuarioLogueado 
             );
         }
 
         this.ajustesPresenter.iniciar();
-
         vp.limpiarFocos();
     }
 
     public void iniciarSesion(Usuario u) {
         this.usuarioLogueado = u;
 
-        // 1. Instanciamos el presentador
-        this.principalPresenter = new PrincipalPresenter(vp, this, this.usuarioLogueado);
+        // 1. Instanciamos el presentador pasando el cuarto parámetro requerido (ConfigDAO)
+        this.principalPresenter = new PrincipalPresenter(vp, this, this.usuarioLogueado, daoFactory.getConfigDAO());
 
         // 2. Arrancamos: esto ejecuta vp.setPresenter(this) Y vp.ejecutar()
         this.principalPresenter.iniciar();
@@ -370,8 +363,9 @@ public class AppRouter {
         // 1. Guardamos la sesión del usuario actual
         this.usuarioLogueado = u;
 
-        // 2. Instanciamos e iniciamos la interfaz y el presentador principal
-        this.principalPresenter = new PrincipalPresenter(vp, this, this.usuarioLogueado);
+        // 2. Instanciamos e iniciamos la interfaz pasando el cuarto parámetro (ConfigDAO)
+        this.principalPresenter = new PrincipalPresenter(vp, this, this.usuarioLogueado, daoFactory.getConfigDAO());
+        vp.desactivarModoInmersion();
         this.principalPresenter.iniciar();
 
         // 3. Aplicación estricta de políticas de seguridad y permisos por Rol
@@ -502,5 +496,4 @@ public class AppRouter {
         this.vistaDeterminacionesActual = null;
         this.determinacionesPresenterActual = null;
     }
-
 }

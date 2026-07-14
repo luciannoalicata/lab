@@ -10,6 +10,7 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.Insets;
 import java.awt.event.KeyAdapter;
@@ -38,7 +39,7 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
     private ObraSocialPresenter presenter;
     private ListSelectionListener listenerSeleccionTabla;
     
-    // ── Paleta BIOTEC Minimalista ────────────────────────────────────
+    // ── Paleta BIOTEC Profesional ────────────────────────────────────
     private final Color C_NAVY         = new Color(10, 25, 47);
     private final Color C_FONDO        = new Color(238, 242, 246);
     private final Color C_BLANCO       = Color.WHITE;
@@ -52,96 +53,99 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
     private final Color C_CABECERA_TBL = new Color(245, 248, 252);
     private final Color C_FILA_PAR     = new Color(252, 254, 255);
     private final Color C_HEADER_TEXT  = new Color(175, 205, 235);
+    private final Color C_SELECCION    = new Color(220, 235, 250);
     
     private boolean seleccionandoProgramaticamente = false;
+    private boolean cargandoDatos = false;
 
     public VistaObraSocial() {
         initComponents();
-        aplicarEstilo();
+        aplicarEstiloProfesional();
         configurarNavegacionEnter();
+        configurarDeseleccionPorClic();
+        setMinimumSize(new Dimension(900, 550));
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  ESTILO Y UX - Consistente con VistaPaciente y VistaMedicos
+    //  DESELECCIÓN DE FILA AL HACER CLIC FUERA DE LA TABLA
     // ══════════════════════════════════════════════════════════════════
-    private void aplicarEstilo() {
-        setBackground(C_FONDO);
+    private void configurarDeseleccionPorClic() {
+        JPanel[] paneles = {pnlCuerpo, pnlFormulario, pnlTablaWrapper, pnlFooter, pnlBotonesEdicion, pnlHeader};
+        java.awt.event.MouseAdapter deseleccionador = new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                Component origen = e.getComponent();
+                if (origen == grillaObrasSociales || origen == jScrollPane1 || 
+                    origen == grillaObrasSociales.getTableHeader()) return;
+                if (origen instanceof javax.swing.JButton || origen instanceof javax.swing.JTextField ||
+                    origen instanceof javax.swing.JComboBox) return;
+                if (grillaObrasSociales.getSelectedRow() != -1 && !cargandoDatos) {
+                    grillaObrasSociales.clearSelection();
+                    limpiarCampos();
+                    habilitarBotonEliminar(false);
+                    btnCambiarArancel.setEnabled(false);
+                }
+            }
+        };
+        for (JPanel p : paneles) if (p != null) p.addMouseListener(deseleccionador);
+        this.addMouseListener(deseleccionador);
+    }
 
-        // ── HEADER (mismos márgenes que VistaPaciente) ────────────────
+    // ══════════════════════════════════════════════════════════════════
+    //  ESTILO Y UX - Diseño Profesional y Responsive
+    // ══════════════════════════════════════════════════════════════════
+    private void aplicarEstiloProfesional() {
+        setBackground(C_FONDO);
+        setLayout(new BorderLayout());
+
+        // ── HEADER ──────────────────────────────────────────────────────
         pnlHeader.setBackground(C_NAVY);
-        pnlHeader.setBorder(new EmptyBorder(14, 28, 14, 28));
-        
-        // Reconstruir el header correctamente
-        pnlHeader.removeAll();
+        pnlHeader.setBorder(new EmptyBorder(10, 20, 10, 20));
         pnlHeader.setLayout(new BorderLayout());
-        
-        // Panel izquierdo: botón volver + título
+
         JPanel pnlIzqHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         pnlIzqHeader.setOpaque(false);
         pnlIzqHeader.add(btnVolver);
-        
         lblTituloHeader.setForeground(C_BLANCO);
-        lblTituloHeader.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        lblTituloHeader.setHorizontalAlignment(SwingConstants.LEFT);
-        lblTituloHeader.setBorder(new EmptyBorder(0, 10, 0, 0));
+        lblTituloHeader.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblTituloHeader.setBorder(new EmptyBorder(0, 8, 0, 0));
         pnlIzqHeader.add(lblTituloHeader);
-        
-        // Panel derecho: buscador
-        JPanel pnlDerHeader = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
+        pnlHeader.add(pnlIzqHeader, BorderLayout.WEST);
+
+        JPanel pnlDerHeader = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         pnlDerHeader.setOpaque(false);
-        JLabel lblLupa = new JLabel("Buscar obra social:");
+        JLabel lblLupa = new JLabel("Buscar:");
         lblLupa.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblLupa.setForeground(C_HEADER_TEXT);
         pnlDerHeader.add(lblLupa);
+        txtBuscarObraSocial.setColumns(18);
         pnlDerHeader.add(txtBuscarObraSocial);
-        
-        pnlHeader.add(pnlIzqHeader, BorderLayout.WEST);
         pnlHeader.add(pnlDerHeader, BorderLayout.EAST);
 
-        estilizarCampoBuscador(txtBuscarObraSocial);
-        configurarBotonRetroceso(btnVolver);
+        add(pnlHeader, BorderLayout.NORTH);
 
-        // ── CONTENEDOR PRINCIPAL BLANCO (con borde sin superior) ──────
+        // ── CONTENEDOR PRINCIPAL ──────────────────────────────────────
+        pnlContenedorBlanco = new JPanel(new BorderLayout());
         pnlContenedorBlanco.setBackground(C_BLANCO);
         pnlContenedorBlanco.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 1, 1, 1, C_BORDE),
-            new EmptyBorder(24, 28, 24, 28)
+            new EmptyBorder(10, 12, 10, 12)
         ));
-        pnlContenedorBlanco.removeAll();
-        pnlContenedorBlanco.setLayout(new BorderLayout());
 
-        // ── CUERPO (formulario izquierda + tabla derecha) ─────────────
+        // ── CUERPO ──────────────────────────────────────────────────────
         pnlCuerpo.setBackground(C_BLANCO);
-        pnlCuerpo.removeAll();
         pnlCuerpo.setLayout(new GridBagLayout());
         GridBagConstraints gc = new GridBagConstraints();
         gc.fill = GridBagConstraints.BOTH;
         gc.weighty = 1.0;
-        gc.insets = new Insets(0, 0, 0, 0);
 
-        // Columna izquierda: formulario
-        gc.gridx = 0;
-        gc.gridy = 0;
-        gc.weightx = 0;
-        pnlFormulario.setPreferredSize(new Dimension(460, 0));
-        pnlFormulario.setMinimumSize(new Dimension(420, 0));
-        pnlCuerpo.add(pnlFormulario, gc);
-
-        // Columna derecha: tabla
-        gc.gridx = 1;
-        gc.gridy = 0;
-        gc.weightx = 1.0;
-        pnlCuerpo.add(pnlTablaWrapper, gc);
-
-        pnlContenedorBlanco.add(pnlCuerpo, BorderLayout.CENTER);
-
-        // ── FORMULARIO (más espacioso) ────────────────────────────────
+        // ── FORMULARIO ──────────────────────────────────────────────────
         pnlFormulario.setBackground(C_BLANCO);
         pnlFormulario.setBorder(BorderFactory.createCompoundBorder(
-            new EmptyBorder(16, 16, 16, 16),
+            new EmptyBorder(8, 10, 8, 10),
             BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(C_BORDE, 1, true),
-                new EmptyBorder(24, 28, 24, 28)
+                new EmptyBorder(12, 16, 12, 16)
             )
         ));
 
@@ -157,100 +161,45 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
         estilizarCampo(txtArancelObraSocial);
 
         // ── BOTONES ───────────────────────────────────────────────────
-        configurarBoton(btnAgregarObraSocial, C_VERDE, "GUARDAR", 160, 42);
-        configurarBoton(btnCambiarArancel, C_AZUL_MEDIO, "EDITAR ARANCEL", 160, 42);
-        configurarBoton(btnEliminarObraSocial, C_ROJO, "ELIMINAR", 160, 42);
+        configurarBoton(btnAgregarObraSocial, C_VERDE, "GUARDAR", 130, 36);
+        configurarBoton(btnCambiarArancel, C_AZUL_MEDIO, "ARANCEL", 130, 36);
+        configurarBoton(btnEliminarObraSocial, C_ROJO, "ELIMINAR", 130, 36);
 
         btnCambiarArancel.setEnabled(false);
         habilitarBotonEliminar(false);
 
-        // ── TABLA WRAPPER (igual que VistaPaciente) ───────────────────
-        pnlTablaWrapper.setBackground(C_BLANCO);
-        pnlTablaWrapper.setBorder(BorderFactory.createCompoundBorder(
-            new EmptyBorder(0, 0, 0, 0),
-            BorderFactory.createLineBorder(C_BORDE, 1, true)
-        ));
-
-        lblTituloTabla.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        lblTituloTabla.setForeground(C_TEXTO_FUERTE);
-        lblTituloTabla.setBorder(new EmptyBorder(14, 16, 12, 16));
-
-        // Configuración de la Grilla
-        grillaObrasSociales.setRowHeight(36);
-        grillaObrasSociales.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        grillaObrasSociales.setGridColor(new Color(235, 240, 245));
-        grillaObrasSociales.setShowHorizontalLines(true);
-        grillaObrasSociales.setShowVerticalLines(false);
-        grillaObrasSociales.setSelectionBackground(new Color(220, 235, 250));
-        grillaObrasSociales.setSelectionForeground(C_TEXTO_FUERTE);
-        grillaObrasSociales.setIntercellSpacing(new Dimension(0, 0));
-        grillaObrasSociales.setBorder(BorderFactory.createEmptyBorder());
-        grillaObrasSociales.setFillsViewportHeight(true);
-
-        // Header de la tabla
-        grillaObrasSociales.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        grillaObrasSociales.getTableHeader().setBackground(C_CABECERA_TBL);
-        grillaObrasSociales.getTableHeader().setForeground(C_TEXTO_SUAVE);
-        grillaObrasSociales.getTableHeader().setPreferredSize(new Dimension(0, 40));
-        grillaObrasSociales.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE));
-        grillaObrasSociales.getTableHeader().setReorderingAllowed(false);
-
-        jScrollPane1.setBorder(BorderFactory.createEmptyBorder());
-        jScrollPane1.getViewport().setBackground(C_BLANCO);
-
-        pnlTablaWrapper.removeAll();
-        pnlTablaWrapper.setLayout(new BorderLayout());
-        pnlTablaWrapper.add(lblTituloTabla, BorderLayout.NORTH);
-        pnlTablaWrapper.add(jScrollPane1, BorderLayout.CENTER);
-
-        // ── FOOTER (mismos márgenes que VistaPaciente) ────────────────
-        pnlFooter.setBackground(C_FONDO);
-        pnlFooter.setBorder(new EmptyBorder(10, 16, 14, 16));
-        pnlFooter.removeAll();
-        pnlFooter.setLayout(new BorderLayout());
-        
-        JPanel pnlFooterAcciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
-        pnlFooterAcciones.setOpaque(false);
-        pnlFooter.add(pnlFooterAcciones, BorderLayout.EAST);
-
-        // ── ARMADO FINAL DEL LAYOUT ───────────────────────────────────
-        this.removeAll();
-        this.setLayout(new BorderLayout());
-        this.add(pnlHeader, BorderLayout.NORTH);
-        this.add(pnlContenedorBlanco, BorderLayout.CENTER);
-        this.add(pnlFooter, BorderLayout.SOUTH);
-
         // ── LAYOUT DEL FORMULARIO ─────────────────────────────────────
-        pnlFormulario.removeAll();
         pnlFormulario.setLayout(new GridBagLayout());
         GridBagConstraints gf = new GridBagConstraints();
         gf.fill = GridBagConstraints.HORIZONTAL;
         gf.weightx = 1.0;
-        int r = 0;
-        
         gf.gridx = 0;
-        
-        gf.gridy = r++; gf.insets = new Insets(0, 0, 4, 0);  pnlFormulario.add(lblCodigo, gf);
-        gf.gridy = r++; gf.insets = new Insets(0, 0, 20, 0); pnlFormulario.add(txtCodigoObraSocial, gf);
-        
-        gf.gridy = r++; gf.insets = new Insets(0, 0, 4, 0);  pnlFormulario.add(lblNombre, gf);
-        gf.gridy = r++; gf.insets = new Insets(0, 0, 20, 0); pnlFormulario.add(txtNombreObraSocial, gf);
-        
-        gf.gridy = r++; gf.insets = new Insets(0, 0, 4, 0);  pnlFormulario.add(lblArancel, gf);
-        gf.gridy = r++; gf.insets = new Insets(0, 0, 25, 0); pnlFormulario.add(txtArancelObraSocial, gf);
-        
+        int r = 0;
+
+        gf.insets = new Insets(0, 0, 5, 0);
+        gf.gridy = r++; pnlFormulario.add(lblCodigo, gf);
+        gf.insets = new Insets(0, 0, 10, 0);
+        gf.gridy = r++; pnlFormulario.add(txtCodigoObraSocial, gf);
+
+        gf.insets = new Insets(0, 0, 5, 0);
+        gf.gridy = r++; pnlFormulario.add(lblNombre, gf);
+        gf.insets = new Insets(0, 0, 10, 0);
+        gf.gridy = r++; pnlFormulario.add(txtNombreObraSocial, gf);
+
+        gf.insets = new Insets(0, 0, 5, 0);
+        gf.gridy = r++; pnlFormulario.add(lblArancel, gf);
+        gf.insets = new Insets(0, 0, 14, 0);
+        gf.gridy = r++; pnlFormulario.add(txtArancelObraSocial, gf);
+
         // ── BOTONES DE ACCIÓN ────────────────────────────────────────
         pnlBotonesEdicion.setOpaque(false);
-        pnlBotonesEdicion.removeAll();
-        pnlBotonesEdicion.setLayout(new java.awt.GridLayout(2, 1, 0, 12));
+        pnlBotonesEdicion.setLayout(new GridLayout(2, 1, 0, 8));
         
-        // Fila Superior (Eliminar y Guardar lado a lado)
-        JPanel pnlFilaArriba = new JPanel(new java.awt.GridLayout(1, 2, 12, 0));
+        JPanel pnlFilaArriba = new JPanel(new GridLayout(1, 2, 8, 0));
         pnlFilaArriba.setOpaque(false);
         pnlFilaArriba.add(btnEliminarObraSocial);
         pnlFilaArriba.add(btnAgregarObraSocial);
         
-        // Fila Inferior (Editar Arancel centrado)
         JPanel pnlFilaAbajo = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         pnlFilaAbajo.setOpaque(false);
         pnlFilaAbajo.add(btnCambiarArancel);
@@ -258,16 +207,81 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
         pnlBotonesEdicion.add(pnlFilaArriba);
         pnlBotonesEdicion.add(pnlFilaAbajo);
         
-        gf.gridy = r++; gf.weighty = 0; gf.fill = GridBagConstraints.HORIZONTAL;
-        gf.insets = new Insets(0, 0, 0, 0); 
+        gf.insets = new Insets(0, 0, 0, 0);
+        gf.gridy = r++; gf.fill = GridBagConstraints.HORIZONTAL;
         pnlFormulario.add(pnlBotonesEdicion, gf);
 
-        // Spacer elástico
-        gf.gridy = r++; gf.weighty = 1.0; gf.fill = GridBagConstraints.VERTICAL;
-        gf.insets = new Insets(0, 0, 0, 0);
+        gf.gridy = r++; gf.weighty = 1.0;
+        gf.fill = GridBagConstraints.VERTICAL;
         pnlFormulario.add(new JPanel() {{ setOpaque(false); }}, gf);
-        
-        // Forzar actualización
+
+        // ── TABLA ──────────────────────────────────────────────────────
+        pnlTablaWrapper.setBackground(C_BLANCO);
+        pnlTablaWrapper.setBorder(BorderFactory.createCompoundBorder(
+            new EmptyBorder(8, 0, 8, 8),
+            BorderFactory.createLineBorder(C_BORDE, 1, true)
+        ));
+
+        lblTituloTabla.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblTituloTabla.setForeground(C_TEXTO_FUERTE);
+        lblTituloTabla.setBorder(new EmptyBorder(10, 14, 8, 14));
+
+        grillaObrasSociales.setRowHeight(34);
+        grillaObrasSociales.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        grillaObrasSociales.setGridColor(new Color(235, 240, 245));
+        grillaObrasSociales.setShowHorizontalLines(true);
+        grillaObrasSociales.setShowVerticalLines(false);
+        grillaObrasSociales.setSelectionBackground(C_SELECCION);
+        grillaObrasSociales.setSelectionForeground(C_TEXTO_FUERTE);
+        grillaObrasSociales.setIntercellSpacing(new Dimension(0, 0));
+        grillaObrasSociales.setBorder(BorderFactory.createEmptyBorder());
+        grillaObrasSociales.setFillsViewportHeight(true);
+
+        grillaObrasSociales.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        grillaObrasSociales.getTableHeader().setBackground(C_CABECERA_TBL);
+        grillaObrasSociales.getTableHeader().setForeground(C_TEXTO_SUAVE);
+        grillaObrasSociales.getTableHeader().setPreferredSize(new Dimension(0, 34));
+        grillaObrasSociales.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE));
+        grillaObrasSociales.getTableHeader().setReorderingAllowed(false);
+
+        jScrollPane1.setBorder(BorderFactory.createEmptyBorder());
+        jScrollPane1.getViewport().setBackground(C_BLANCO);
+
+        pnlTablaWrapper.setLayout(new BorderLayout());
+        pnlTablaWrapper.add(lblTituloTabla, BorderLayout.NORTH);
+        pnlTablaWrapper.add(jScrollPane1, BorderLayout.CENTER);
+
+        // ── DISTRIBUCIÓN ──────────────────────────────────────────────
+        JScrollPane scrollFormulario = new JScrollPane(pnlFormulario);
+        scrollFormulario.setBorder(BorderFactory.createEmptyBorder());
+        scrollFormulario.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollFormulario.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollFormulario.getVerticalScrollBar().setUnitIncrement(16);
+        scrollFormulario.getViewport().setBackground(C_BLANCO);
+
+        gc.gridx = 0;
+        gc.weightx = 0.35;
+        gc.insets = new Insets(6, 8, 0, 6);
+        pnlCuerpo.add(scrollFormulario, gc);
+
+        gc.gridx = 1;
+        gc.weightx = 0.65;
+        gc.insets = new Insets(6, 6, 0, 8);
+        pnlCuerpo.add(pnlTablaWrapper, gc);
+
+        pnlContenedorBlanco.add(pnlCuerpo, BorderLayout.CENTER);
+        add(pnlContenedorBlanco, BorderLayout.CENTER);
+
+        // ── FOOTER ──────────────────────────────────────────────────────
+        pnlFooter.setBackground(C_FONDO);
+        pnlFooter.setBorder(new EmptyBorder(6, 12, 10, 12));
+        pnlFooter.setLayout(new BorderLayout());
+        add(pnlFooter, BorderLayout.SOUTH);
+
+        // ── ESTILIZAR CAMPOS ──────────────────────────────────────────
+        estilizarCampoBuscador(txtBuscarObraSocial);
+        configurarBotonRetroceso(btnVolver);
+
         this.revalidate();
         this.repaint();
     }
@@ -279,22 +293,20 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
         tf.setCaretColor(C_AZUL_MEDIO);
         tf.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
-            new EmptyBorder(8, 12, 8, 12)
+            new EmptyBorder(6, 10, 6, 10)
         ));
-        tf.setPreferredSize(new Dimension(0, 38));
-        
         tf.addFocusListener(new java.awt.event.FocusAdapter() {
             @Override public void focusGained(java.awt.event.FocusEvent evt) {
                 tf.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createMatteBorder(0, 0, 2, 0, C_AZUL_MEDIO),
-                    new EmptyBorder(8, 12, 8, 12)
+                    new EmptyBorder(6, 10, 6, 10)
                 ));
                 tf.setBackground(C_BLANCO);
             }
             @Override public void focusLost(java.awt.event.FocusEvent evt) {
                 tf.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
-                    new EmptyBorder(8, 12, 8, 12)
+                    new EmptyBorder(6, 10, 6, 10)
                 ));
                 tf.setBackground(C_CAMPO);
             }
@@ -302,15 +314,15 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
     }
 
     private void estilizarCampoBuscador(JTextField tf) {
-        tf.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        tf.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         tf.setBackground(new Color(25, 45, 75));
         tf.setForeground(C_BLANCO);
         tf.setCaretColor(C_BLANCO);
+        tf.setColumns(18);
         tf.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(50, 80, 120), 1, true),
-            new EmptyBorder(8, 14, 8, 14)
+            new EmptyBorder(6, 12, 6, 12)
         ));
-        tf.setPreferredSize(new Dimension(320, 38));
     }
 
     private void configurarBoton(JButton btn, Color bg, String texto, int w, int h) {
@@ -335,9 +347,9 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
         btn.setContentAreaFilled(false);
         btn.setOpaque(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(0, 0, 0, 16));
+        btn.setBorder(new EmptyBorder(0, 0, 0, 12));
 
-        ImageIcon ico = icon("/reportes/img/flecha_icon.png", 40, 40);
+        ImageIcon ico = icon("/reportes/img/flecha_icon.png", 34, 34);
         if (ico != null) btn.setIcon(ico);
         
         btn.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -370,7 +382,7 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {
                     Component src = (Component) e.getSource();
-                    if      (src == txtCodigoObraSocial)  txtNombreObraSocial.requestFocus();
+                    if (src == txtCodigoObraSocial)  txtNombreObraSocial.requestFocus();
                     else if (src == txtNombreObraSocial)  txtArancelObraSocial.requestFocus();
                     else if (src == txtArancelObraSocial) btnAgregarObraSocial.doClick();
                 }
@@ -385,36 +397,32 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
     public void setPresenter(ObraSocialPresenter presenter) {
         this.presenter = presenter;
         
-        // 1. PURGA DE EVENTOS EN BOTONES
         limpiarListeners(btnAgregarObraSocial);
         limpiarListeners(btnEliminarObraSocial);
         limpiarListeners(btnCambiarArancel);
         limpiarListeners(btnVolver);
         
-        // 2. CONEXIÓN LIMPIA
         btnAgregarObraSocial.addActionListener(e -> presenter.onAgregarOS());
         btnEliminarObraSocial.addActionListener(e -> presenter.onEliminarOS());
         btnCambiarArancel.addActionListener(e -> presenter.onCambiarArancel());
         btnVolver.addActionListener(e -> presenter.onVolver());
         
-        // 3. BUSCADOR
         for (java.awt.event.KeyListener kl : txtBuscarObraSocial.getKeyListeners()) {
             txtBuscarObraSocial.removeKeyListener(kl);
         }
         txtBuscarObraSocial.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
             public void keyReleased(java.awt.event.KeyEvent e) {
-                presenter.onBuscarOS();
+                if (presenter != null) presenter.onBuscarOS();
             }
         });
 
-        // 4. TABLA - CONEXIÓN SEGURA (con referencia guardada)
         if (listenerSeleccionTabla != null) {
             grillaObrasSociales.getSelectionModel().removeListSelectionListener(listenerSeleccionTabla);
         }
 
         listenerSeleccionTabla = e -> {
-            if (!e.getValueIsAdjusting() && !seleccionandoProgramaticamente) {
+            if (!e.getValueIsAdjusting() && !seleccionandoProgramaticamente && !cargandoDatos) {
                 boolean filaSeleccionada = grillaObrasSociales.getSelectedRow() != -1;
                 habilitarBotonEliminar(filaSeleccionada);
                 btnCambiarArancel.setEnabled(filaSeleccionada);
@@ -463,6 +471,7 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
 
     @Override
     public void cargarObrasSocialesEnTabla(ArrayList<ObraSocial> obs) {
+        cargandoDatos = true;
         seleccionandoProgramaticamente = true;
         
         DefaultTableModel modelo = (DefaultTableModel) grillaObrasSociales.getModel();
@@ -472,19 +481,20 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
             modelo.addRow(new Object[]{o.getCodigo(), o.getNombre(), String.format("$ %.2f", o.getArancel())});
         }
         
-        // Limpiar selección
         grillaObrasSociales.clearSelection();
         
-        // Configurar renderer
         DefaultTableCellRenderer render = new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
                     boolean isSelected, boolean hasFocus, int row, int column) {
                 super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 setHorizontalAlignment(column == 0 || column == 2 ? SwingConstants.CENTER : SwingConstants.LEFT);
-                setBorder(new EmptyBorder(0, 12, 0, 12));
+                setBorder(new EmptyBorder(0, 10, 0, 10));
                 if (!isSelected) {
                     setBackground(row % 2 == 0 ? C_BLANCO : C_FILA_PAR);
+                    setForeground(C_TEXTO_FUERTE);
+                } else {
+                    setBackground(C_SELECCION);
                     setForeground(C_TEXTO_FUERTE);
                 }
                 return this;
@@ -495,18 +505,17 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
             grillaObrasSociales.getColumnModel().getColumn(i).setCellRenderer(render);
         }
         
-        // Configurar anchos de columna
-        grillaObrasSociales.getColumnModel().getColumn(0).setPreferredWidth(120);
-        grillaObrasSociales.getColumnModel().getColumn(0).setMaxWidth(150);
-        grillaObrasSociales.getColumnModel().getColumn(1).setPreferredWidth(280);
-        grillaObrasSociales.getColumnModel().getColumn(2).setPreferredWidth(150);
-        grillaObrasSociales.getColumnModel().getColumn(2).setMaxWidth(180);
+        grillaObrasSociales.getColumnModel().getColumn(0).setPreferredWidth(100);
+        grillaObrasSociales.getColumnModel().getColumn(0).setMaxWidth(130);
+        grillaObrasSociales.getColumnModel().getColumn(1).setPreferredWidth(260);
+        grillaObrasSociales.getColumnModel().getColumn(2).setPreferredWidth(130);
+        grillaObrasSociales.getColumnModel().getColumn(2).setMaxWidth(160);
         
-        // Resetear estado de botones
         habilitarBotonEliminar(false);
         btnCambiarArancel.setEnabled(false);
         
         seleccionandoProgramaticamente = false;
+        cargandoDatos = false;
     }
 
     @Override
@@ -526,6 +535,9 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
         txtNombreObraSocial.setText("");
         txtArancelObraSocial.setText("");
         txtBuscarObraSocial.setText("");
+        grillaObrasSociales.clearSelection();
+        habilitarBotonEliminar(false);
+        btnCambiarArancel.setEnabled(false);
         txtCodigoObraSocial.requestFocus();
     }
 
@@ -535,38 +547,37 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
     @Override public void ejecutar()                        { setVisible(true); }
 
     // ══════════════════════════════════════════════════════════════════
-    //  UI BUILDER (Estructura base)
+    //  UI BUILDER
     // ══════════════════════════════════════════════════════════════════
     private void initComponents() {
-        pnlHeader           = new JPanel();
-        lblTituloHeader     = new JLabel("GESTIÓN DE OBRAS SOCIALES");
+        pnlHeader = new JPanel();
+        lblTituloHeader = new JLabel("GESTIÓN DE OBRAS SOCIALES");
         txtBuscarObraSocial = new JTextField();
-        btnVolver           = new JButton();
+        btnVolver = new JButton();
 
         pnlContenedorBlanco = new JPanel();
-        pnlCuerpo           = new JPanel();
-        pnlFormulario       = new JPanel();
-        pnlTablaWrapper     = new JPanel();
-        lblTituloTabla      = new JLabel("Obras Sociales Registradas");
-        pnlFooter           = new JPanel();
+        pnlCuerpo = new JPanel();
+        pnlFormulario = new JPanel();
+        pnlTablaWrapper = new JPanel();
+        lblTituloTabla = new JLabel("Obras Sociales Registradas");
+        pnlFooter = new JPanel();
 
-        lblCodigo           = new JLabel("CÓDIGO ÚNICO");
-        lblNombre           = new JLabel("NOMBRE COMPLETO");
-        lblArancel          = new JLabel("VALOR ARANCEL ($)");
+        lblCodigo = new JLabel("CÓDIGO ÚNICO");
+        lblNombre = new JLabel("NOMBRE COMPLETO");
+        lblArancel = new JLabel("VALOR ARANCEL ($)");
 
-        txtCodigoObraSocial  = new JTextField();
-        txtNombreObraSocial  = new JTextField();
+        txtCodigoObraSocial = new JTextField();
+        txtNombreObraSocial = new JTextField();
         txtArancelObraSocial = new JTextField();
 
-        grillaObrasSociales  = new JTable();
-        jScrollPane1         = new JScrollPane();
+        grillaObrasSociales = new JTable();
+        jScrollPane1 = new JScrollPane();
 
-        pnlBotonesEdicion     = new JPanel();
-        btnAgregarObraSocial  = new JButton();
-        btnCambiarArancel     = new JButton();
+        pnlBotonesEdicion = new JPanel();
+        btnAgregarObraSocial = new JButton();
+        btnCambiarArancel = new JButton();
         btnEliminarObraSocial = new JButton();
 
-        // Modelo tabla
         grillaObrasSociales.setModel(new DefaultTableModel(
             new Object[][]{},
             new String[]{"CÓDIGO", "NOMBRE DE OBRA SOCIAL", "ARANCEL"}
@@ -577,26 +588,26 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
     }
 
     // ── Variables ────────────────────────────────────────────────────
-    private JPanel                          pnlHeader;
-    private JLabel                          lblTituloHeader;
-    private JPanel                          pnlContenedorBlanco;
-    private JPanel                          pnlCuerpo;
-    private JPanel                          pnlFormulario;
-    private JPanel                          pnlTablaWrapper;
-    private JPanel                          pnlFooter;
-    private JLabel                          lblTituloTabla;
-    private JLabel                          lblCodigo;
-    private JLabel                          lblNombre;
-    private JLabel                          lblArancel;
-    private JTextField                      txtCodigoObraSocial;
-    private JTextField                      txtNombreObraSocial;
-    private JTextField                      txtArancelObraSocial;
-    private JTextField                      txtBuscarObraSocial;
-    private JTable                          grillaObrasSociales;
-    private JScrollPane                     jScrollPane1;
-    private JPanel                          pnlBotonesEdicion;
-    private JButton                         btnAgregarObraSocial;
-    private JButton                         btnCambiarArancel;
-    private JButton                         btnEliminarObraSocial;
-    private JButton                         btnVolver;
+    private JPanel pnlHeader;
+    private JLabel lblTituloHeader;
+    private JPanel pnlContenedorBlanco;
+    private JPanel pnlCuerpo;
+    private JPanel pnlFormulario;
+    private JPanel pnlTablaWrapper;
+    private JPanel pnlFooter;
+    private JLabel lblTituloTabla;
+    private JLabel lblCodigo;
+    private JLabel lblNombre;
+    private JLabel lblArancel;
+    private JTextField txtCodigoObraSocial;
+    private JTextField txtNombreObraSocial;
+    private JTextField txtArancelObraSocial;
+    private JTextField txtBuscarObraSocial;
+    private JTable grillaObrasSociales;
+    private JScrollPane jScrollPane1;
+    private JPanel pnlBotonesEdicion;
+    private JButton btnAgregarObraSocial;
+    private JButton btnCambiarArancel;
+    private JButton btnEliminarObraSocial;
+    private JButton btnVolver;
 }

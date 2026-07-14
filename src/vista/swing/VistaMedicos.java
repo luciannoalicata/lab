@@ -10,6 +10,7 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.Insets;
 import java.awt.event.KeyAdapter;
@@ -30,7 +31,6 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableRowSorter;
 import modelo.Medico;
 import presentador.MedicoPresenter;
 
@@ -38,8 +38,9 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
 
     private MedicoPresenter presenter;
     private boolean actualizandoVista = false;
+    private boolean cargandoDatos = false;
     
-    // ── Paleta BIOTEC Minimalista (Sincronizada con Principal) ───────
+    // ── Paleta BIOTEC Profesional ────────────────────────────────────
     private final Color C_NAVY         = new Color(10, 25, 47);
     private final Color C_FONDO        = new Color(238, 242, 246);
     private final Color C_BLANCO       = Color.WHITE;
@@ -53,94 +54,95 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
     private final Color C_CABECERA_TBL = new Color(245, 248, 252);
     private final Color C_FILA_PAR     = new Color(252, 254, 255);
     private final Color C_HEADER_TEXT  = new Color(175, 205, 235);
+    private final Color C_SELECCION    = new Color(220, 235, 250);
 
     public VistaMedicos() {
         initComponents();
-        aplicarEstilo();
+        aplicarEstiloProfesional();
         configurarNavegacionEnter();
+        configurarDeseleccionPorClic();
+        setMinimumSize(new Dimension(900, 600));
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  ESTILO Y UX - Consistente con VistaPaciente
+    //  DESELECCIÓN DE FILA AL HACER CLIC FUERA DE LA TABLA
     // ════════════════════════════════════════════════════════════════
-    private void aplicarEstilo() {
-        setBackground(C_FONDO);
+    private void configurarDeseleccionPorClic() {
+        JPanel[] paneles = {pnlCuerpo, pnlFormulario, pnlTablaWrapper, pnlFooter, pnlBotonesEdicion, pnlHeader};
+        java.awt.event.MouseAdapter deseleccionador = new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                Component origen = e.getComponent();
+                if (origen == grillaMedicos || origen == jScrollPane1 || 
+                    origen == grillaMedicos.getTableHeader()) return;
+                if (origen instanceof javax.swing.JButton || origen instanceof javax.swing.JTextField ||
+                    origen instanceof javax.swing.JComboBox || origen instanceof javax.swing.JTextArea) return;
+                if (grillaMedicos.getSelectedRow() != -1 && !cargandoDatos) {
+                    grillaMedicos.clearSelection();
+                    limpiarCampos();
+                    habilitarBotonEliminar(false);
+                }
+            }
+        };
+        for (JPanel p : paneles) if (p != null) p.addMouseListener(deseleccionador);
+        this.addMouseListener(deseleccionador);
+    }
 
-        // ── HEADER (mismos márgenes que VistaPaciente) ────────────────
+    // ════════════════════════════════════════════════════════════════
+    //  ESTILO Y UX - Diseño Profesional y Responsive
+    // ════════════════════════════════════════════════════════════════
+    private void aplicarEstiloProfesional() {
+        setBackground(C_FONDO);
+        setLayout(new BorderLayout());
+
+        // ── HEADER ──────────────────────────────────────────────────────
         pnlHeader.setBackground(C_NAVY);
-        pnlHeader.setBorder(new EmptyBorder(14, 28, 14, 28));
-        
-        // Reconstruir el header correctamente
-        pnlHeader.removeAll();
+        pnlHeader.setBorder(new EmptyBorder(10, 20, 10, 20));
         pnlHeader.setLayout(new BorderLayout());
-        
-        // Panel izquierdo: botón volver + título
+
         JPanel pnlIzqHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         pnlIzqHeader.setOpaque(false);
         pnlIzqHeader.add(btnVolver);
-        
         lblTituloHeader.setForeground(C_BLANCO);
-        lblTituloHeader.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        lblTituloHeader.setHorizontalAlignment(SwingConstants.LEFT);
-        lblTituloHeader.setBorder(new EmptyBorder(0, 10, 0, 0));
+        lblTituloHeader.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblTituloHeader.setBorder(new EmptyBorder(0, 8, 0, 0));
         pnlIzqHeader.add(lblTituloHeader);
-        
-        // Panel derecho: buscador
-        JPanel pnlDerHeader = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
+        pnlHeader.add(pnlIzqHeader, BorderLayout.WEST);
+
+        JPanel pnlDerHeader = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         pnlDerHeader.setOpaque(false);
-        JLabel lblLupa = new JLabel("Buscar médico:");
+        JLabel lblLupa = new JLabel("Buscar:");
         lblLupa.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblLupa.setForeground(C_HEADER_TEXT);
         pnlDerHeader.add(lblLupa);
+        txtBuscarMedico.setColumns(18);
         pnlDerHeader.add(txtBuscarMedico);
-        
-        pnlHeader.add(pnlIzqHeader, BorderLayout.WEST);
         pnlHeader.add(pnlDerHeader, BorderLayout.EAST);
 
-        estilizarCampoBuscador(txtBuscarMedico);
-        configurarBotonRetroceso(btnVolver);
+        add(pnlHeader, BorderLayout.NORTH);
 
-        // ── CONTENEDOR PRINCIPAL BLANCO (con borde sin superior) ──────
+        // ── CONTENEDOR PRINCIPAL ──────────────────────────────────────
+        pnlContenedorBlanco = new JPanel(new BorderLayout());
         pnlContenedorBlanco.setBackground(C_BLANCO);
         pnlContenedorBlanco.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 1, 1, 1, C_BORDE),
-            new EmptyBorder(24, 28, 24, 28)
+            new EmptyBorder(10, 12, 10, 12)
         ));
-        pnlContenedorBlanco.removeAll();
-        pnlContenedorBlanco.setLayout(new BorderLayout());
 
-        // ── CUERPO (formulario izquierda + tabla derecha) ─────────────
+        // ── CUERPO ──────────────────────────────────────────────────────
         pnlCuerpo.setBackground(C_BLANCO);
-        pnlCuerpo.removeAll();
         pnlCuerpo.setLayout(new GridBagLayout());
         GridBagConstraints gc = new GridBagConstraints();
         gc.fill = GridBagConstraints.BOTH;
         gc.weighty = 1.0;
-        gc.insets = new Insets(0, 0, 0, 0);
 
-        // Columna izquierda: formulario
-        gc.gridx = 0;
-        gc.gridy = 0;
-        gc.weightx = 0;
-        pnlFormulario.setPreferredSize(new Dimension(460, 0));
-        pnlFormulario.setMinimumSize(new Dimension(420, 0));
-        pnlCuerpo.add(pnlFormulario, gc);
-
-        // Columna derecha: tabla
-        gc.gridx = 1;
-        gc.gridy = 0;
-        gc.weightx = 1.0;
-        pnlCuerpo.add(pnlTablaWrapper, gc);
-
-        pnlContenedorBlanco.add(pnlCuerpo, BorderLayout.CENTER);
-
-        // ── FORMULARIO (más espacioso) ────────────────────────────────
+        // ── FORMULARIO ──────────────────────────────────────────────────
         pnlFormulario.setBackground(C_BLANCO);
         pnlFormulario.setBorder(BorderFactory.createCompoundBorder(
-            new EmptyBorder(16, 16, 16, 16),
+            new EmptyBorder(8, 10, 8, 10),
             BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(C_BORDE, 1, true),
-                new EmptyBorder(24, 28, 24, 28)
+                new EmptyBorder(12, 16, 12, 16)
             )
         ));
 
@@ -162,7 +164,6 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
             BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
             new EmptyBorder(6, 10, 6, 10)
         ));
-        cbxEspecialidad.setPreferredSize(new Dimension(0, 38));
 
         txtObservaciones.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         txtObservaciones.setBackground(C_CAMPO);
@@ -170,31 +171,80 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
         txtObservaciones.setCaretColor(C_AZUL_MEDIO);
         txtObservaciones.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(C_BORDE, 1, true),
-            new EmptyBorder(8, 10, 8, 10)
+            new EmptyBorder(6, 10, 6, 10)
         ));
+        txtObservaciones.setRows(3);
         jScrollPane2.setBorder(BorderFactory.createEmptyBorder());
+        jScrollPane2.setPreferredSize(new Dimension(0, 60));
 
-        // ── BOTONES ───────────────────────────────────────────────────
-        configurarBoton(btnGuardarMedico, C_VERDE, "GUARDAR", 160, 42);
-        configurarBoton(btnEliminarMedico, C_ROJO, "ELIMINAR", 160, 42);
+        // Layout del formulario
+        pnlFormulario.setLayout(new GridBagLayout());
+        GridBagConstraints gf = new GridBagConstraints();
+        gf.fill = GridBagConstraints.HORIZONTAL;
+        gf.weightx = 1.0;
+        gf.gridx = 0;
+        int r = 0;
 
-        // ── TABLA WRAPPER (igual que VistaPaciente) ───────────────────
+        gf.insets = new Insets(0, 0, 5, 0);
+        gf.gridy = r++; pnlFormulario.add(lblMatricula, gf);
+        gf.insets = new Insets(0, 0, 12, 0);
+        gf.gridy = r++; pnlFormulario.add(txtMatricula, gf);
+
+        gf.insets = new Insets(0, 0, 5, 0);
+        gf.gridy = r++; pnlFormulario.add(lblNombre, gf);
+        gf.insets = new Insets(0, 0, 12, 0);
+        gf.gridy = r++; pnlFormulario.add(txtNombreMedico, gf);
+
+        gf.insets = new Insets(0, 0, 5, 0);
+        gf.gridy = r++; pnlFormulario.add(lblApellido, gf);
+        gf.insets = new Insets(0, 0, 12, 0);
+        gf.gridy = r++; pnlFormulario.add(txtApellidoMedico, gf);
+
+        gf.insets = new Insets(0, 0, 5, 0);
+        gf.gridy = r++; pnlFormulario.add(lblEspecialidad, gf);
+        gf.insets = new Insets(0, 0, 12, 0);
+        gf.gridy = r++; pnlFormulario.add(cbxEspecialidad, gf);
+
+        gf.insets = new Insets(0, 0, 5, 0);
+        gf.gridy = r++; pnlFormulario.add(lblObservaciones, gf);
+        gf.insets = new Insets(0, 0, 10, 0);
+        gf.gridy = r++; gf.fill = GridBagConstraints.BOTH;
+        gf.weighty = 0.6;
+        pnlFormulario.add(jScrollPane2, gf);
+
+        // Botones
+        pnlBotonesEdicion.setOpaque(false);
+        pnlBotonesEdicion.setLayout(new GridLayout(1, 2, 10, 0));
+        pnlBotonesEdicion.add(btnEliminarMedico);
+        pnlBotonesEdicion.add(btnGuardarMedico);
+
+        gf.gridy = r++; gf.weighty = 0;
+        gf.fill = GridBagConstraints.HORIZONTAL;
+        gf.insets = new Insets(8, 0, 0, 0);
+        pnlFormulario.add(pnlBotonesEdicion, gf);
+
+        gf.gridy = r++; gf.weighty = 1.0;
+        gf.fill = GridBagConstraints.VERTICAL;
+        gf.insets = new Insets(0, 0, 0, 0);
+        pnlFormulario.add(new JPanel() {{ setOpaque(false); }}, gf);
+
+        // ── TABLA ──────────────────────────────────────────────────────
         pnlTablaWrapper.setBackground(C_BLANCO);
         pnlTablaWrapper.setBorder(BorderFactory.createCompoundBorder(
-            new EmptyBorder(0, 0, 0, 0),
+            new EmptyBorder(8, 0, 8, 8),
             BorderFactory.createLineBorder(C_BORDE, 1, true)
         ));
 
         lblTituloTabla.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lblTituloTabla.setForeground(C_TEXTO_FUERTE);
-        lblTituloTabla.setBorder(new EmptyBorder(14, 16, 12, 16));
+        lblTituloTabla.setBorder(new EmptyBorder(10, 14, 10, 14));
 
-        grillaMedicos.setRowHeight(36);
+        grillaMedicos.setRowHeight(34);
         grillaMedicos.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         grillaMedicos.setGridColor(new Color(235, 240, 245));
         grillaMedicos.setShowHorizontalLines(true);
         grillaMedicos.setShowVerticalLines(false);
-        grillaMedicos.setSelectionBackground(new Color(220, 235, 250));
+        grillaMedicos.setSelectionBackground(C_SELECCION);
         grillaMedicos.setSelectionForeground(C_TEXTO_FUERTE);
         grillaMedicos.setIntercellSpacing(new Dimension(0, 0));
         grillaMedicos.setBorder(BorderFactory.createEmptyBorder());
@@ -203,78 +253,50 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
         grillaMedicos.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         grillaMedicos.getTableHeader().setBackground(C_CABECERA_TBL);
         grillaMedicos.getTableHeader().setForeground(C_TEXTO_SUAVE);
-        grillaMedicos.getTableHeader().setPreferredSize(new Dimension(0, 40));
+        grillaMedicos.getTableHeader().setPreferredSize(new Dimension(0, 34));
         grillaMedicos.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE));
         grillaMedicos.getTableHeader().setReorderingAllowed(false);
 
         jScrollPane1.setBorder(BorderFactory.createEmptyBorder());
         jScrollPane1.getViewport().setBackground(C_BLANCO);
 
-        pnlTablaWrapper.removeAll();
         pnlTablaWrapper.setLayout(new BorderLayout());
         pnlTablaWrapper.add(lblTituloTabla, BorderLayout.NORTH);
         pnlTablaWrapper.add(jScrollPane1, BorderLayout.CENTER);
 
-        // ── FOOTER (mismos márgenes que VistaPaciente) ────────────────
+        // ── DISTRIBUCIÓN ──────────────────────────────────────────────
+        JScrollPane scrollFormulario = new JScrollPane(pnlFormulario);
+        scrollFormulario.setBorder(BorderFactory.createEmptyBorder());
+        scrollFormulario.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollFormulario.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollFormulario.getVerticalScrollBar().setUnitIncrement(16);
+        scrollFormulario.getViewport().setBackground(C_BLANCO);
+
+        gc.gridx = 0;
+        gc.weightx = 0.38;
+        gc.insets = new Insets(6, 8, 0, 6);
+        pnlCuerpo.add(scrollFormulario, gc);
+
+        gc.gridx = 1;
+        gc.weightx = 0.62;
+        gc.insets = new Insets(6, 6, 0, 8);
+        pnlCuerpo.add(pnlTablaWrapper, gc);
+
+        pnlContenedorBlanco.add(pnlCuerpo, BorderLayout.CENTER);
+        add(pnlContenedorBlanco, BorderLayout.CENTER);
+
+        // ── FOOTER ──────────────────────────────────────────────────────
         pnlFooter.setBackground(C_FONDO);
-        pnlFooter.setBorder(new EmptyBorder(10, 16, 14, 16));
-        pnlFooter.removeAll();
+        pnlFooter.setBorder(new EmptyBorder(6, 12, 10, 12));
         pnlFooter.setLayout(new BorderLayout());
-        
-        JPanel pnlFooterAcciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
-        pnlFooterAcciones.setOpaque(false);
-        pnlFooter.add(pnlFooterAcciones, BorderLayout.EAST);
+        add(pnlFooter, BorderLayout.SOUTH);
 
-        // ── ARMADO FINAL DEL LAYOUT ───────────────────────────────────
-        this.removeAll();
-        this.setLayout(new BorderLayout());
-        this.add(pnlHeader, BorderLayout.NORTH);
-        this.add(pnlContenedorBlanco, BorderLayout.CENTER);
-        this.add(pnlFooter, BorderLayout.SOUTH);
+        // ── CONFIGURAR BOTONES ────────────────────────────────────────
+        configurarBoton(btnGuardarMedico, C_VERDE, "GUARDAR", 140, 36);
+        configurarBoton(btnEliminarMedico, C_ROJO, "ELIMINAR", 140, 36);
+        configurarBotonRetroceso(btnVolver);
+        estilizarCampoBuscador(txtBuscarMedico);
 
-        // ── LAYOUT DEL FORMULARIO ─────────────────────────────────────
-        pnlFormulario.removeAll();
-        pnlFormulario.setLayout(new GridBagLayout());
-        GridBagConstraints gf = new GridBagConstraints();
-        gf.fill = GridBagConstraints.HORIZONTAL;
-        gf.weightx = 1.0;
-        int r = 0;
-        
-        gf.gridx = 0;
-        
-        gf.gridy = r++; gf.insets = new Insets(0, 0, 4, 0);  pnlFormulario.add(lblMatricula, gf);
-        gf.gridy = r++; gf.insets = new Insets(0, 0, 20, 0); pnlFormulario.add(txtMatricula, gf);
-        
-        gf.gridy = r++; gf.insets = new Insets(0, 0, 4, 0);  pnlFormulario.add(lblNombre, gf);
-        gf.gridy = r++; gf.insets = new Insets(0, 0, 20, 0); pnlFormulario.add(txtNombreMedico, gf);
-        
-        gf.gridy = r++; gf.insets = new Insets(0, 0, 4, 0);  pnlFormulario.add(lblApellido, gf);
-        gf.gridy = r++; gf.insets = new Insets(0, 0, 20, 0); pnlFormulario.add(txtApellidoMedico, gf);
-        
-        gf.gridy = r++; gf.insets = new Insets(0, 0, 4, 0);  pnlFormulario.add(lblEspecialidad, gf);
-        gf.gridy = r++; gf.insets = new Insets(0, 0, 20, 0); pnlFormulario.add(cbxEspecialidad, gf);
-        
-        gf.gridy = r++; gf.insets = new Insets(0, 0, 4, 0);  pnlFormulario.add(lblObservaciones, gf);
-        gf.gridy = r++; gf.weighty = 0.5; gf.fill = GridBagConstraints.BOTH;
-        gf.insets = new Insets(0, 0, 20, 0); pnlFormulario.add(jScrollPane2, gf);
-
-        // Botones
-        pnlBotonesEdicion.setOpaque(false);
-        pnlBotonesEdicion.removeAll();
-        pnlBotonesEdicion.setLayout(new java.awt.GridLayout(1, 2, 12, 0));
-        pnlBotonesEdicion.add(btnEliminarMedico);
-        pnlBotonesEdicion.add(btnGuardarMedico);
-        
-        gf.gridy = r++; gf.weighty = 0; gf.fill = GridBagConstraints.HORIZONTAL;
-        gf.insets = new Insets(0, 0, 0, 0); 
-        pnlFormulario.add(pnlBotonesEdicion, gf);
-
-        // Spacer elástico
-        gf.gridy = r++; gf.weighty = 1.0; gf.fill = GridBagConstraints.VERTICAL;
-        gf.insets = new Insets(0, 0, 0, 0);
-        pnlFormulario.add(new JPanel() {{ setOpaque(false); }}, gf);
-        
-        // Forzar actualización
         this.revalidate();
         this.repaint();
     }
@@ -286,22 +308,20 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
         tf.setCaretColor(C_AZUL_MEDIO);
         tf.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
-            new EmptyBorder(8, 12, 8, 12)
+            new EmptyBorder(6, 10, 6, 10)
         ));
-        tf.setPreferredSize(new Dimension(0, 38));
-        
         tf.addFocusListener(new java.awt.event.FocusAdapter() {
             @Override public void focusGained(java.awt.event.FocusEvent evt) {
                 tf.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createMatteBorder(0, 0, 2, 0, C_AZUL_MEDIO),
-                    new EmptyBorder(8, 12, 8, 12)
+                    new EmptyBorder(6, 10, 6, 10)
                 ));
                 tf.setBackground(C_BLANCO);
             }
             @Override public void focusLost(java.awt.event.FocusEvent evt) {
                 tf.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
-                    new EmptyBorder(8, 12, 8, 12)
+                    new EmptyBorder(6, 10, 6, 10)
                 ));
                 tf.setBackground(C_CAMPO);
             }
@@ -309,18 +329,18 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
     }
 
     private void estilizarCampoBuscador(JTextField tf) {
-        tf.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        tf.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         tf.setBackground(new Color(25, 45, 75));
         tf.setForeground(C_BLANCO);
         tf.setCaretColor(C_BLANCO);
+        tf.setColumns(18);
         tf.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(50, 80, 120), 1, true),
-            new EmptyBorder(8, 14, 8, 14)
+            new EmptyBorder(6, 12, 6, 12)
         ));
-        tf.setPreferredSize(new Dimension(320, 38));
     }
 
-    private void configurarBoton(javax.swing.JButton btn, Color bg, String texto, int w, int h) {
+    private void configurarBoton(JButton btn, Color bg, String texto, int w, int h) {
         btn.setText(texto);
         btn.setBackground(bg);
         btn.setForeground(C_BLANCO);
@@ -332,7 +352,7 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
         btn.setPreferredSize(new Dimension(w, h));
     }
 
-    private void configurarBotonRetroceso(javax.swing.JButton btn) {
+    private void configurarBotonRetroceso(JButton btn) {
         btn.setText(" ");
         btn.setBackground(C_NAVY);
         btn.setForeground(C_HEADER_TEXT);
@@ -342,11 +362,9 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
         btn.setContentAreaFilled(false);
         btn.setOpaque(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(0, 0, 0, 16));
-
-        ImageIcon ico = icon("/reportes/img/flecha_icon.png", 40, 40);
+        btn.setBorder(new EmptyBorder(0, 0, 0, 12));
+        ImageIcon ico = icon("/reportes/img/flecha_icon.png", 34, 34);
         if (ico != null) btn.setIcon(ico);
-        
         btn.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override public void mouseEntered(java.awt.event.MouseEvent e) {
                 btn.setForeground(C_BLANCO);
@@ -377,7 +395,7 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {
                     Component c = (Component) e.getSource();
-                    if      (c == txtMatricula)       txtNombreMedico.requestFocus();
+                    if (c == txtMatricula)       txtNombreMedico.requestFocus();
                     else if (c == txtNombreMedico)    txtApellidoMedico.requestFocus();
                     else if (c == txtApellidoMedico)  cbxEspecialidad.requestFocus();
                     else if (c == cbxEspecialidad)    txtObservaciones.requestFocus();
@@ -396,44 +414,34 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
     public void setPresenter(MedicoPresenter presenter) {
         this.presenter = presenter;
         
-        // 1. PURGA DE EVENTOS EN BOTONES
         limpiarListeners(btnGuardarMedico);
         limpiarListeners(btnEliminarMedico);
         limpiarListeners(btnVolver);
         
-        // 2. CONEXIÓN LIMPIA DE BOTONES
         btnGuardarMedico.addActionListener(e -> presenter.onGuardarMedico());
         btnEliminarMedico.addActionListener(e -> presenter.onEliminarMedico());
         btnVolver.addActionListener(e -> presenter.onVolver());
         
-        // 3. PURGA Y CONEXIÓN DEL BUSCADOR
         for (java.awt.event.KeyListener kl : txtBuscarMedico.getKeyListeners()) {
             txtBuscarMedico.removeKeyListener(kl);
         }
         txtBuscarMedico.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
             public void keyReleased(java.awt.event.KeyEvent e) {
-                presenter.onBuscarMedico();
+                if (presenter != null) presenter.onBuscarMedico();
             }
         });
 
-        // 4. PURGA Y CONEXIÓN DE LA TABLA
-        javax.swing.DefaultListSelectionModel modeloSeleccion = 
-                (javax.swing.DefaultListSelectionModel) grillaMedicos.getSelectionModel();
-
-        for (javax.swing.event.ListSelectionListener lsl : modeloSeleccion.getListSelectionListeners()) {
-            modeloSeleccion.removeListSelectionListener(lsl);
-        }
-
-        modeloSeleccion.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting() && presenter != null) {
-                presenter.onSeleccionarMedico();
+        grillaMedicos.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && !cargandoDatos && presenter != null) {
+                boolean hay = grillaMedicos.getSelectedRow() != -1;
+                habilitarBotonEliminar(hay);
+                if (hay) presenter.onSeleccionarMedico();
             }
         });
     }
 
-    // Método auxiliar para evitar la duplicación en memoria
-    private void limpiarListeners(javax.swing.JButton btn) {
+    private void limpiarListeners(JButton btn) {
         for (java.awt.event.ActionListener al : btn.getActionListeners()) {
             btn.removeActionListener(al);
         }
@@ -461,8 +469,7 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
 
     @Override
     public void cargarMedicosEnTabla(ArrayList<Medico> medicos) {
-        
-        actualizandoVista = true;
+        cargandoDatos = true;
         
         DefaultTableModel modelo = new DefaultTableModel(
             new Object[][]{},
@@ -477,12 +484,8 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
                 m.getEspecialidad()
             });
         }
-        grillaMedicos.clearSelection();
-
-        actualizandoVista = false;
-
         grillaMedicos.setModel(modelo);
-        grillaMedicos.setRowSorter(new TableRowSorter<>(modelo));
+        grillaMedicos.clearSelection();
 
         DefaultTableCellRenderer render = new DefaultTableCellRenderer() {
             @Override
@@ -490,22 +493,29 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
                     boolean isSelected, boolean hasFocus, int row, int column) {
                 super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 setHorizontalAlignment(column == 0 ? SwingConstants.CENTER : SwingConstants.LEFT);
-                setBorder(new EmptyBorder(0, 12, 0, 12));
+                setBorder(new EmptyBorder(0, 10, 0, 10));
                 if (!isSelected) {
                     setBackground(row % 2 == 0 ? C_BLANCO : C_FILA_PAR);
+                    setForeground(C_TEXTO_FUERTE);
+                } else {
+                    setBackground(C_SELECCION);
                     setForeground(C_TEXTO_FUERTE);
                 }
                 return this;
             }
         };
-        for (int i = 0; i < grillaMedicos.getColumnCount(); i++)
+        for (int i = 0; i < grillaMedicos.getColumnCount(); i++) {
             grillaMedicos.getColumnModel().getColumn(i).setCellRenderer(render);
+        }
 
-        grillaMedicos.getColumnModel().getColumn(0).setPreferredWidth(100);
-        grillaMedicos.getColumnModel().getColumn(0).setMaxWidth(130);
-        grillaMedicos.getColumnModel().getColumn(1).setPreferredWidth(180);
-        grillaMedicos.getColumnModel().getColumn(2).setPreferredWidth(180);
-        grillaMedicos.getColumnModel().getColumn(3).setPreferredWidth(200);
+        grillaMedicos.getColumnModel().getColumn(0).setPreferredWidth(90);
+        grillaMedicos.getColumnModel().getColumn(0).setMaxWidth(120);
+        grillaMedicos.getColumnModel().getColumn(1).setPreferredWidth(160);
+        grillaMedicos.getColumnModel().getColumn(2).setPreferredWidth(160);
+        grillaMedicos.getColumnModel().getColumn(3).setPreferredWidth(180);
+
+        habilitarBotonEliminar(false);
+        cargandoDatos = false;
     }
 
     @Override
@@ -539,6 +549,8 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
         cbxEspecialidad.setSelectedIndex(0);
         txtObservaciones.setText("");
         txtBuscarMedico.setText("");
+        grillaMedicos.clearSelection();
+        habilitarBotonEliminar(false);
         txtMatricula.requestFocus();
     }
 
@@ -548,54 +560,49 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  UI BUILDER (Estructura base)
+    //  UI BUILDER
     // ════════════════════════════════════════════════════════════════
     @SuppressWarnings("unchecked")
     private void initComponents() {
-        pnlHeader          = new JPanel();
-        lblTituloHeader    = new JLabel("GESTIÓN DE PROFESIONALES");
-        txtBuscarMedico    = new JTextField();
-        btnVolver          = new JButton();
+        pnlHeader = new JPanel();
+        lblTituloHeader = new JLabel("GESTIÓN DE PROFESIONALES");
+        txtBuscarMedico = new JTextField();
+        btnVolver = new JButton();
 
         pnlContenedorBlanco = new JPanel();
-        pnlCuerpo          = new JPanel();
-        pnlFormulario      = new JPanel();
-        pnlTablaWrapper    = new JPanel();
-        lblTituloTabla     = new JLabel("Profesionales Registrados");
-        pnlFooter          = new JPanel();
+        pnlCuerpo = new JPanel();
+        pnlFormulario = new JPanel();
+        pnlTablaWrapper = new JPanel();
+        lblTituloTabla = new JLabel("Profesionales Registrados");
+        pnlFooter = new JPanel();
 
-        lblMatricula       = new JLabel("MATRÍCULA");
-        lblNombre          = new JLabel("NOMBRE");
-        lblApellido        = new JLabel("APELLIDO");
-        lblEspecialidad    = new JLabel("ESPECIALIDAD");
-        lblObservaciones   = new JLabel("OBSERVACIONES / DETALLES");
+        lblMatricula = new JLabel("MATRÍCULA");
+        lblNombre = new JLabel("NOMBRE");
+        lblApellido = new JLabel("APELLIDO");
+        lblEspecialidad = new JLabel("ESPECIALIDAD");
+        lblObservaciones = new JLabel("OBSERVACIONES");
 
-        txtMatricula       = new JTextField();
-        txtNombreMedico    = new JTextField();
-        txtApellidoMedico  = new JTextField();
-        cbxEspecialidad    = new javax.swing.JComboBox<>();
-        txtObservaciones   = new JTextArea(4, 20);
+        txtMatricula = new JTextField();
+        txtNombreMedico = new JTextField();
+        txtApellidoMedico = new JTextField();
+        cbxEspecialidad = new javax.swing.JComboBox<>();
+        txtObservaciones = new JTextArea(3, 20);
         
-        jScrollPane2       = new JScrollPane();
-        grillaMedicos      = new JTable();
-        jScrollPane1       = new JScrollPane();
+        jScrollPane2 = new JScrollPane();
+        grillaMedicos = new JTable();
+        jScrollPane1 = new JScrollPane();
 
-        pnlBotonesEdicion  = new JPanel();
-        btnGuardarMedico   = new javax.swing.JButton();
-        btnEliminarMedico  = new javax.swing.JButton();
+        pnlBotonesEdicion = new JPanel();
+        btnGuardarMedico = new JButton();
+        btnEliminarMedico = new JButton();
 
         cbxEspecialidad.setModel(new javax.swing.DefaultComboBoxModel<>(new String[]{
-            "GENERALISTA","ALERGISTA","CABEZA Y CUELLO","CARDIOLOGIA","CARDIOLOGIA CLINICA",
-            "CARDIOLOGIA INFANTIL","CIRUGIA","CIRUGIA CABEZA Y CUELLO","CIRUGIA INFANTIL",
-            "CIRUGIA PLASTICA","CIRUJANO CARDIOVASCULAR","CLINICA MEDICA","CLINICA MEDICA Y DOLOR",
-            "DERMATOLOGIA","ENDOCRINOLOGIA","FLEBOLOGIA","FLEBOLOGIA Y LINFOLOGIA","FONOAUDIOLOGIA",
-            "GASTROENTEROLOGIA","GERONTOLOGIA","GINECOLOGIA","GINECOLOGIA Y OBSTETRICIA","HEMATOLOGIA",
-            "HEMODINAMIA Y CARDIOLOGIA","INFECTOLOGIA","INMUNOLOGIA","INSTITUCION","NEFROLOGIA",
-            "NEFROLOGIA INFANTIL","NEUMONOLOGIA","NEUROCIRUGIA","NEUROLOGIA","NEUROLOGIA INFANTIL",
-            "NUTRICIONISTA","OBSTETRICIA","ODONTOLOGIA","OFTALMOLOGIA","ONCOLOGIA",
-            "ORTOPEDIA Y TRAUMATOLOGIA","OTORRINOLARINGOLOGIA","PEDIATRIA","PEDIATRIA - NEONATOLOGIA",
-            "PROCTOLOGIA","PSIQUIATRIA","REUMATOLOGIA","TOCOGINECOLOGIA","TRAUMATOLOGIA",
-            "TRAUMATOLOGIA Y ORTOPEDIA","UROLOGIA","UROLOGIA INFANTIL"
+            "GENERALISTA","ALERGISTA","CARDIOLOGIA","CIRUGIA","CLINICA MEDICA",
+            "DERMATOLOGIA","ENDOCRINOLOGIA","GASTROENTEROLOGIA","GERONTOLOGIA",
+            "GINECOLOGIA","HEMATOLOGIA","INFECTOLOGIA","NEFROLOGIA","NEUMONOLOGIA",
+            "NEUROCIRUGIA","NEUROLOGIA","NUTRICIONISTA","OBSTETRICIA","ODONTOLOGIA",
+            "OFTALMOLOGIA","ONCOLOGIA","ORTOPEDIA","OTORRINOLARINGOLOGIA","PEDIATRIA",
+            "PSIQUIATRIA","REUMATOLOGIA","TRAUMATOLOGIA","UROLOGIA"
         }));
 
         txtObservaciones.setLineWrap(true);
@@ -610,30 +617,30 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
     }
 
     // ── Variables ────────────────────────────────────────────────────
-    private javax.swing.JButton btnGuardarMedico;
-    private javax.swing.JButton btnEliminarMedico;
-    private javax.swing.JButton btnVolver;
+    private JButton btnGuardarMedico;
+    private JButton btnEliminarMedico;
+    private JButton btnVolver;
     private javax.swing.JComboBox<String> cbxEspecialidad;
-    private javax.swing.JTable grillaMedicos;
-    private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JScrollPane jScrollPane2;
-    private javax.swing.JLabel lblMatricula;
-    private javax.swing.JLabel lblNombre;
-    private javax.swing.JLabel lblApellido;
-    private javax.swing.JLabel lblEspecialidad;
-    private javax.swing.JLabel lblObservaciones;
-    private javax.swing.JPanel pnlHeader;
-    private javax.swing.JPanel pnlContenedorBlanco;
-    private javax.swing.JPanel pnlCuerpo;
-    private javax.swing.JPanel pnlFormulario;
-    private javax.swing.JPanel pnlBotonesEdicion;
-    private javax.swing.JPanel pnlTablaWrapper;
-    private javax.swing.JPanel pnlFooter;
-    private javax.swing.JLabel lblTituloHeader;
-    private javax.swing.JLabel lblTituloTabla;
-    private javax.swing.JTextField txtApellidoMedico;
-    private javax.swing.JTextField txtBuscarMedico;
-    private javax.swing.JTextField txtMatricula;
-    private javax.swing.JTextField txtNombreMedico;
-    private javax.swing.JTextArea txtObservaciones;
+    private JTable grillaMedicos;
+    private JScrollPane jScrollPane1;
+    private JScrollPane jScrollPane2;
+    private JLabel lblMatricula;
+    private JLabel lblNombre;
+    private JLabel lblApellido;
+    private JLabel lblEspecialidad;
+    private JLabel lblObservaciones;
+    private JPanel pnlHeader;
+    private JPanel pnlContenedorBlanco;
+    private JPanel pnlCuerpo;
+    private JPanel pnlFormulario;
+    private JPanel pnlBotonesEdicion;
+    private JPanel pnlTablaWrapper;
+    private JPanel pnlFooter;
+    private JLabel lblTituloHeader;
+    private JLabel lblTituloTabla;
+    private JTextField txtApellidoMedico;
+    private JTextField txtBuscarMedico;
+    private JTextField txtMatricula;
+    private JTextField txtNombreMedico;
+    private JTextArea txtObservaciones;
 }

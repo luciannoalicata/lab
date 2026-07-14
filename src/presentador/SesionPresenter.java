@@ -1,7 +1,6 @@
 package presentador;
 
 import dao.UsuarioDAO;
-import modelo.Usuario;
 import presentador.router.AppRouter;
 import vista.interfaces.IVistaLogin;
 
@@ -23,7 +22,6 @@ public class SesionPresenter {
         vista.ejecutar();
     }
 
-
     public void onIngresar() {
         if (ingresando) {
             return;
@@ -39,7 +37,8 @@ public class SesionPresenter {
                 return;
             }
 
-            Usuario u = usuarioDAO.login(username, password);
+            // El sistema ahora valida estrictamente consultando al DAO de la Base de Datos
+            modelo.Usuario u = usuarioDAO.login(username, password);
 
             if (u != null) {
                 vista.cerrarPantalla();

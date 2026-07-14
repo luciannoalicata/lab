@@ -46,6 +46,7 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
 
     private ResultadoPresenter presenter;
     private boolean calculando = false;
+    private boolean cargandoDatos = false;
 
     private JWindow ventanaSugerenciasOS;
     private JList<String> listaSugerenciasOS;
@@ -55,7 +56,7 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
     private JList<String> listaSugerenciasMed;
     private DefaultListModel<String> modeloSugerenciasMed;
 
-    // ── Paleta BIOTEC Minimalista ────────────────────────────────────
+    // ── Paleta BIOTEC Profesional ────────────────────────────────────
     private final Color C_NAVY         = new Color(10, 25, 47);    
     private final Color C_FONDO        = new Color(238, 242, 246);
     private final Color C_BLANCO       = Color.WHITE;
@@ -69,12 +70,16 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
     private final Color C_CABECERA_TBL = new Color(245, 248, 252);
     private final Color C_FILA_PAR     = new Color(252, 254, 255);
     private final Color C_HEADER_TEXT  = new Color(175, 205, 235);
+    private final Color C_SELECCION    = new Color(210, 232, 250);
+    private final Color C_NARANJA      = new Color(230, 126, 34);
 
     public VistaCargarResultados() {
         initComponents();
-        aplicarEsteticaPersonalizada();
+        aplicarEsteticaProfesional();
         configurarBuscadoresDinamicos();
         configurarNavegacionEnter();
+        configurarDobleClicReferencia(); // ← Nuevo evento para expandir textos
+        setMinimumSize(new Dimension(900, 600));
 
         java.awt.EventQueue.invokeLater(() -> {
             if (grillaResultados.getRowCount() > 0) {
@@ -87,14 +92,15 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
     }
 
     // ════════════════════════════════════════════════════════════════
-    //  ESTÉTICA Y UX
+    //  ESTÉTICA Y UX - Diseño Profesional
     // ════════════════════════════════════════════════════════════════
-    private void aplicarEsteticaPersonalizada() {
+    private void aplicarEsteticaProfesional() {
         setBackground(C_FONDO);
+        setLayout(new BorderLayout());
 
+        // ── HEADER ──────────────────────────────────────────────────────
         jPanelHeader.setBackground(C_NAVY);
-        jPanelHeader.setBorder(new EmptyBorder(14, 28, 14, 28));
-        jPanelHeader.removeAll();
+        jPanelHeader.setBorder(new EmptyBorder(10, 20, 10, 20));
         jPanelHeader.setLayout(new BorderLayout());
 
         JPanel pnlIzqHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
@@ -102,10 +108,10 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         pnlIzqHeader.add(btnCerrar);
 
         jLabel1.setForeground(C_HEADER_TEXT);
-        jLabel1.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        jLabel1.setFont(new Font("Segoe UI", Font.PLAIN, 11));
 
         lblNombrePaciente.setForeground(C_BLANCO);
-        lblNombrePaciente.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        lblNombrePaciente.setFont(new Font("Segoe UI", Font.BOLD, 18));
 
         JPanel pnlTitulos = new JPanel();
         pnlTitulos.setOpaque(false);
@@ -113,7 +119,7 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         jLabel1.setAlignmentX(Component.LEFT_ALIGNMENT);
         lblNombrePaciente.setAlignmentX(Component.LEFT_ALIGNMENT);
         pnlTitulos.add(jLabel1);
-        pnlTitulos.add(Box.createVerticalStrut(4));
+        pnlTitulos.add(Box.createVerticalStrut(2));
         pnlTitulos.add(lblNombrePaciente);
 
         pnlIzqHeader.add(pnlTitulos);
@@ -130,12 +136,12 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         jLabel3.setForeground(C_HEADER_TEXT);
         jLabel3.setFont(new Font("Segoe UI", Font.BOLD, 11));
         
-        g.gridx = 0; g.gridy = 0; g.anchor = GridBagConstraints.WEST; g.insets = new Insets(0, 0, 4, 15);
+        g.gridx = 0; g.gridy = 0; g.anchor = GridBagConstraints.WEST; g.insets = new Insets(0, 0, 4, 12);
         pnlDerHeader.add(jLabel2, g);
         g.gridx = 1; g.insets = new Insets(0, 0, 4, 0);
         pnlDerHeader.add(jLabel3, g);
         
-        g.gridx = 0; g.gridy = 1; g.insets = new Insets(0, 0, 0, 15);
+        g.gridx = 0; g.gridy = 1; g.insets = new Insets(0, 0, 0, 12);
         pnlDerHeader.add(txtObraSocialBusqueda, g);
         g.gridx = 1; g.insets = new Insets(0, 0, 0, 0);
         pnlDerHeader.add(txtMedicoSolicitante, g);
@@ -145,18 +151,21 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         estilizarCampoBusqueda(txtObraSocialBusqueda);
         estilizarCampoBusqueda(txtMedicoSolicitante);
 
+        add(jPanelHeader, BorderLayout.NORTH);
+
+        // ── CONTENEDOR PRINCIPAL ──────────────────────────────────────
+        pnlContenedorBlanco = new JPanel(new BorderLayout());
         pnlContenedorBlanco.setBackground(C_BLANCO);
         pnlContenedorBlanco.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 1, 1, 1, C_BORDE),
-            new EmptyBorder(24, 28, 24, 28)
+            new EmptyBorder(10, 14, 10, 14)
         ));
-        pnlContenedorBlanco.removeAll();
-        pnlContenedorBlanco.setLayout(new BorderLayout());
 
+        // ── CUERPO ──────────────────────────────────────────────────────
         pnlCuerpo.setBackground(C_BLANCO);
-        pnlCuerpo.removeAll();
         pnlCuerpo.setLayout(new BorderLayout());
 
+        // ── TABLA WRAPPER ──────────────────────────────────────────────
         pnlTablaWrapper.setBackground(C_BLANCO);
         pnlTablaWrapper.setBorder(BorderFactory.createCompoundBorder(
             new EmptyBorder(0, 0, 0, 0),
@@ -166,14 +175,14 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         lblTituloTabla = new JLabel("DETERMINACIONES A CARGAR");
         lblTituloTabla.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lblTituloTabla.setForeground(C_TEXTO_FUERTE);
-        lblTituloTabla.setBorder(new EmptyBorder(14, 16, 12, 16));
+        lblTituloTabla.setBorder(new EmptyBorder(10, 14, 8, 14));
 
-        grillaResultados.setRowHeight(36);
-        grillaResultados.setFont(new Font("Segoe UI", Font.PLAIN, 14)); 
+        grillaResultados.setRowHeight(34); // Altura base
+        grillaResultados.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         grillaResultados.setGridColor(new Color(235, 240, 245));
         grillaResultados.setShowHorizontalLines(true);
         grillaResultados.setShowVerticalLines(false);
-        grillaResultados.setSelectionBackground(new Color(210, 232, 250));
+        grillaResultados.setSelectionBackground(C_SELECCION);
         grillaResultados.setSelectionForeground(C_NAVY);
         grillaResultados.setIntercellSpacing(new Dimension(0, 1));
         grillaResultados.setFocusable(true);
@@ -183,41 +192,37 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         grillaResultados.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         grillaResultados.getTableHeader().setBackground(C_CABECERA_TBL);
         grillaResultados.getTableHeader().setForeground(C_TEXTO_SUAVE);
-        grillaResultados.getTableHeader().setPreferredSize(new Dimension(0, 40));
+        grillaResultados.getTableHeader().setPreferredSize(new Dimension(0, 34));
         grillaResultados.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE));
         grillaResultados.getTableHeader().setReorderingAllowed(false);
 
         jScrollPane1.setBorder(BorderFactory.createEmptyBorder());
         jScrollPane1.getViewport().setBackground(C_BLANCO);
 
-        pnlTablaWrapper.removeAll();
         pnlTablaWrapper.setLayout(new BorderLayout());
         pnlTablaWrapper.add(lblTituloTabla, BorderLayout.NORTH);
         pnlTablaWrapper.add(jScrollPane1, BorderLayout.CENTER);
 
         pnlCuerpo.add(pnlTablaWrapper, BorderLayout.CENTER);
         pnlContenedorBlanco.add(pnlCuerpo, BorderLayout.CENTER);
+        add(pnlContenedorBlanco, BorderLayout.CENTER);
 
+        // ── FOOTER ──────────────────────────────────────────────────────
         jPanelFooter.setBackground(C_BLANCO);
         jPanelFooter.setBorder(BorderFactory.createCompoundBorder(
             new MatteBorder(1, 0, 0, 0, C_BORDE),
-            new EmptyBorder(16, 28, 16, 28)
+            new EmptyBorder(10, 14, 10, 14)
         ));
-        jPanelFooter.removeAll();
         jPanelFooter.setLayout(new BorderLayout());
 
-        configurarBoton(btnGuardarResultados, C_VERDE, "GUARDAR RESULTADOS", 220, 44);
+        configurarBoton(btnGuardarResultados, C_VERDE, "GUARDAR RESULTADOS", 180, 38);
 
-        JPanel pnlFooterAcciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        JPanel pnlFooterAcciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlFooterAcciones.setOpaque(false);
         pnlFooterAcciones.add(btnGuardarResultados);
         jPanelFooter.add(pnlFooterAcciones, BorderLayout.EAST);
 
-        this.removeAll();
-        this.setLayout(new BorderLayout());
-        this.add(jPanelHeader, BorderLayout.NORTH);
-        this.add(pnlContenedorBlanco, BorderLayout.CENTER);
-        this.add(jPanelFooter, BorderLayout.SOUTH);
+        add(jPanelFooter, BorderLayout.SOUTH);
 
         aplicarColumnas();
         aplicarRenderer();
@@ -227,9 +232,45 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         this.repaint();
     }
 
+    private void configurarDobleClicReferencia() {
+        grillaResultados.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    int col = grillaResultados.columnAtPoint(e.getPoint());
+                    int row = grillaResultados.rowAtPoint(e.getPoint());
+                    // 5 es la columna de Valores de Referencia
+                    if (col == 5 && row >= 0) {
+                        Object val = grillaResultados.getModel().getValueAt(row, 5);
+                        if (val != null && !val.toString().trim().isEmpty()) {
+                            mostrarValoresReferenciaCompletos(val.toString());
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    private void mostrarValoresReferenciaCompletos(String referencia) {
+        javax.swing.JTextArea txtArea = new javax.swing.JTextArea(referencia.replace(";", "\n"));
+        txtArea.setEditable(false);
+        txtArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtArea.setLineWrap(true);
+        txtArea.setWrapStyleWord(true);
+        txtArea.setBackground(new Color(250, 252, 254));
+        txtArea.setForeground(C_TEXTO_FUERTE);
+        txtArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        JScrollPane scroll = new JScrollPane(txtArea);
+        scroll.setPreferredSize(new Dimension(380, 250));
+        scroll.setBorder(BorderFactory.createLineBorder(C_AZUL_MEDIO, 1));
+        
+        JOptionPane.showMessageDialog(this, scroll, "Valores de Referencia", JOptionPane.PLAIN_MESSAGE);
+    }
+
     private void aplicarCellEditor() {
         JTextField editorField = new JTextField();
-        editorField.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        editorField.setFont(new Font("Segoe UI", Font.BOLD, 13));
         editorField.setBorder(new EmptyBorder(0, 8, 0, 8));
         editorField.setHorizontalAlignment(JTextField.CENTER);
 
@@ -278,16 +319,16 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
     }
 
     private void estilizarCampoBusqueda(JTextField tf) {
-        tf.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        tf.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         tf.setBackground(new Color(25, 45, 75)); 
         tf.setForeground(C_BLANCO);
         tf.setCaretColor(C_BLANCO);
         tf.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(50, 80, 120), 1, true),
-            new EmptyBorder(8, 14, 8, 14)
+            new EmptyBorder(6, 10, 6, 10)
         ));
-        tf.setPreferredSize(new Dimension(320, 40));
-        tf.setMinimumSize(new Dimension(250, 40));
+        tf.setPreferredSize(new Dimension(280, 34));
+        tf.setMinimumSize(new Dimension(220, 34));
     }
 
     private void configurarBoton(JButton btn, Color bg, String texto, int w, int h) {
@@ -312,9 +353,9 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         btn.setContentAreaFilled(false);
         btn.setOpaque(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(0, 0, 0, 16));
+        btn.setBorder(new EmptyBorder(0, 0, 0, 12));
 
-        ImageIcon ico = icon("/reportes/img/flecha_icon.png", 40, 40);
+        ImageIcon ico = icon("/reportes/img/flecha_icon.png", 34, 34);
         if (ico != null) btn.setIcon(ico);
         
         btn.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -342,22 +383,22 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         grillaResultados.getColumnModel().getColumn(0).setWidth(0);
         grillaResultados.getColumnModel().getColumn(0).setPreferredWidth(0);
 
-        grillaResultados.getColumnModel().getColumn(1).setPreferredWidth(80);
-        grillaResultados.getColumnModel().getColumn(1).setMaxWidth(90);
-        grillaResultados.getColumnModel().getColumn(1).setMinWidth(70);
+        grillaResultados.getColumnModel().getColumn(1).setPreferredWidth(75);
+        grillaResultados.getColumnModel().getColumn(1).setMaxWidth(85);
+        grillaResultados.getColumnModel().getColumn(1).setMinWidth(65);
 
-        grillaResultados.getColumnModel().getColumn(2).setPreferredWidth(260);
-        grillaResultados.getColumnModel().getColumn(2).setMinWidth(200);
+        grillaResultados.getColumnModel().getColumn(2).setPreferredWidth(240);
+        grillaResultados.getColumnModel().getColumn(2).setMinWidth(180);
         
         grillaResultados.getColumnModel().getColumn(3).setPreferredWidth(120);
         grillaResultados.getColumnModel().getColumn(3).setMinWidth(100);
 
-        grillaResultados.getColumnModel().getColumn(4).setPreferredWidth(98);
-        grillaResultados.getColumnModel().getColumn(4).setMaxWidth(110);
-        grillaResultados.getColumnModel().getColumn(4).setMinWidth(85);
+        grillaResultados.getColumnModel().getColumn(4).setPreferredWidth(90);
+        grillaResultados.getColumnModel().getColumn(4).setMaxWidth(100);
+        grillaResultados.getColumnModel().getColumn(4).setMinWidth(80);
 
-        grillaResultados.getColumnModel().getColumn(5).setPreferredWidth(340);
-        grillaResultados.getColumnModel().getColumn(5).setMinWidth(250);
+        grillaResultados.getColumnModel().getColumn(5).setPreferredWidth(320);
+        grillaResultados.getColumnModel().getColumn(5).setMinWidth(230);
     }
 
     private void aplicarRenderer() {
@@ -423,7 +464,7 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
 
                 } else {
                     setOpaque(true);
-                    setFont(col == 3 ? new Font("Segoe UI", Font.BOLD, 14) : new Font("Segoe UI", Font.PLAIN, 13));
+                    setFont(col == 3 ? new Font("Segoe UI", Font.BOLD, 13) : new Font("Segoe UI", Font.PLAIN, 13));
                     
                     Object objRes = table.getModel().getValueAt(row, 3);
                     Object objRef = table.getModel().getValueAt(row, 5);
@@ -432,28 +473,28 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
 
                     if (col == 3 && !resActual.isEmpty()) {
                         setForeground(evaluarAlertaResultado(resActual, refActual));
-                        if (getForeground().equals(new Color(220, 53, 69)) || getForeground().equals(new Color(230, 126, 34))) {
-                            setFont(new Font("Segoe UI", Font.BOLD, 15));
+                        if (getForeground().equals(C_ROJO) || getForeground().equals(C_NARANJA)) {
+                            setFont(new Font("Segoe UI", Font.BOLD, 14));
                         }
                     } else {
                         setForeground(C_TEXTO_FUERTE);
                     }
                     
                     if (isSelected) {
-                        setBackground(new Color(210, 232, 250)); 
+                        setBackground(C_SELECCION); 
                     } else {
                         setBackground(row % 2 == 0 ? C_BLANCO : C_FILA_PAR);
                     }
 
                     setHorizontalAlignment(SwingConstants.CENTER);
                     
-                    if (hasFocus) {
+                    if (hasFocus && col == 3) {
                         setBorder(BorderFactory.createCompoundBorder(
                             BorderFactory.createLineBorder(Color.BLACK, 2), 
                             new EmptyBorder(0, 8, 0, 8)
                         ));
                     } else {
-                        setBorder(new EmptyBorder(0, 12, 0, 12));
+                        setBorder(new EmptyBorder(0, 10, 0, 10));
                     }
 
                     Object val = table.getModel().getValueAt(row, col);
@@ -472,17 +513,20 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
                         }
                         sb.append("</html>");
                         setText(sb.toString());
+                        
+                        // Si es la columna de referencias, añadimos un tooltip indicando el doble clic
+                        if (col == 5) setToolTipText("<html>" + textoOriginal.replace(";", "<br>") + "<br><br><i>(Doble clic para expandir)</i></html>");
+                        else setToolTipText(null);
+                        
                     } else {
                         setText(textoOriginal);
+                        if (col == 5 && textoOriginal.length() > 30) setToolTipText("<html>" + textoOriginal + "<br><br><i>(Doble clic para expandir)</i></html>");
+                        else setToolTipText(null);
                     }
-                    setToolTipText(null);
                 }
                 
-                int alturaPreferida = getPreferredSize().height + 10; 
-                int alturaActual = table.getRowHeight(row);
-                if (alturaPreferida > alturaActual) {
-                    table.setRowHeight(row, alturaPreferida);
-                }
+                // NOTA: Eliminamos el setRowHeight de aquí porque causaba bucles en Swing. 
+                // Ahora se maneja limpiamente en ajustarAlturaFilas()
 
                 return this;
             }
@@ -493,14 +537,38 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         }
     }
 
+    private void ajustarAlturaFilas() {
+        for (int row = 0; row < grillaResultados.getRowCount(); row++) {
+            Object nom = grillaResultados.getValueAt(row, 2);
+            boolean esTitulo = nom != null && nom.toString().startsWith("---");
+            
+            if (esTitulo) {
+                grillaResultados.setRowHeight(row, 34);
+                continue;
+            }
+            
+            Object valRef = grillaResultados.getValueAt(row, 5);
+            Object valNom = grillaResultados.getValueAt(row, 2);
+            
+            int lineasRef = valRef != null && valRef.toString().contains(";") ? valRef.toString().split(";").length : 1;
+            int lineasNom = valNom != null && valNom.toString().contains(";") ? valNom.toString().split(";").length : 1;
+            
+            int maxLineas = Math.max(lineasRef, lineasNom);
+            int alturaCalculada = Math.max(34, maxLineas * 18 + 8);
+            
+            // Capped at 75px max to preserve visual harmony
+            grillaResultados.setRowHeight(row, Math.min(alturaCalculada, 75));
+        }
+    }
+
     @Override
     public double pedirPrecioManual() {
-        return -1; // OBSOLETO: Se maneja por UB automático ahora.
+        return -1;
     }
 
     private void configurarBuscadoresDinamicos() {
         modeloSugerenciasOS = new DefaultListModel<>();
-        listaSugerenciasOS  = new JList<>(modeloSugerenciasOS);
+        listaSugerenciasOS = new JList<>(modeloSugerenciasOS);
         configurarLista(listaSugerenciasOS, "OS");
 
         txtObraSocialBusqueda.addKeyListener(new KeyAdapter() {
@@ -517,7 +585,7 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         });
 
         modeloSugerenciasMed = new DefaultListModel<>();
-        listaSugerenciasMed  = new JList<>(modeloSugerenciasMed);
+        listaSugerenciasMed = new JList<>(modeloSugerenciasMed);
         configurarLista(listaSugerenciasMed, "MED");
 
         txtMedicoSolicitante.addKeyListener(new KeyAdapter() {
@@ -537,9 +605,9 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
     private void configurarLista(JList<String> lista, String tipo) {
         lista.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lista.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        lista.setFixedCellHeight(32);
+        lista.setFixedCellHeight(30);
         lista.setBackground(C_BLANCO);
-        lista.setSelectionBackground(new Color(210, 232, 250));
+        lista.setSelectionBackground(C_SELECCION);
         lista.setSelectionForeground(C_NAVY);
         lista.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override public void mouseClicked(java.awt.event.MouseEvent e) {
@@ -592,7 +660,7 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         if (sugs.isEmpty()) { win.setVisible(false); return; }
         try {
             java.awt.Point p = txt.getLocationOnScreen();
-            win.setBounds(p.x, p.y + txt.getHeight(), txt.getWidth(), Math.min(200, mod.size()*32+6));
+            win.setBounds(p.x, p.y + txt.getHeight(), txt.getWidth(), Math.min(180, mod.size()*30+6));
             win.setVisible(true);
             lista.setSelectedIndex(0);
         } catch (Exception ex) {}
@@ -615,6 +683,8 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
     // ════════════════════════════════════════════════════════════════
     @Override
     public void cargarDeterminaciones(List<Determinacion> lista) {
+        cargandoDatos = true;
+        
         DefaultTableModel modelo = new DefaultTableModel(
             new Object[][]{},
             new String[]{"N°", "CÓDIGO", "DETERMINACIÓN", "RESULTADO", "UNIDAD", "VALORES REF."}
@@ -661,9 +731,7 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
             });
         }
 
-        // ── DETECTOR INTELIGENTE PARA CÁLCULOS HEMATIMÉTRICOS ──
         modelo.addTableModelListener(e -> {
-            // Se ejecuta de manera asíncrona justo después de que la celda se guarde en la tabla
             if (!calculando && e.getColumn() == 3 && e.getType() == javax.swing.event.TableModelEvent.UPDATE) {
                 SwingUtilities.invokeLater(() -> calcularIndicesHematimetricos());
             }
@@ -671,7 +739,10 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
 
         aplicarRenderer();
         aplicarColumnas();
-        aplicarCellEditor(); 
+        aplicarCellEditor();
+        ajustarAlturaFilas(); // ← Aplicamos la altura correcta y segura al final
+        
+        cargandoDatos = false;
     }
 
     private void calcularIndicesHematimetricos() {
@@ -681,27 +752,21 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
             double rbc = -1, hb = -1, hto = -1;
             int idxVCM = -1, idxHCM = -1, idxCHCM = -1;
 
-            // 1. Escanear tabla buscando los nombres EXACTOS de tu base de datos
             for (int i = 0; i < filas; i++) {
                 String nombreOriginal = getNombrePrueba(i);
                 String res = getResultado(i);
                 
                 if (nombreOriginal == null || nombreOriginal.isEmpty()) continue;
                 
-                // Pasamos a minúsculas para evitar problemas si alguien lo escribió como "GLOB. ROJOS"
                 String nombreStr = nombreOriginal.trim().toLowerCase();
 
-                // Extraer valores base
                 if (nombreStr.equals("glob. rojos")) {
                     rbc = parsearNumeroLab(res);
                 } else if (nombreStr.equals("hemoglobina")) {
                     hb = parsearNumeroLab(res);
                 } else if (nombreStr.equals("hematocrito")) {
                     hto = parsearNumeroLab(res);
-                } 
-                
-                // Ubicar filas destino para inyectar índices
-                else if (nombreStr.equals("vcm")) {
+                } else if (nombreStr.equals("vcm")) {
                     idxVCM = i;
                 } else if (nombreStr.equals("hcm")) {
                     idxHCM = i;
@@ -710,7 +775,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
                 }
             }
 
-            // Si los glóbulos rojos los ingresan enteros (ej 4500000 o 4.500.000), los convertimos a millones para la fórmula
             if (rbc > 0 && rbc > 100) {
                 rbc = rbc / 1000000.0;
             }
@@ -719,7 +783,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
             dfs.setDecimalSeparator(',');
             java.text.DecimalFormat df = new java.text.DecimalFormat("0.0", dfs);
 
-            // 2. Realizar los cálculos si tenemos los datos suficientes
             if (rbc > 0 && hto > 0 && idxVCM != -1) {
                 grillaResultados.setValueAt(df.format((hto * 10) / rbc), idxVCM, 3);
             }
@@ -731,11 +794,11 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
             }
 
         } catch (Exception e) {
-            // Silencioso para evitar frenar al bioquímico si hay un error de tipeo en otra celda
         } finally {
             calculando = false;
         }
     }
+    
     @Override
     public void detenerEdicionTabla() {
         if (grillaResultados.isEditing())
@@ -855,7 +918,7 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
                 int pos = refBaja.contains("hasta") ? refBaja.indexOf("hasta") + 5 : refBaja.indexOf("<") + 1;
                 double max = parsearNumeroLab(refBaja.substring(pos));
                 if (Double.isNaN(max)) return C_TEXTO_FUERTE;
-                return (valorIngresado <= max) ? new Color(35, 160, 115) : new Color(220, 53, 69);
+                return (valorIngresado <= max) ? C_VERDE : C_ROJO;
             }
 
             String separador = refBaja.contains(" a ") ? " a " : (refBaja.contains("-") ? "-" : null);
@@ -867,13 +930,13 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
                     if (!Double.isNaN(min) && !Double.isNaN(max)) {
                         if (min > max) { double temp = min; min = max; max = temp; }
                         if (valorIngresado >= min && valorIngresado <= max) {
-                            return new Color(35, 160, 115);
+                            return C_VERDE;
                         } else {
                             double tolerancia = (max - min) * 0.15;
                             if (valorIngresado >= (min - tolerancia) && valorIngresado <= (max + tolerancia)) {
-                                return new Color(230, 126, 34);
+                                return C_NARANJA;
                             } else {
-                                return new Color(220, 53, 69);
+                                return C_ROJO;
                             }
                         }
                     }
@@ -918,7 +981,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         pnlTablaWrapper       = new JPanel();
         jScrollPane1          = new JScrollPane();
         
-        // ── FORZAR NAVEGACIÓN ÚNICAMENTE EN LA COLUMNA DE RESULTADO ──
         grillaResultados      = new JTable() {
             @Override
             public void changeSelection(int rowIndex, int columnIndex, boolean toggle, boolean extend) {

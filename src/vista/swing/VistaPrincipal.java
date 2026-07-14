@@ -78,15 +78,19 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
 
     private void construirUI() {
         setTitle("BIOTEC LABORATORIOS");
-        setExtendedState(MAXIMIZED_BOTH);
-        
-        // EL PUNTO DE ORO: 1120x680. 
-        // Entra perfecto en pantallas de 14" y evita que se recorten los campos del paciente.
-        setMinimumSize(new Dimension(1120, 680));
         setBackground(C_FONDO);
-        
         construirHeader();
         construirCuerpo();
+        pack();
+
+        // Tamaño mínimo: 75% de la pantalla (evita que se desacomode)
+        Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+        setMinimumSize(new Dimension(
+                (int) (screen.width * 0.85),
+                (int) (screen.height * 0.85)
+        ));
+
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
         setLocationRelativeTo(null);
     }
 
@@ -192,8 +196,6 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         
         pnlContenido.add(construirPanelInicio(), "inicio");
 
-        // Adiós ScrollGlobal. Evitamos que la ruedita se confunda con las grillas.
-        // Al poner un setMinimumSize en el Frame, garantizamos que siempre haya espacio.
         pnlCentroWrapper.add(pnlContenido, BorderLayout.CENTER);
 
         pnlMenuIzquierdo = construirMenuLateral(true);
@@ -218,9 +220,9 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         panel.setBackground(C_BLANCO);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         
-        // Tamaños ajustados para que no invadan el centro al achicar
+        // Elástico: Ideal de 280px para 17", compresible hasta 220px en 14"
         panel.setPreferredSize(new Dimension(280, 0)); 
-        panel.setMinimumSize(new Dimension(240, 0));
+        panel.setMinimumSize(new Dimension(220, 0));
 
         if (esIzquierdo) {
             panel.setBorder(BorderFactory.createCompoundBorder(
@@ -239,13 +241,13 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         if (esIzquierdo) {
             panel.add(crearBotonMenu(btnPacientes, "PACIENTES", "Gestión de pacientes", "paciente_icon.png"));
             panel.add(Box.createVerticalStrut(10));
-            panel.add(crearBotonMenu(btnAnalisis, "LISTA ANÁLISIS", "Resultados y estudios", "auditoria_icon.png"));
+            panel.add(crearBotonMenu(btnAnalisis, "LISTA ANÁLISIS", "Resultados cargados", "analisis_icon.png"));
             panel.add(Box.createVerticalStrut(10));
             panel.add(crearBotonMenu(btnMedicos, "PROFESIONALES", "Médicos solicitantes", "medico_icon.png"));
             panel.add(Box.createVerticalStrut(10));
             panel.add(crearBotonMenu(btnObrasSociales, "OBRAS SOCIALES", "Coberturas y aranceles", "obs_icon.png"));
         } else {
-            panel.add(crearBotonMenu(btnNBU, "NBU", "Prácticas y determinaciones", "nbu_icon.png"));
+            panel.add(crearBotonMenu(btnNBU, "NBU", "Prácticas", "nbu_icon.png"));
             panel.add(Box.createVerticalStrut(10));
             panel.add(crearBotonMenu(btnAuditoria, "AUDITORÍA", "Seguridad y eventos", "auditoria_icon.png"));
             panel.add(Box.createVerticalStrut(10));
@@ -270,18 +272,18 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         
         btn.setPreferredSize(new Dimension(260, 80));
-        btn.setMinimumSize(new Dimension(200, 75)); 
+        btn.setMinimumSize(new Dimension(190, 75)); 
         btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 85));
         
         btn.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(C_BORDE, 1, true),
-            new EmptyBorder(10, 12, 10, 12)
+            new EmptyBorder(10, 10, 10, 10)
         ));
 
         JLabel lblIco = new JLabel();
-        lblIco.setPreferredSize(new Dimension(50, 50));
+        lblIco.setPreferredSize(new Dimension(46, 46));
         lblIco.setHorizontalAlignment(SwingConstants.CENTER);
-        ImageIcon ico = icon("/reportes/img/" + iconoFile, 40, 40); 
+        ImageIcon ico = icon("/reportes/img/" + iconoFile, 38, 38); 
         if (ico != null) lblIco.setIcon(ico);
 
         JPanel pnlTexto = new JPanel();
@@ -290,11 +292,11 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         pnlTexto.setBorder(new EmptyBorder(0, 12, 0, 0));
 
         JLabel lblTitulo = new JLabel(titulo);
-        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblTitulo.setForeground(C_TEXTO_FUERTE);
 
         JLabel lblSub = new JLabel(subtitulo);
-        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblSub.setForeground(C_TEXTO_SUAVE);
 
         pnlTexto.add(lblTitulo);
@@ -304,7 +306,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         JLabel flecha = new JLabel("›");
         flecha.setFont(new Font("Segoe UI", Font.PLAIN, 28));
         flecha.setForeground(new Color(200, 210, 220));
-        flecha.setBorder(new EmptyBorder(0, 4, 0, 2));
+        flecha.setBorder(new EmptyBorder(0, 2, 0, 2));
 
         JPanel contenido = new JPanel(new BorderLayout());
         contenido.setOpaque(false);
@@ -320,7 +322,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
                 btn.setBackground(C_HOVER_BG);
                 btn.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(C_HOVER_BORDER, 1, true),
-                    BorderFactory.createEmptyBorder(10, 12, 10, 12)
+                    BorderFactory.createEmptyBorder(10, 10, 10, 10)
                 ));
                 flecha.setForeground(C_AZUL_MEDIO);
                 lblTitulo.setForeground(C_AZUL_OSCURO);
@@ -331,7 +333,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
                 btn.setBackground(C_BLANCO);
                 btn.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(C_BORDE, 1, true),
-                    new EmptyBorder(10, 12, 10, 12)
+                    new EmptyBorder(10, 10, 10, 10)
                 ));
                 flecha.setForeground(new Color(200, 210, 220));
                 lblTitulo.setForeground(C_TEXTO_FUERTE);
@@ -349,7 +351,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         if (btnCerrarSesion == null) {
             btnCerrarSesion = new JButton();
         }
-        btnCerrarSesion.setText("➡️  CERRAR SESIÓN");
+        btnCerrarSesion.setText("CERRAR SESIÓN");
         btnCerrarSesion.setBackground(C_ROJO);
         btnCerrarSesion.setForeground(C_BLANCO);
         btnCerrarSesion.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -380,7 +382,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         card.setBackground(C_BLANCO);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
 
-        // Pegamento arriba (empuja suavemente hacia abajo)
+        // Pegamento superior
         card.add(Box.createVerticalGlue());
 
         JLabel lblLogo = new JLabel();
@@ -422,12 +424,11 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         pnlChips.add(crearChip("● Servidor Conectado", C_AZUL_MEDIO));
         card.add(pnlChips);
         
-        // Pegamento abajo (empuja suavemente hacia arriba)
+        // Pegamento inferior
         card.add(Box.createVerticalGlue());
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.anchor = GridBagConstraints.CENTER;
-        // Le damos un peso relativo para que el pegamento funcione
         gbc.weightx = 1.0; 
         gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;

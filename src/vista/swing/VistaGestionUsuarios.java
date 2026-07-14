@@ -34,8 +34,9 @@ import presentador.UsuarioPresenter;
 public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuarios {
 
     private UsuarioPresenter presenter;
+    private boolean cargandoDatos = false;
     
-    // ── Paleta BIOTEC Minimalista ────────────────────────────────────
+    // ── Paleta BIOTEC Profesional ────────────────────────────────────
     private final Color C_NAVY = new Color(10, 25, 47);
     private final Color C_FONDO = new Color(238, 242, 246);
     private final Color C_BLANCO = Color.WHITE;
@@ -49,6 +50,7 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
     private final Color C_CABECERA_TBL = new Color(245, 248, 252);
     private final Color C_FILA_PAR = new Color(252, 254, 255);
     private final Color C_HEADER_TEXT = new Color(175, 205, 235);
+    private final Color C_SELECCION = new Color(220, 235, 250);
     private final Color C_CARD_BG = new Color(248, 250, 252);
     private final Color C_ROL_ADMIN = new Color(30, 110, 180);
     private final Color C_ROL_BIO = new Color(35, 160, 115);
@@ -57,8 +59,9 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
 
     public VistaGestionUsuarios() {
         initComponents();
-        aplicarEstilo();
+        aplicarEstiloProfesional();
         configurarNavegacionEnter();
+        setMinimumSize(new Dimension(900, 600));
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -69,33 +72,21 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
     public void setPresenter(UsuarioPresenter presenter) {
         this.presenter = presenter;
         
-        // 1. PURGA DE EVENTOS EN BOTONES (La cura para los carteles duplicados)
         limpiarListeners(btnGuardar);
         limpiarListeners(btnEliminar);
         limpiarListeners(btnVolver);
         
-        // 2. CONEXIÓN LIMPIA
         btnGuardar.addActionListener(e -> presenter.onGuardar());
         btnEliminar.addActionListener(e -> presenter.onEliminar());
         btnVolver.addActionListener(e -> presenter.onVolver());
         
-        // 3. PURGA DE EVENTOS EN LA TABLA
-        javax.swing.DefaultListSelectionModel modeloSeleccion = 
-                (javax.swing.DefaultListSelectionModel) grillaUsuarios.getSelectionModel();
-
-        for (javax.swing.event.ListSelectionListener lsl : modeloSeleccion.getListSelectionListeners()) {
-            modeloSeleccion.removeListSelectionListener(lsl);
-        }
-
-        // 4. CONEXIÓN DE LA TABLA
-        modeloSeleccion.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting() && grillaUsuarios.getSelectedRow() != -1) {
+        grillaUsuarios.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && !cargandoDatos && grillaUsuarios.getSelectedRow() != -1) {
                 presenter.onSeleccionarUsuario();
             }
         });
     }
 
-    // Método auxiliar obligatorio para purgar la memoria
     private void limpiarListeners(javax.swing.JButton btn) {
         for (java.awt.event.ActionListener al : btn.getActionListeners()) {
             btn.removeActionListener(al);
@@ -104,6 +95,8 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
 
     @Override
     public void cargarUsuarios(List<Usuario> lista) {
+        cargandoDatos = true;
+        
         DefaultTableModel m = (DefaultTableModel) grillaUsuarios.getModel();
         m.setRowCount(0);
         if (lista != null) {
@@ -116,6 +109,9 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
                 });
             }
         }
+        
+        grillaUsuarios.clearSelection();
+        cargandoDatos = false;
     }
 
     @Override public void ejecutar() { setVisible(true); }
@@ -145,6 +141,7 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
         txtPassword.setText("");
         cbxRol.setSelectedIndex(0);
         grillaUsuarios.clearSelection();
+        txtUsername.requestFocus();
     }
 
     @Override
@@ -159,26 +156,37 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  ESTILO Y UX
+    //  ESTILO Y UX - Diseño Profesional y Responsive
     // ══════════════════════════════════════════════════════════════════
-    private void aplicarEstilo() {
+    private void aplicarEstiloProfesional() {
         setBackground(C_FONDO);
+        setLayout(new BorderLayout());
 
-        // ========== HEADER ==========
+        // ── HEADER ──────────────────────────────────────────────────────
         pnlHeader.setBackground(C_NAVY);
-        pnlHeader.setBorder(new EmptyBorder(14, 28, 14, 28));
-        lblTituloHeader.setForeground(C_BLANCO);
-        lblTituloHeader.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        pnlHeader.setBorder(new EmptyBorder(10, 20, 10, 20));
+        pnlHeader.setLayout(new BorderLayout());
 
-        // ========== CONTENEDOR PRINCIPAL BLANCO ==========
+        JPanel pnlIzqHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        pnlIzqHeader.setOpaque(false);
+        pnlIzqHeader.add(btnVolver);
+        lblTituloHeader.setForeground(C_BLANCO);
+        lblTituloHeader.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblTituloHeader.setBorder(new EmptyBorder(0, 8, 0, 0));
+        pnlIzqHeader.add(lblTituloHeader);
+        pnlHeader.add(pnlIzqHeader, BorderLayout.WEST);
+
+        add(pnlHeader, BorderLayout.NORTH);
+
+        // ── CONTENEDOR PRINCIPAL ──────────────────────────────────────
+        pnlContenedorBlanco = new JPanel(new BorderLayout());
         pnlContenedorBlanco.setBackground(C_BLANCO);
         pnlContenedorBlanco.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 1, 1, 1, C_BORDE),
-            new EmptyBorder(24, 28, 24, 28)
+            new EmptyBorder(10, 12, 10, 12)
         ));
-        pnlContenedorBlanco.setLayout(new BorderLayout());
 
-        // ========== CUERPO PRINCIPAL ==========
+        // ── CUERPO ──────────────────────────────────────────────────────
         pnlCuerpo.setBackground(C_BLANCO);
         pnlCuerpo.setLayout(new GridBagLayout());
         GridBagConstraints gc = new GridBagConstraints();
@@ -186,71 +194,84 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
         gc.weighty = 1.0;
         gc.insets = new Insets(0, 0, 0, 0);
 
-        // Columna izquierda: formulario MÁS ANCHO (530px)
-        gc.gridx = 0;
-        gc.gridy = 0;
-        gc.weightx = 0;
-        pnlFormulario.setPreferredSize(new Dimension(530, 0));
-        pnlFormulario.setMinimumSize(new Dimension(460, 0));
-        pnlCuerpo.add(pnlFormulario, gc);
-
-        // Columna derecha: tabla + permisos
-        gc.gridx = 1;
-        gc.gridy = 0;
-        gc.weightx = 1.0;
-        pnlCuerpo.add(pnlDerechoWrapper, gc);
-
-        pnlContenedorBlanco.add(pnlCuerpo, BorderLayout.CENTER);
-        
-        // ========== FOOTER ==========
-        pnlFooter.setBackground(C_FONDO);
-        pnlFooter.setBorder(new EmptyBorder(10, 16, 14, 16));
-        pnlFooter.setLayout(new BorderLayout());
-        
-        JPanel pnlAcciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
-        pnlAcciones.setOpaque(false);
-        pnlFooter.add(pnlAcciones, BorderLayout.EAST);
-        
-        add(pnlContenedorBlanco, BorderLayout.CENTER);
-        add(pnlFooter, BorderLayout.SOUTH);
-
-        // ========== ESTILO FORMULARIO (más ancho) ==========
+        // ── FORMULARIO ──────────────────────────────────────────────────
         pnlFormulario.setBackground(C_BLANCO);
         pnlFormulario.setBorder(BorderFactory.createCompoundBorder(
-            new EmptyBorder(16, 16, 16, 16),
+            new EmptyBorder(8, 10, 8, 10),
             BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(C_BORDE, 1, true),
-                new EmptyBorder(28, 32, 28, 32)
+                new EmptyBorder(16, 20, 16, 20)
             )
         ));
 
-        Font fontLabel = new Font("Segoe UI", Font.BOLD, 12);
+        Font fontLabel = new Font("Segoe UI", Font.BOLD, 11);
         for (JLabel lbl : new JLabel[]{lblUsername, lblPassword, lblRol}) {
             lbl.setFont(fontLabel);
             lbl.setForeground(C_TEXTO_SUAVE);
         }
 
-        estilizarCampo(txtUsername, true);
-        estilizarCampo(txtPassword, true);
+        estilizarCampo(txtUsername);
+        estilizarCampoPassword(txtPassword);
 
-        cbxRol.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        cbxRol.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         cbxRol.setBackground(C_CAMPO);
         cbxRol.setForeground(C_TEXTO_FUERTE);
         cbxRol.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
-            new EmptyBorder(8, 12, 8, 12)
+            new EmptyBorder(6, 10, 6, 10)
         ));
-        cbxRol.setPreferredSize(new Dimension(0, 42));
 
-        configurarBoton(btnGuardar, C_VERDE, "GUARDAR", 190, 46);
-        configurarBoton(btnEliminar, C_ROJO, "ELIMINAR", 190, 46);
+        configurarBoton(btnGuardar, C_VERDE, "GUARDAR", 160, 38);
+        configurarBoton(btnEliminar, C_ROJO, "ELIMINAR", 160, 38);
         configurarBotonRetroceso(btnVolver);
 
-        // ========== PANEL DERECHO ==========
-        pnlDerechoWrapper.setBackground(C_BLANCO);
-        pnlDerechoWrapper.setLayout(new BorderLayout(0, 20));
+        // ── LAYOUT DEL FORMULARIO ─────────────────────────────────────
+        pnlFormulario.setLayout(new GridBagLayout());
+        GridBagConstraints gf = new GridBagConstraints();
+        gf.fill = GridBagConstraints.HORIZONTAL;
+        gf.weightx = 1.0;
+        gf.gridx = 0;
+        int r = 0;
 
-        // ========== TABLA WRAPPER (más compacta) ==========
+        java.util.function.BiFunction<JLabel, Component, JPanel> crearCampo = (lbl, cmp) -> {
+            JPanel p = new JPanel(new BorderLayout(0, 4));
+            p.setOpaque(false);
+            p.add(lbl, BorderLayout.NORTH);
+            p.add(cmp, BorderLayout.CENTER);
+            return p;
+        };
+
+        gf.insets = new Insets(0, 0, 16, 0);
+
+        gf.gridy = r++;
+        pnlFormulario.add(crearCampo.apply(lblUsername, txtUsername), gf);
+        
+        gf.gridy = r++;
+        pnlFormulario.add(crearCampo.apply(lblPassword, txtPassword), gf);
+        
+        gf.gridy = r++;
+        pnlFormulario.add(crearCampo.apply(lblRol, cbxRol), gf);
+
+        pnlBotonesEdicion.setOpaque(false);
+        pnlBotonesEdicion.setLayout(new GridLayout(1, 2, 10, 0));
+        pnlBotonesEdicion.add(btnEliminar);
+        pnlBotonesEdicion.add(btnGuardar);
+
+        gf.gridy = r++;
+        gf.insets = new Insets(12, 0, 0, 0);
+        pnlFormulario.add(pnlBotonesEdicion, gf);
+
+        gf.gridy = r++;
+        gf.weighty = 1.0;
+        gf.fill = GridBagConstraints.VERTICAL;
+        gf.insets = new Insets(0, 0, 0, 0);
+        pnlFormulario.add(new JPanel() {{ setOpaque(false); }}, gf);
+
+        // ── PANEL DERECHO ─────────────────────────────────────────────
+        pnlDerechoWrapper.setBackground(C_BLANCO);
+        pnlDerechoWrapper.setLayout(new BorderLayout(0, 12));
+
+        // ── TABLA ──────────────────────────────────────────────────────
         pnlTablaWrapper.setBackground(C_BLANCO);
         pnlTablaWrapper.setBorder(BorderFactory.createCompoundBorder(
             new EmptyBorder(0, 0, 0, 0),
@@ -259,15 +280,14 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
 
         lblTituloTabla.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lblTituloTabla.setForeground(C_TEXTO_FUERTE);
-        lblTituloTabla.setBorder(new EmptyBorder(12, 16, 10, 16));
+        lblTituloTabla.setBorder(new EmptyBorder(10, 14, 8, 14));
 
-        // Tabla más compacta
         grillaUsuarios.setRowHeight(34);
-        grillaUsuarios.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        grillaUsuarios.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         grillaUsuarios.setGridColor(new Color(235, 240, 245));
         grillaUsuarios.setShowHorizontalLines(true);
         grillaUsuarios.setShowVerticalLines(false);
-        grillaUsuarios.setSelectionBackground(new Color(220, 235, 250));
+        grillaUsuarios.setSelectionBackground(C_SELECCION);
         grillaUsuarios.setSelectionForeground(C_TEXTO_FUERTE);
         grillaUsuarios.setIntercellSpacing(new Dimension(0, 0));
         grillaUsuarios.setFillsViewportHeight(true);
@@ -276,7 +296,7 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
         grillaUsuarios.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         grillaUsuarios.getTableHeader().setBackground(C_CABECERA_TBL);
         grillaUsuarios.getTableHeader().setForeground(C_TEXTO_SUAVE);
-        grillaUsuarios.getTableHeader().setPreferredSize(new Dimension(0, 38));
+        grillaUsuarios.getTableHeader().setPreferredSize(new Dimension(0, 34));
         grillaUsuarios.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE));
         grillaUsuarios.getTableHeader().setReorderingAllowed(false);
 
@@ -288,13 +308,12 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
         grillaUsuarios.getColumnModel().getColumn(2).setCellRenderer(centerR);
         grillaUsuarios.getColumnModel().getColumn(3).setCellRenderer(centerR);
 
-        // Anchos de columna más compactos
-        grillaUsuarios.getColumnModel().getColumn(0).setPreferredWidth(45);
-        grillaUsuarios.getColumnModel().getColumn(0).setMaxWidth(55);
+        grillaUsuarios.getColumnModel().getColumn(0).setPreferredWidth(50);
+        grillaUsuarios.getColumnModel().getColumn(0).setMaxWidth(60);
         grillaUsuarios.getColumnModel().getColumn(1).setPreferredWidth(180);
-        grillaUsuarios.getColumnModel().getColumn(2).setPreferredWidth(130);
+        grillaUsuarios.getColumnModel().getColumn(2).setPreferredWidth(120);
         grillaUsuarios.getColumnModel().getColumn(3).setPreferredWidth(60);
-        grillaUsuarios.getColumnModel().getColumn(3).setMaxWidth(75);
+        grillaUsuarios.getColumnModel().getColumn(3).setMaxWidth(70);
 
         jScrollPane1.setBorder(BorderFactory.createEmptyBorder());
         jScrollPane1.getViewport().setBackground(C_BLANCO);
@@ -303,128 +322,83 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
         pnlTablaWrapper.add(lblTituloTabla, BorderLayout.NORTH);
         pnlTablaWrapper.add(jScrollPane1, BorderLayout.CENTER);
 
-        // ========== PANEL DE PERMISOS (más grande) ==========
+        // ── PANEL DE PERMISOS ─────────────────────────────────────────
         pnlInfoRoles.setBackground(C_BLANCO);
         pnlInfoRoles.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(C_BORDE, 1, true),
-            new EmptyBorder(24, 28, 24, 28)
+            new EmptyBorder(12, 14, 12, 14)
         ));
-        pnlInfoRoles.setLayout(new BorderLayout(0, 20));
+        pnlInfoRoles.setLayout(new BorderLayout(0, 10));
 
-        // Título
         JPanel headerRoles = new JPanel(new BorderLayout());
         headerRoles.setOpaque(false);
-        JLabel lblRolesTitle = new JLabel("PERMISOS Y ACCESOS DEL SISTEMA");
-        lblRolesTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        JLabel lblRolesTitle = new JLabel("PERMISOS Y ACCESOS");
+        lblRolesTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblRolesTitle.setForeground(C_AZUL_MEDIO);
         JSeparator separator = new JSeparator();
         separator.setForeground(C_BORDE);
         headerRoles.add(lblRolesTitle, BorderLayout.WEST);
         headerRoles.add(separator, BorderLayout.CENTER);
-        headerRoles.setBorder(new EmptyBorder(0, 0, 12, 0));
         pnlInfoRoles.add(headerRoles, BorderLayout.NORTH);
 
-        // Grid de roles 2x2 más espaciado
         JPanel gridRoles = new JPanel(new GridBagLayout());
         gridRoles.setOpaque(false);
         GridBagConstraints gr = new GridBagConstraints();
         gr.fill = GridBagConstraints.BOTH;
         gr.weightx = 1.0;
         gr.weighty = 1.0;
-        gr.insets = new Insets(0, 0, 20, 24);
+        gr.insets = new Insets(0, 0, 8, 10);
         
         gr.gridx = 0; gr.gridy = 0;
-        gridRoles.add(crearCardRol("ADMINISTRADOR", 
-            "Control total del sistema\n• Gestión de usuarios\n• Configuración global\n• Auditoría y respaldos", 
-            C_ROL_ADMIN), gr);
+        gridRoles.add(crearCardRol("ADMIN", "Control total", C_ROL_ADMIN), gr);
         gr.gridx = 1; gr.gridy = 0;
-        gridRoles.add(crearCardRol("BIOQUÍMICO", 
-            "Gestión completa del laboratorio\n• Parámetros de referencia\n• Unidades de medida\n• Validación de resultados", 
-            C_ROL_BIO), gr);
+        gridRoles.add(crearCardRol("BIOQUÍMICO", "Gestión completa", C_ROL_BIO), gr);
         gr.gridx = 0; gr.gridy = 1;
-        gridRoles.add(crearCardRol("TÉCNICO", 
-            "Operaciones diarias\n• Carga de pacientes\n• Registro de análisis\n• Impresión de estudios", 
-            C_ROL_TEC), gr);
+        gridRoles.add(crearCardRol("TÉCNICO", "Operaciones", C_ROL_TEC), gr);
         gr.gridx = 1; gr.gridy = 1;
-        gridRoles.add(crearCardRol("LECTOR", 
-            "Consulta y visualización\n• Listado de pacientes\n• Visualización de análisis\n• Impresión autorizada", 
-            C_ROL_LEC), gr);
+        gridRoles.add(crearCardRol("LECTOR", "Consulta", C_ROL_LEC), gr);
         
         pnlInfoRoles.add(gridRoles, BorderLayout.CENTER);
         
-        // Footer con nota informativa
-        JPanel footerRoles = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        footerRoles.setOpaque(false);
-        footerRoles.setBorder(new EmptyBorder(16, 0, 8, 0));
-        JLabel lblNota = new JLabel("⚠️ Solo usuarios con rol ADMINISTRADOR pueden gestionar usuarios del sistema");
-        lblNota.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        lblNota.setForeground(new Color(200, 120, 30));
-        footerRoles.add(lblNota);
-        pnlInfoRoles.add(footerRoles, BorderLayout.SOUTH);
-
         pnlDerechoWrapper.add(pnlTablaWrapper, BorderLayout.CENTER);
         pnlDerechoWrapper.add(pnlInfoRoles, BorderLayout.SOUTH);
 
-        // ========== LAYOUT DEL FORMULARIO (más espaciado) ==========
-        pnlFormulario.setLayout(new GridBagLayout());
-        GridBagConstraints gf = new GridBagConstraints();
-        gf.fill = GridBagConstraints.HORIZONTAL;
-        gf.weightx = 1.0;
-        gf.gridx = 0;
-        int r = 0;
+        // ── DISTRIBUCIÓN ──────────────────────────────────────────────
+        gc.gridx = 0;
+        gc.weightx = 0.35;
+        gc.insets = new Insets(0, 0, 0, 10);
+        pnlCuerpo.add(pnlFormulario, gc);
 
-        java.util.function.BiFunction<JLabel, Component, JPanel> crearCampo = (lbl, cmp) -> {
-            JPanel p = new JPanel(new BorderLayout(0, 8));
-            p.setOpaque(false);
-            p.add(lbl, BorderLayout.NORTH);
-            p.add(cmp, BorderLayout.CENTER);
-            return p;
-        };
+        gc.gridx = 1;
+        gc.weightx = 0.65;
+        gc.insets = new Insets(0, 10, 0, 0);
+        pnlCuerpo.add(pnlDerechoWrapper, gc);
 
-        gf.insets = new Insets(0, 0, 28, 0);
+        pnlContenedorBlanco.add(pnlCuerpo, BorderLayout.CENTER);
+        add(pnlContenedorBlanco, BorderLayout.CENTER);
 
-        gf.gridy = r++;
-        pnlFormulario.add(crearCampo.apply(lblUsername, txtUsername), gf);
-        
-        gf.gridy = r++;
-        pnlFormulario.add(crearCampo.apply(lblPassword, txtPassword), gf);
-        
-        gf.gridy = r++;
-        pnlFormulario.add(crearCampo.apply(lblRol, cbxRol), gf);
-
-        // Botones
-        pnlBotonesEdicion.setOpaque(false);
-        pnlBotonesEdicion.setLayout(new GridLayout(1, 2, 16, 0));
-        pnlBotonesEdicion.add(btnEliminar);
-        pnlBotonesEdicion.add(btnGuardar);
-
-        gf.gridy = r++;
-        gf.insets = new Insets(16, 0, 0, 0);
-        pnlFormulario.add(pnlBotonesEdicion, gf);
-
-        // Spacer elástico
-        gf.gridy = r++;
-        gf.weighty = 1.0;
-        gf.fill = GridBagConstraints.VERTICAL;
-        gf.insets = new Insets(0, 0, 0, 0);
-        pnlFormulario.add(new JPanel() {{ setOpaque(false); }}, gf);
+        // ── FOOTER ──────────────────────────────────────────────────────
+        pnlFooter.setBackground(C_FONDO);
+        pnlFooter.setBorder(new EmptyBorder(6, 12, 10, 12));
+        pnlFooter.setLayout(new BorderLayout());
+        add(pnlFooter, BorderLayout.SOUTH);
     }
     
     private JPanel crearCardRol(String titulo, String descripcion, Color color) {
         JPanel card = new JPanel();
-        card.setLayout(new BorderLayout(0, 12));
+        card.setLayout(new BorderLayout(0, 4));
         card.setBackground(C_CARD_BG);
         card.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(225, 230, 240), 1),
-            new EmptyBorder(16, 18, 16, 18)
+            new EmptyBorder(8, 12, 8, 12)
         ));
         
         JLabel lblTitulo = new JLabel(titulo);
-        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblTitulo.setForeground(color);
         
-        JLabel lblDesc = new JLabel("<html>" + descripcion.replace("\n", "<br>") + "</html>");
-        lblDesc.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        JLabel lblDesc = new JLabel(descripcion);
+        lblDesc.setFont(new Font("Segoe UI", Font.PLAIN, 10));
         lblDesc.setForeground(C_TEXTO_SUAVE);
         
         card.add(lblTitulo, BorderLayout.NORTH);
@@ -433,23 +407,22 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
         return card;
     }
 
-    private void estilizarCampo(javax.swing.JTextField tf, boolean ancho) {
-        tf.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+    private void estilizarCampo(javax.swing.JTextField tf) {
+        tf.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         tf.setBackground(C_CAMPO);
         tf.setForeground(C_TEXTO_FUERTE);
         tf.setCaretColor(C_AZUL_MEDIO);
         tf.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
-            new EmptyBorder(8, 12, 8, 12)
+            new EmptyBorder(6, 10, 6, 10)
         ));
-        tf.setPreferredSize(new Dimension(0, 42));
 
         tf.addFocusListener(new java.awt.event.FocusAdapter() {
             @Override
             public void focusGained(java.awt.event.FocusEvent evt) {
                 tf.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createMatteBorder(0, 0, 2, 0, C_AZUL_MEDIO),
-                    new EmptyBorder(8, 12, 8, 12)
+                    new EmptyBorder(6, 10, 6, 10)
                 ));
                 tf.setBackground(C_BLANCO);
             }
@@ -457,9 +430,39 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
             public void focusLost(java.awt.event.FocusEvent evt) {
                 tf.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
-                    new EmptyBorder(8, 12, 8, 12)
+                    new EmptyBorder(6, 10, 6, 10)
                 ));
                 tf.setBackground(C_CAMPO);
+            }
+        });
+    }
+
+    private void estilizarCampoPassword(javax.swing.JPasswordField pf) {
+        pf.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        pf.setBackground(C_CAMPO);
+        pf.setForeground(C_TEXTO_FUERTE);
+        pf.setCaretColor(C_AZUL_MEDIO);
+        pf.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
+            new EmptyBorder(6, 10, 6, 10)
+        ));
+
+        pf.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                pf.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createMatteBorder(0, 0, 2, 0, C_AZUL_MEDIO),
+                    new EmptyBorder(6, 10, 6, 10)
+                ));
+                pf.setBackground(C_BLANCO);
+            }
+            @Override
+            public void focusLost(java.awt.event.FocusEvent evt) {
+                pf.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
+                    new EmptyBorder(6, 10, 6, 10)
+                ));
+                pf.setBackground(C_CAMPO);
             }
         });
     }
@@ -468,7 +471,7 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
         btn.setText(texto);
         btn.setBackground(bg);
         btn.setForeground(C_BLANCO);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
         btn.setOpaque(true);
@@ -486,9 +489,9 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
         btn.setContentAreaFilled(false);
         btn.setOpaque(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(0, 0, 0, 16));
+        btn.setBorder(new EmptyBorder(0, 0, 0, 12));
 
-        ImageIcon ico = icon("/reportes/img/flecha_icon.png", 40, 40);
+        ImageIcon ico = icon("/reportes/img/flecha_icon.png", 34, 34);
         if (ico != null) {
             btn.setIcon(ico);
         }
@@ -514,6 +517,9 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
                 setBorder(new EmptyBorder(0, 10, 0, 10));
                 if (!sel) {
                     setBackground(row % 2 == 0 ? C_BLANCO : C_FILA_PAR);
+                    setForeground(C_TEXTO_FUERTE);
+                } else {
+                    setBackground(C_SELECCION);
                     setForeground(C_TEXTO_FUERTE);
                 }
                 return this;
@@ -557,7 +563,6 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
     // ══════════════════════════════════════════════════════════════════
     @SuppressWarnings("unchecked")
     private void initComponents() {
-
         pnlHeader = new JPanel();
         lblTituloHeader = new JLabel("GESTIÓN DE USUARIOS Y ACCESOS");
         btnVolver = new javax.swing.JButton();
@@ -602,12 +607,10 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
 
         setLayout(new BorderLayout());
 
-        // HEADER
         pnlHeader.setLayout(new BorderLayout());
         JPanel pnlIzqHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         pnlIzqHeader.setOpaque(false);
         pnlIzqHeader.add(btnVolver);
-        lblTituloHeader.setHorizontalAlignment(SwingConstants.LEFT);
         lblTituloHeader.setBorder(new EmptyBorder(0, 10, 0, 0));
         pnlIzqHeader.add(lblTituloHeader);
         pnlHeader.add(pnlIzqHeader, BorderLayout.WEST);

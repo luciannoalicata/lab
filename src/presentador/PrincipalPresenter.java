@@ -1,5 +1,6 @@
 package presentador;
 
+import dao.ConfiguracionDAO; // <-- Importación necesaria
 import modelo.Usuario;
 import presentador.router.AppRouter;
 import vista.interfaces.IVistaPrincipal;
@@ -12,14 +13,17 @@ public class PrincipalPresenter {
     private final IVistaPrincipal vp;
     private final AppRouter router;
     private final Usuario usuarioLogueado;
+    private final ConfiguracionDAO configuracionDAO; // <-- Declaración agregada
     private boolean permisoModificacion;
     private boolean permisoCargaPacientes;
     private boolean permisoCargaAnalisis;
 
-    public PrincipalPresenter(IVistaPrincipal vp, AppRouter router, Usuario usuarioLogueado) {
+    // <-- Constructor actualizado para recibir el DAO
+    public PrincipalPresenter(IVistaPrincipal vp, AppRouter router, Usuario usuarioLogueado, ConfiguracionDAO configuracionDAO) {
         this.vp = vp;
         this.router = router;
         this.usuarioLogueado = usuarioLogueado;
+        this.configuracionDAO = configuracionDAO;
     }
 
     public void iniciar() {
@@ -46,7 +50,7 @@ public class PrincipalPresenter {
         vp.habilitarBotonAuditoria(isAdmin);
         vp.habilitarBotonAjustes(isAdmin);
 
-        vp.ejecutar();
+    vp.ejecutar();
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -102,19 +106,30 @@ public class PrincipalPresenter {
     }
 
     private void ejecutarBackupYSalir(boolean salirCompletamente) {
-        // 1. Mostramos el cartel de espera para que el usuario no toque nada
         vp.mostrarAvisoBackup(true);
 
-        // 2. Definimos dónde se guardará (ej: /home/tu_usuario/Documentos/BiotecBackups)
-        String rutaDirectorio = System.getProperty("user.home") + "/Documentos/BiotecBackups";
-        File dir = new File(rutaDirectorio);
-        if (!dir.exists()) {
-            dir.mkdirs(); // Crea la carpeta si es la primera vez
+        // 1. Obtenemos la ruta configurada dinámicamente desde la Base de Datos
+        String rutaConfigurada = configuracionDAO.getValor("ruta_backup"); 
+        
+        String rutaDirectorio;
+
+        // 2. Red de seguridad: Si el usuario borró la ruta en ajustes o está vacía, usamos Mis Documentos por defecto
+        if (rutaConfigurada == null || rutaConfigurada.trim().isEmpty()) {
+            String rutaMisDocumentos = javax.swing.filechooser.FileSystemView.getFileSystemView().getDefaultDirectory().getPath();
+            rutaDirectorio = rutaMisDocumentos + java.io.File.separator + "BIOTEC_Backups_Default";
+        } else {
+            // Usamos EXACTAMENTE la ruta que el usuario guardó en Ajustes
+            rutaDirectorio = rutaConfigurada; 
         }
 
-        // 3. Ejecutamos el backup en un Hilo separado para no congelar la pantalla visual
+        java.io.File dir = new java.io.File(rutaDirectorio);
+        if (!dir.exists()) {
+            dir.mkdirs(); // Si la carpeta definida en Ajustes no existe en el disco, la crea.
+        }
+
+        // 3. Ejecutamos el backup en un Hilo separado
         new Thread(() -> {
-            boolean backupExitoso = BackupService.crearBackup(rutaDirectorio);
+            boolean backupExitoso = servicio.BackupService.crearBackup(rutaDirectorio);
 
             // 4. Volvemos al hilo visual de Swing para cerrar las cosas
             SwingUtilities.invokeLater(() -> {
@@ -125,7 +140,7 @@ public class PrincipalPresenter {
                 }
 
                 if (salirCompletamente) {
-                    System.exit(0); // Apaga la JVM
+                    System.exit(0); 
                 } else {
                     vp.cerrarPantalla();
                     router.cerrarSesion(); // Vuelve al login
