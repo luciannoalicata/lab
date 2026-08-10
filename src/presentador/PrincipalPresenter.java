@@ -82,6 +82,10 @@ public class PrincipalPresenter {
     public void onAuditoria() {
         router.irAAuditoria();
     }
+    
+    public void onEstadisticas() {
+        router.irAEstadisticas();
+    }
 
     public void onCerrarSesion() {
         int confirmacion = vp.confirmarAccion("¿Está seguro de que desea cerrar sesión?", "Cerrar Sesión");

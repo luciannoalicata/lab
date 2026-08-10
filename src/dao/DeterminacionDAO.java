@@ -292,4 +292,42 @@ public class DeterminacionDAO {
             return false;
         }
     }
+
+    public List<String> obtenerSugerenciasPorNombreOCodigo(String busqueda) {
+        List<String> sugerencias = new ArrayList<>();
+        String sql = """
+        SELECT codigo, nombre FROM determinacion 
+        WHERE codigo LIKE ? OR nombre LIKE ? 
+        ORDER BY nombre ASC LIMIT 10
+    """;
+        String filtro = "%" + busqueda + "%";
+        try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
+            ps.setString(1, filtro);
+            ps.setString(2, filtro);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    sugerencias.add(rs.getString("nombre") + " (" + rs.getString("codigo") + ")");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return sugerencias;
+    }
+  
+    // DeterminacionDAO.java
+    public String obtenerNombrePorCodigo(String codigo) {
+        String sql = "SELECT nombre FROM determinacion WHERE codigo = ? LIMIT 1";
+        try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
+            ps.setString(1, codigo);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getString("nombre");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
 }

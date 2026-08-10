@@ -10,6 +10,11 @@ public class DAOFactory {
     public MedicoDAO getMedicoDAO() {
         return new MedicoDAO(con);
     }
+    
+    public EstadisticaDAO getEstadisticaDAO(){
+        return new EstadisticaDAO(con);
+    }
+    
     public PacienteDAO getPacienteDAO() {
         return new PacienteDAO(con);
     }

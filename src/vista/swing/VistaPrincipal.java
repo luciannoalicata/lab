@@ -37,6 +37,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
     private javax.swing.JButton btnObrasSociales;
     private javax.swing.JButton btnAjustes;
     private javax.swing.JButton btnPacientes;
+    private javax.swing.JButton btnEstadisticas;
     private javax.swing.JButton btnCerrarSesion;
 
     private javax.swing.JLabel lblNombreUsuario;
@@ -67,6 +68,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         btnAnalisis.addActionListener(e -> presenter.onAnalisis());
         btnMedicos.addActionListener(e -> presenter.onMedicos());
         btnObrasSociales.addActionListener(e -> presenter.onObrasSociales());
+        btnEstadisticas.addActionListener(e -> presenter.onEstadisticas());
         btnNBU.addActionListener(e -> presenter.onNBU());
         btnAjustes.addActionListener(e -> presenter.onAjustes());
         btnGestionUsuarios.addActionListener(e -> presenter.onGestionUsuarios());
@@ -260,6 +262,8 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
             panel.add(Box.createVerticalStrut(10));
             panel.add(crearBotonMenu(btnObrasSociales, "OBRAS SOCIALES", "Coberturas y aranceles", "obs_icon.png"));
         } else {
+            panel.add(crearBotonMenu(btnEstadisticas, "ESTADÍSTICAS", "Dashboard y reportes", "estadisticas_icon.png"));
+            panel.add(Box.createVerticalStrut(10));
             panel.add(crearBotonMenu(btnNBU, "NBU", "Prácticas", "nbu_icon.png"));
             panel.add(Box.createVerticalStrut(10));
             panel.add(crearBotonMenu(btnAuditoria, "AUDITORÍA", "Seguridad y eventos", "auditoria_icon.png"));
@@ -578,6 +582,12 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
             btnObrasSociales.setEnabled(b);
         }
     }
+    
+    public void habilitarBotonEstadisticas(boolean b) {
+        if (btnEstadisticas != null) {
+            btnEstadisticas.setEnabled(b);
+        }
+    }
 
     @Override
     public void habilitarBotonNBU(boolean b) {
@@ -757,6 +767,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         btnAnalisis = new JButton();
         btnMedicos = new JButton();
         btnObrasSociales = new JButton();
+        btnEstadisticas = new JButton();
         btnNBU = new JButton();
         btnAjustes = new JButton();
         btnGestionUsuarios = new JButton();

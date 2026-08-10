@@ -1,0 +1,10 @@
+ACUERDO DE LICENCIA DE SOFTWARE - BIOTEC
+
+Este software es propiedad intelectual y está protegido por las leyes de derecho de autor. 
+Al instalar este software, usted acepta los términos y condiciones de uso establecidos 
+por el desarrollador. Queda prohibida la redistribución, ingeniería inversa o 
+uso no autorizado del código fuente. 
+
+El uso de este sistema es exclusivo para el laboratorio clínico autorizado bajo la 
+licencia adquirida. El desarrollador no se hace responsable por la pérdida de datos 
+derivada de un mantenimiento inadecuado de la base de datos o hardware local.

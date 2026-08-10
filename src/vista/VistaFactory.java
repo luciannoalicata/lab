@@ -10,6 +10,10 @@ public class VistaFactory {
     public IVistaPrincipal getVistaPrincipal() {
         return new VistaPrincipal(); 
     }
+    
+    public IVistaEstadistica getVistaEstadistica(){
+        return new VistaEstadistica();
+    }
 
     public IVistaLogin getVistaLogin() {
         return new VistaLogin();

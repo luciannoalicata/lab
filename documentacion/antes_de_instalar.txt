@@ -1,0 +1,8 @@
+BIOTEC - ASISTENTE DE INSTALACIÓN
+
+Antes de continuar, asegúrese de cumplir con los siguientes requisitos previos para 
+un correcto funcionamiento del sistema:
+
+1. Base de Datos: Verifique que MySQL Server esté instalado y en ejecución en el servidor.
+2. Red: Asegúrese de que las computadoras cliente tengan acceso a la dirección IP del servidor.
+3. Permisos: Ejecute este instalador como Administrador.

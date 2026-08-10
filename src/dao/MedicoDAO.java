@@ -10,7 +10,7 @@ import modelo.Medico;
 
 public class MedicoDAO {
 
-    private Conexion con;
+    private final Conexion con;
 
     public MedicoDAO(Conexion con) {
         this.con = con;

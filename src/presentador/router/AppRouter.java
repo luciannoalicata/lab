@@ -3,6 +3,8 @@ package presentador.router;
 // @author lucianoalicata
 
 import dao.DAOFactory;
+import dao.EstadisticaDAO;
+import javax.swing.JPanel;
 import modelo.Paciente;
 import modelo.Usuario;
 import presentador.*;
@@ -23,6 +25,7 @@ public class AppRouter {
     private MedicoPresenter medicoPresenter;
     private PacientePresenter pacientePresenter;
     private ObraSocialPresenter osPresenter;
+    private EstadisticasPresenter estadisticasPresenter;
     private HistorialPresenter historialPresenter;
     private DetalleAnalisisPresenter detallePresenter;
     private AnalisisPresenter analisisPresenter;
@@ -46,7 +49,7 @@ public class AppRouter {
     }
 
     public void irAInicio() {
-        vp.desactivarModoInmersion(); 
+        vp.desactivarModoInmersion();
         vp.volverInicio();
         vp.limpiarFocos();
     }
@@ -151,6 +154,30 @@ public class AppRouter {
         historialPresenter.iniciar();
         vp.activarModoInmersion();
         vp.mostrarSeccion("historial_analisis");
+        vp.limpiarFocos();
+    }
+
+    public void irAEstadisticas() {
+        if (this.estadisticasPresenter != null) {
+            this.estadisticasPresenter = null;
+        }
+
+        IVistaEstadistica vistaEstadistica = vistaFactory.getVistaEstadistica();
+        vp.registrarPanel((JPanel) vistaEstadistica, "estadisticas");
+
+        this.estadisticasPresenter = new EstadisticasPresenter(
+                vistaEstadistica,
+                daoFactory.getEstadisticaDAO(),
+                daoFactory.getObraSocialDAO(),
+                daoFactory.getMedicoDAO(),
+                daoFactory.getDeterminacionDAO(), // NUEVO
+                daoFactory.getResultadoDAO(), // NUEVO
+                this
+        );
+
+        this.estadisticasPresenter.iniciar();
+        vp.activarModoInmersion();
+        vp.mostrarSeccion("estadisticas");
         vp.limpiarFocos();
     }
 

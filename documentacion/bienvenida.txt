@@ -1,0 +1,11 @@
+¡INSTALACIÓN COMPLETADA CON ÉXITO!
+
+El sistema BIOTEC ha sido instalado correctamente en su equipo.
+
+Pasos siguientes:
+1. Localice el acceso directo "BIOTEC" en su escritorio.
+2. Al ejecutarlo por primera vez, verifique la conexión con el servidor.
+3. Ingrese con sus credenciales de usuario.
+
+Ante cualquier inconveniente, comuníquese con el soporte técnico oficial.
+BIOTEC.
