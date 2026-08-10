@@ -1,5 +1,7 @@
 package vista.swing;
 
+// @author lucianoalicata
+
 import vista.interfaces.IVistaAnalisis;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -35,7 +37,6 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
     private AnalisisPresenter presenter;
     private boolean cargandoDatos = false;
     
-    // ── Paleta BIOTEC Profesional ────────────────────────────────────
     private final Color C_NAVY         = new Color(10, 25, 47);    
     private final Color C_FONDO        = new Color(238, 242, 246);
     private final Color C_BLANCO       = Color.WHITE;
@@ -50,9 +51,7 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
     private final Color C_FILA_PAR     = new Color(252, 254, 255);
     private final Color C_HEADER_TEXT  = new Color(175, 205, 235);
     private final Color C_SELECCION    = new Color(220, 235, 250);
-    private final Color C_CAMPO        = new Color(250, 252, 254);
 
-    // Componentes
     private JPanel pnlHeader, pnlContenedorBlanco, pnlCuerpo, pnlFooter, pnlTablaWrapper;
     private JLabel lblTituloHeader, lblContador, lblTituloTabla;
     private JButton btnVerDetallesAnalisis, btnImprimirAnalisis, btnVolver;
@@ -68,10 +67,6 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
         aplicarEstiloProfesional();
         setMinimumSize(new Dimension(900, 550));
     }
-
-    // ══════════════════════════════════════════════════════════════════
-    //  INTERFAZ IVistaAnalisis - MÉTODOS MVP
-    // ══════════════════════════════════════════════════════════════════
 
     @Override
     public void setPresenter(AnalisisPresenter presenter) {
@@ -186,14 +181,11 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
         return a;
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  ESTILO Y UX - Diseño Profesional y Responsive
-    // ══════════════════════════════════════════════════════════════════
+
     private void aplicarEstiloProfesional() {
         setBackground(C_FONDO);
         setLayout(new BorderLayout());
 
-        // ── HEADER ──────────────────────────────────────────────────────
         pnlHeader.setBackground(C_NAVY);
         pnlHeader.setBorder(new EmptyBorder(10, 20, 10, 20));
         pnlHeader.setLayout(new BorderLayout());
@@ -219,7 +211,6 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
 
         add(pnlHeader, BorderLayout.NORTH);
 
-        // ── CONTENEDOR PRINCIPAL ──────────────────────────────────────
         pnlContenedorBlanco = new JPanel(new BorderLayout());
         pnlContenedorBlanco.setBackground(C_BLANCO);
         pnlContenedorBlanco.setBorder(BorderFactory.createCompoundBorder(
@@ -227,11 +218,9 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
             new EmptyBorder(10, 12, 10, 12)
         ));
 
-        // ── CUERPO ──────────────────────────────────────────────────────
         pnlCuerpo.setBackground(C_BLANCO);
         pnlCuerpo.setLayout(new BorderLayout());
 
-        // ── TABLA WRAPPER ──────────────────────────────────────────────
         pnlTablaWrapper.setBackground(C_BLANCO);
         pnlTablaWrapper.setBorder(BorderFactory.createCompoundBorder(
             new EmptyBorder(0, 0, 0, 0),
@@ -264,7 +253,6 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
         jScrollPane1.setBorder(BorderFactory.createEmptyBorder());
         jScrollPane1.getViewport().setBackground(C_BLANCO);
 
-        // Contador de registros
         lblContador.setForeground(C_TEXTO_SUAVE);
         lblContador.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblContador.setBorder(new EmptyBorder(8, 14, 8, 14));
@@ -283,7 +271,6 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
         pnlContenedorBlanco.add(pnlCuerpo, BorderLayout.CENTER);
         add(pnlContenedorBlanco, BorderLayout.CENTER);
 
-        // ── FOOTER ──────────────────────────────────────────────────────
         pnlFooter.setBackground(C_FONDO);
         pnlFooter.setBorder(new EmptyBorder(6, 12, 10, 12));
         pnlFooter.setLayout(new BorderLayout());
@@ -298,7 +285,6 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
         pnlFooter.add(pnlFooterAcciones, BorderLayout.EAST);
         add(pnlFooter, BorderLayout.SOUTH);
 
-        // ── ESTILIZAR CAMPOS ──────────────────────────────────────────
         estilizarCampoBuscador(txtBuscar);
         configurarBotonRetroceso(btnVolver);
         
@@ -365,10 +351,7 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
         } catch (Exception e) { }
         return null;
     }
-
-    // ══════════════════════════════════════════════════════════════
-    //  RENDERERS DE TABLA
-    // ══════════════════════════════════════════════════════════════
+    
     private void aplicarRenderers() {
         DefaultTableCellRenderer renderizadorColores = new DefaultTableCellRenderer() {
             @Override
@@ -376,9 +359,11 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
                     boolean isSelected, boolean hasFocus, int row, int column) {
                 super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
-                if (column == 0 || column == 1 || column == 3) setHorizontalAlignment(SwingConstants.CENTER);
-                else if (column == 5) setHorizontalAlignment(SwingConstants.RIGHT);
-                else setHorizontalAlignment(SwingConstants.LEFT);
+                switch (column) {
+                    case 0, 1, 3 -> setHorizontalAlignment(SwingConstants.CENTER);
+                    case 5 -> setHorizontalAlignment(SwingConstants.RIGHT);
+                    default -> setHorizontalAlignment(SwingConstants.LEFT);
+                }
 
                 setBorder(new EmptyBorder(0, 10, 0, 10));
 
@@ -417,9 +402,6 @@ public class VistaAnalisis extends JPanel implements IVistaAnalisis {
         grillaAnalisis.getColumnModel().getColumn(6).setMaxWidth(100);
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  UI BUILDER
-    // ══════════════════════════════════════════════════════════════════
     private void initComponents() {
         pnlHeader = new JPanel();
         lblTituloHeader = new JLabel("HISTORIAL GLOBAL DE ANÁLISIS");

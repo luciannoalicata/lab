@@ -1,5 +1,7 @@
 package presentador;
 
+// @author lucianoalicata
+
 import dao.AnalisisDAO;
 import dao.AuditoriaDAO;
 import dao.ConfiguracionDAO;
@@ -38,18 +40,18 @@ public class DetalleAnalisisPresenter {
     private int idAnalisisActual;
     private Paciente pacienteActual;
     private String medicoOriginal;
-    private Map<Integer, String> valoresOriginales;
+    private final Map<Integer, String> valoresOriginales;
     private boolean estaGuardando = false;
-    private String origen; 
+    private String origen;
     public static final String ORIGEN_HISTORIAL = "HISTORIAL";
     public static final String ORIGEN_LISTADO = "LISTADO";
 
     public DetalleAnalisisPresenter(IVistaVerDetalleAnalisis vista, AppRouter router,
-                                    AnalisisDAO analisisDAO, ResultadoAnalisisDAO resultadoDAO,
-                                    PacienteDAO pacienteDAO, DeterminacionDAO determinacionDAO,
-                                    AuditoriaDAO auditoriaDAO, ConfiguracionDAO configDAO,
-                                    MedicoDAO medicoDAO, Usuario usuarioLogueado,
-                                    ReporteService reporteService) {
+            AnalisisDAO analisisDAO, ResultadoAnalisisDAO resultadoDAO,
+            PacienteDAO pacienteDAO, DeterminacionDAO determinacionDAO,
+            AuditoriaDAO auditoriaDAO, ConfiguracionDAO configDAO,
+            MedicoDAO medicoDAO, Usuario usuarioLogueado,
+            ReporteService reporteService) {
         this.vista = vista;
         this.router = router;
         this.analisisDAO = analisisDAO;
@@ -70,7 +72,9 @@ public class DetalleAnalisisPresenter {
         vista.setPresenter(this);
 
         Analisis analisis = analisisDAO.buscarPorId(idAnalisisActual);
-        if (analisis == null) return;
+        if (analisis == null) {
+            return;
+        }
 
         this.pacienteActual = pacienteDAO.buscarPorId(analisis.getIdPaciente());
         this.medicoOriginal = analisis.getMedicoSolicitante();
@@ -83,9 +87,9 @@ public class DetalleAnalisisPresenter {
             vista.bloquearEdicionTabla();
         }
 
-        String nombreCompleto = (pacienteActual != null) 
-            ? pacienteActual.getApellido() + " " + pacienteActual.getNombre() 
-            : "Desconocido";
+        String nombreCompleto = (pacienteActual != null)
+                ? pacienteActual.getApellido() + " " + pacienteActual.getNombre()
+                : "Desconocido";
         vista.setNombrePaciente(nombreCompleto);
 
         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm");
@@ -133,9 +137,7 @@ public class DetalleAnalisisPresenter {
         return r;
     }
 
-    // ── LÓGICA DE COMPARACIÓN BLINDADA (REEMPLAZAR TODO ESTE BLOQUE) ──
     private boolean hayCambios() {
-        // 1. Verificación del médico (Comparamos solo la matrícula o el texto base)
         String medicoActual = extraerMatricula(vista.getMedicoSolicitante());
         String medicoOrig = extraerMatricula(medicoOriginal);
 
@@ -143,22 +145,25 @@ public class DetalleAnalisisPresenter {
             return true;
         }
 
-        // 2. Verificación de los resultados en la grilla
         for (int i = 0; i < vista.getCantidadFilas(); i++) {
             int id = vista.getIdResultado(i);
-            if (id == -1) continue; // Salta filas de títulos
+            if (id == -1) {
+                continue;
+            }
 
             String nuevoValor = vista.getResultadoEditado(i);
             String valorOriginal = valoresOriginales.get(id);
 
-            // Normalizamos nulos a cadenas vacías para evitar falsos positivos ("null" vs "")
-            if (nuevoValor == null) nuevoValor = "";
-            if (valorOriginal == null) valorOriginal = "";
+            if (nuevoValor == null) {
+                nuevoValor = "";
+            }
+            if (valorOriginal == null) {
+                valorOriginal = "";
+            }
 
             nuevoValor = nuevoValor.trim();
             valorOriginal = valorOriginal.trim();
 
-            // Limpiamos los formatos numéricos (ej. "1.500,50" -> "1500,50")
             String nuevoValorLimpio = limpiarFormatoNumero(nuevoValor);
             String valorOriginalLimpio = limpiarFormatoNumero(valorOriginal);
 
@@ -173,33 +178,28 @@ public class DetalleAnalisisPresenter {
         if (valor == null || valor.isEmpty()) {
             return "";
         }
-        // Si tiene formato de miles con puntos, los sacamos para comparar el valor real
         if (valor.matches("^-?\\d{1,3}(\\.\\d{3})*(,\\d+)?$")) {
             return valor.replace(".", "");
         }
         return valor;
     }
 
-    // Método auxiliar para pelar el nombre del médico y dejar solo la matrícula
     private String extraerMatricula(String texto) {
-        if (texto == null || texto.trim().isEmpty()) return "";
+        if (texto == null || texto.trim().isEmpty()) {
+            return "";
+        }
         String limpio = texto.trim();
-        
-        // Buscamos el formato "Nombre Apellido (mp. 1234)"
+
         if (limpio.contains("(mp.")) {
             try {
-                // Extrae todo lo que está después de "(mp. " y antes del ")"
                 limpio = limpio.substring(limpio.indexOf("(mp.") + 4, limpio.indexOf(")")).trim();
             } catch (Exception e) {
-                // Si el formato es raro, no hacemos nada y dejamos lo que escribió el usuario
             }
         }
         return limpio;
     }
 
-    // ── GUARDADO INTELIGENTE ──
     public void onEditar() {
-        // ── VALIDACIÓN DE FÓRMULA LEUCOCITARIA (SUMA = 100%) ──
         int filas = vista.getCantidadFilas();
         double sumaLeucos = 0;
         boolean tieneFormula = false;
@@ -217,64 +217,83 @@ public class DetalleAnalisisPresenter {
                 if (res != null && !res.trim().isEmpty()) {
                     tieneFormula = true;
                     try {
-                        String clean = res.replace(",", "."); // Homogeneizar decimales
+                        String clean = res.replace(",", ".");
                         sumaLeucos += Double.parseDouble(clean.replaceAll("[^0-9.]", ""));
-                    } catch (Exception e) {
+                    } catch (NumberFormatException e) {
                     }
                 }
             }
         }
 
-        // Margen para admitir redondeos (99.0 a 101.0)
         if (tieneFormula && (sumaLeucos < 99.0 || sumaLeucos > 101.0)) {
-            vista.mostrarMensaje("ERROR EN EL HEMOGRAMA: La suma de la fórmula leucocitaria da " + sumaLeucos + "%.\nDebe ser exactamente 100%. Por favor, revise y corrija los valores.");
+            vista.mostrarMensaje("Error de validación en el Hemograma: La suma de los valores de la fórmula leucocitaria es " + sumaLeucos + "%.\nEl total debe ser exactamente 100%.\nPor favor, revise y corrija las celdas correspondientes antes de guardar los cambios.");
             return;
         }
-        
-        if (estaGuardando) return;
+
+        if (estaGuardando) {
+            return;
+        }
         estaGuardando = true;
 
         try {
             vista.detenerEdicionTabla();
 
             if (!hayCambios()) {
-                vista.mostrarMensaje("No hay cambios para guardar.");
+                vista.mostrarMensaje("No se detectaron modificaciones en los resultados ni en el médico solicitante.");
                 return;
             }
 
             String inputMedico = vista.getMedicoSolicitante();
             String matriculaActual = extraerMatricula(inputMedico);
+
+            if (matriculaActual.isEmpty()) {
+                matriculaActual = "-";
+            } else {
+                modelo.Medico medicoBD = medicoDAO.buscarPorMatricula(matriculaActual);
+                if (medicoBD == null) {
+                    vista.mostrarMensaje("El médico ingresado no se encuentra registrado en el sistema.\nPor favor, seleccione un profesional válido de la lista sugerida o deje el campo vacío.");
+                    return; 
+                }
+            }
+
             String matriculaOrig = extraerMatricula(medicoOriginal);
 
             StringBuilder bitacoraCambios = new StringBuilder();
             int totalActualizados = 0;
             boolean error = false;
 
-            // --- ACTUALIZAR RESULTADOS ---
             for (int i = 0; i < vista.getCantidadFilas(); i++) {
                 int id = vista.getIdResultado(i);
-                if (id == -1) continue;
+                if (id == -1) {
+                    continue;
+                }
 
                 String nuevoValor = vista.getResultadoEditado(i);
-                if (nuevoValor == null) nuevoValor = "";
+                if (nuevoValor == null) {
+                    nuevoValor = "";
+                }
                 nuevoValor = nuevoValor.trim();
 
                 String valorAnterior = valoresOriginales.get(id);
-                if (valorAnterior == null) valorAnterior = "";
+                if (valorAnterior == null) {
+                    valorAnterior = "";
+                }
                 valorAnterior = valorAnterior.trim();
 
                 String nuevoLimpio = limpiarFormatoNumero(nuevoValor);
                 String anteriorLimpio = limpiarFormatoNumero(valorAnterior);
 
                 if (!anteriorLimpio.equals(nuevoLimpio)) {
-                    ResultadoAnalisis r = resultadoDAO.buscarPorId(id);
+                    modelo.ResultadoAnalisis r = resultadoDAO.buscarPorId(id);
                     if (r != null) {
                         if (resultadoDAO.actualizarResultado(id, nuevoValor)) {
                             totalActualizados++;
-                            if (bitacoraCambios.length() > 0) bitacoraCambios.append("\n");
+                            if (bitacoraCambios.length() > 0) {
+                                bitacoraCambios.append("\n");
+                            }
                             bitacoraCambios.append(r.getNombrePrueba())
-                                .append(": ").append(valorAnterior.isEmpty() ? "[Vacío]" : valorAnterior)
-                                .append(" -> ").append(nuevoValor.isEmpty() ? "[Vacío]" : nuevoValor);
+                                    .append(": ").append(valorAnterior.isEmpty() ? "[Vacío]" : valorAnterior)
+                                    .append(" -> ").append(nuevoValor.isEmpty() ? "[Vacío]" : nuevoValor);
                             valoresOriginales.put(id, nuevoValor);
                         } else {
                             error = true;
@@ -283,17 +302,17 @@ public class DetalleAnalisisPresenter {
                 }
             }
 
-            // --- ACTUALIZAR MÉDICO ---
             boolean medicoActualizado = false;
             if (!matriculaActual.equals(matriculaOrig)) {
                 if (analisisDAO.actualizarMedico(idAnalisisActual, matriculaActual)) {
                     medicoActualizado = true;
-                    if (bitacoraCambios.length() > 0) bitacoraCambios.append("\n");
+                    if (bitacoraCambios.length() > 0) {
+                        bitacoraCambios.append("\n");
+                    }
                     bitacoraCambios.append("Médico: ").append(matriculaOrig.isEmpty() ? "[Vacío]" : matriculaOrig)
-                                   .append(" -> ").append(matriculaActual);
-                    
-                    // Actualizamos la referencia original a lo que dice el campo de texto exacto
-                    medicoOriginal = inputMedico; 
+                            .append(" -> ").append(matriculaActual);
+
+                    medicoOriginal = matriculaActual.equals("-") ? "" : inputMedico; 
                 } else {
                     error = true;
                 }
@@ -301,43 +320,46 @@ public class DetalleAnalisisPresenter {
 
             if (!error) {
                 if (bitacoraCambios.length() > 0) {
-                    auditoriaDAO.registrar(usuarioLogueado, "EDITAR", "resultado", 
-                        idAnalisisActual, "Valores anteriores", bitacoraCambios.toString(),
-                        "Edición de resultados - Análisis ID: " + idAnalisisActual);
+                    auditoriaDAO.registrar(usuarioLogueado, "EDITAR", "resultado",
+                            idAnalisisActual, "Valores anteriores", bitacoraCambios.toString(),
+                            "Edición de resultados - Análisis ID: " + idAnalisisActual);
                 }
 
-                String mensaje = "Cambios guardados exitosamente";
-                if (totalActualizados > 0) mensaje += "\nSe actualizaron " + totalActualizados + " resultado(s)";
-                if (medicoActualizado) mensaje += "\nSe actualizó el médico solicitante";
-                
+                String mensaje = "Cambios guardados exitosamente.";
+                if (totalActualizados > 0) {
+                    mensaje += "\n• Se actualizaron " + totalActualizados + " resultado(s).";
+                }
+                if (medicoActualizado) {
+                    mensaje += "\n• Se actualizó el médico solicitante.";
+                }
+
                 vista.mostrarMensaje(mensaje);
                 router.refrescarVistasAnalisisAbiertas();
             } else {
-                vista.mostrarMensaje("✗ Error al guardar algunos cambios. Verifique e intente nuevamente.");
+                vista.mostrarMensaje("Ocurrió un error al intentar guardar algunos registros.\nPor favor, verifique su conexión e intente nuevamente.");
             }
         } finally {
             estaGuardando = false;
         }
     }
-    
+
     private void cargarTablaConTitulos() {
-    List<ResultadoAnalisis> resultados = resultadoDAO.listarPorAnalisis(idAnalisisActual);
-    valoresOriginales.clear();
-    
-    for (ResultadoAnalisis r : resultados) {
-        // Guardar valor original limpio (sin formato)
-        String valorLimpio = limpiarFormatoNumero(r.getResultado());
-        valoresOriginales.put(r.getIdResultado(), valorLimpio);
+        List<ResultadoAnalisis> resultados = resultadoDAO.listarPorAnalisis(idAnalisisActual);
+        valoresOriginales.clear();
+
+        for (ResultadoAnalisis r : resultados) {
+            String valorLimpio = limpiarFormatoNumero(r.getResultado());
+            valoresOriginales.put(r.getIdResultado(), valorLimpio);
+        }
+
+        List<ResultadoAnalisis> conTitulos = inyectarTitulos(resultados);
+        vista.cargarResultadosDetalle(new ArrayList<>(conTitulos));
     }
 
-    List<ResultadoAnalisis> conTitulos = inyectarTitulos(resultados);
-    vista.cargarResultadosDetalle(new ArrayList<>(conTitulos));
-}
-
-
-
     public void onEliminarFila() {
-        if (estaGuardando) return;
+        if (estaGuardando) {
+            return;
+        }
         estaGuardando = true;
 
         try {
@@ -354,35 +376,37 @@ public class DetalleAnalisisPresenter {
             }
 
             ResultadoAnalisis resultado = resultadoDAO.buscarPorId(idResultado);
-            if (resultado == null) return;
+            if (resultado == null) {
+                return;
+            }
 
             List<ResultadoAnalisis> restantes = resultadoDAO.listarIncluidosPorAnalisis(idAnalisisActual);
 
             if (restantes.size() == 1) {
                 int confirmacion = vista.confirmarAccion(
-                    "Esta es la última determinación del análisis.\n" +
-                    "Si continúa, TODO EL ANÁLISIS será eliminado.\n" +
-                    "¿Desea continuar?",
-                    "Eliminar análisis completo"
+                        "Esta es la última determinación del análisis.\n"
+                        + "Si continúa, TODO EL ANÁLISIS será eliminado.\n"
+                        + "¿Desea continuar?",
+                        "Eliminar análisis completo"
                 );
 
                 if (confirmacion == 0) {
-                    String info = "Prueba: " + resultado.getNombrePrueba() + 
-                                 " | Valor: " + resultado.getResultado();
+                    String info = "Prueba: " + resultado.getNombrePrueba()
+                            + " | Valor: " + resultado.getResultado();
                     resultadoDAO.eliminarResultado(idResultado);
                     analisisDAO.eliminar(idAnalisisActual);
                     auditoriaDAO.registrar(usuarioLogueado, "ELIMINAR", "analisis",
-                        idAnalisisActual, "Análisis eliminado: " + info, 
-                        "ELIMINADO", "Eliminación en cascada");
-                    
+                            idAnalisisActual, "Análisis eliminado: " + info,
+                            "ELIMINADO", "Eliminación en cascada");
+
                     vista.mostrarMensaje("Análisis eliminado correctamente");
                     router.cerrarDetalleYRefrescarAnalisis();
                 }
             } else {
                 int confirmacion = vista.confirmarAccion(
-                    "¿Eliminar " + resultado.getNombrePrueba() + "?\n" +
-                    "El precio se recalculará automáticamente",
-                    "Confirmar eliminación"
+                        "¿Eliminar " + resultado.getNombrePrueba() + "?\n"
+                        + "El precio se recalculará automáticamente",
+                        "Confirmar eliminación"
                 );
 
                 if (confirmacion == 0) {
@@ -397,14 +421,14 @@ public class DetalleAnalisisPresenter {
                         analisisDAO.actualizarPrecio(idAnalisisActual, nuevoPrecio);
                     }
 
-                    String info = "Prueba: " + resultado.getNombrePrueba() + 
-                                 " | Valor: " + resultado.getResultado();
-                    
+                    String info = "Prueba: " + resultado.getNombrePrueba()
+                            + " | Valor: " + resultado.getResultado();
+
                     if (resultadoDAO.eliminarResultado(idResultado)) {
                         auditoriaDAO.registrar(usuarioLogueado, "ELIMINAR", "resultado",
-                            idResultado, info, "ELIMINADO", 
-                            "Precio actualizado por eliminación");
-                        
+                                idResultado, info, "ELIMINADO",
+                                "Precio actualizado por eliminación");
+
                         valoresOriginales.remove(idResultado);
                         cargarTablaConTitulos();
                         router.refrescarVistasAnalisisAbiertas();
@@ -418,31 +442,28 @@ public class DetalleAnalisisPresenter {
     }
 
     public void onImprimir() {
-        // 1. Bloqueamos el botón INMEDIATAMENTE para evitar la metralleta de clics
         vista.habilitarBotonImprimir(false);
 
-        // 2. Mandamos el trabajo pesado a un hilo secundario para no congelar la pantalla
         new Thread(() -> {
             try {
                 Date fecha = vista.getFechaSeleccionada();
                 reporteService.generarInforme(idAnalisisActual, fecha);
 
                 if (analisisDAO.cambiarEstadoGenerado(idAnalisisActual)) {
-                    auditoriaDAO.registrar(usuarioLogueado, "IMPRIMIR", "analisis", 
-                        idAnalisisActual, null, "Informe generado", 
-                        "Usuario imprimió desde vista de detalles");
+                    auditoriaDAO.registrar(usuarioLogueado, "IMPRIMIR", "analisis",
+                            idAnalisisActual, null, "Informe generado",
+                            "Usuario imprimió desde vista de detalles");
                 }
 
-                // 3. Volvemos al hilo principal (UI) para mostrar el mensaje y rehabilitar
                 javax.swing.SwingUtilities.invokeLater(() -> {
-                    vista.mostrarMensaje("✓ Informe procesado correctamente");
+                    vista.mostrarMensaje("Informe procesado correctamente");
                     router.refrescarVistasAnalisisAbiertas();
                     vista.habilitarBotonImprimir(true);
                 });
             } catch (Exception e) {
                 e.printStackTrace();
                 javax.swing.SwingUtilities.invokeLater(() -> {
-                    vista.mostrarMensaje("❌ Error al generar el informe.");
+                    vista.mostrarMensaje("Error al generar el informe.");
                     vista.habilitarBotonImprimir(true);
                 });
             }
@@ -451,23 +472,23 @@ public class DetalleAnalisisPresenter {
 
     public void onVolver() {
         vista.detenerEdicionTabla();
-        
+
         if (hayCambios()) {
             int respuesta = vista.confirmarAccion(
-                "Hay cambios sin guardar. ¿Desea guardarlos antes de salir?",
-                "Cambios pendientes"
+                    "Hay cambios sin guardar. ¿Desea guardarlos antes de salir?",
+                    "Cambios pendientes"
             );
-            if (respuesta == 0) { // YES
+            if (respuesta == 0) {
                 onEditar();
                 volverAlOrigen();
-            } else if (respuesta == 1) { // NO
+            } else if (respuesta == 1) {
                 volverAlOrigen();
             }
         } else {
             volverAlOrigen();
         }
     }
-    
+
     private void volverAlOrigen() {
         if (ORIGEN_HISTORIAL.equals(origen)) {
             router.volverAHistorialPaciente(pacienteActual);
@@ -476,7 +497,8 @@ public class DetalleAnalisisPresenter {
         }
     }
 
-    public void onSeleccionarAnalisis() {}
+    public void onSeleccionarAnalisis() {
+    }
 
     public void onBuscarSugerenciasMedicos() {
         String busqueda = vista.getMedicoSolicitante();
@@ -488,18 +510,4 @@ public class DetalleAnalisisPresenter {
         List<String> sugerencias = medicoDAO.obtenerSugerenciasMedicos(busqueda);
         vista.mostrarSugerenciasMedicos(sugerencias);
     }
-    
-
-    // Función auxiliar para evitar detectar cambios cuando solo varía un decimal vacío
-    private boolean esMismoNumero(String str1, String str2) {
-        if (str1.equals(str2)) return true;
-        try {
-            double d1 = Double.parseDouble(str1.replace(",", "."));
-            double d2 = Double.parseDouble(str2.replace(",", "."));
-            return d1 == d2;
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
-
 }

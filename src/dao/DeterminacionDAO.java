@@ -15,7 +15,6 @@ public class DeterminacionDAO {
         this.con = con;
     }
 
-    // Buscar una determinación por código exacto
     public Determinacion buscarPorCodigo(String codigo) {
         String sql = "SELECT * FROM determinacion WHERE codigo = ? AND activo = TRUE";
         try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
@@ -31,7 +30,6 @@ public class DeterminacionDAO {
         return null;
     }
 
-    // Buscar sugerencias por código parcial (para futuro autocompletar)
     public List<Determinacion> buscarPorCodigoParcial(String parcial) {
         List<Determinacion> lista = new ArrayList<>();
         String sql = """
@@ -41,7 +39,6 @@ public class DeterminacionDAO {
             LIMIT 10
         """;
         try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
-            // El comodín % solo al final SÍ permite usar índices (B-Tree)
             ps.setString(1, parcial.trim() + "%");
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -68,7 +65,6 @@ public class DeterminacionDAO {
         return d;
     }
 
-    // Trae los hijos de una práctica ordenados por su orden local (1, 2, 3...)
     public List<Determinacion> obtenerComponentes(String codigoPadre) {
         List<Determinacion> lista = new ArrayList<>();
         String sql = """
@@ -130,12 +126,10 @@ public class DeterminacionDAO {
         return lista;
     }
 
-    // BUSCADOR OPTIMIZADO PARA ÍNDICES
     public List<Determinacion> buscar(String filtro) {
         List<Determinacion> lista = new ArrayList<>();
         String texto = filtro.trim();
         
-        // Discriminamos el tipo de búsqueda para aprovechar mejor los índices
         boolean esNumero = texto.matches("\\d+");
         
         StringBuilder sql = new StringBuilder();
@@ -147,10 +141,8 @@ public class DeterminacionDAO {
         sql.append("AND d.codigo NOT IN (SELECT codigo_hijo FROM determinacion_componentes) ");
         
         if (esNumero) {
-            // Búsqueda por código exacto o que empieza con ese código (Muy rápido)
             sql.append("AND (d.codigo LIKE ? OR d.codigo LIKE ?) ");
-        } else {
-            // Búsqueda por nombre (El LIKE '%texto%' es inevitable, pero evitamos buscar letras en la columna código)
+        } else{
             sql.append("AND d.nombre LIKE ? ");
         }
         
@@ -162,10 +154,10 @@ public class DeterminacionDAO {
         try (PreparedStatement ps = con.getConnection().prepareStatement(sql.toString())) {
             
             if (esNumero) {
-                ps.setString(1, texto);            // Exacto
-                ps.setString(2, texto + "%");      // Empieza con
+                ps.setString(1, texto);            
+                ps.setString(2, texto + "%");      
             } else {
-                ps.setString(1, "%" + texto + "%"); // Contiene (nombre)
+                ps.setString(1, "%" + texto + "%");
             }
             
             try (ResultSet rs = ps.executeQuery()) {
@@ -198,8 +190,6 @@ public class DeterminacionDAO {
 
     public List<Determinacion> buscarPorSufijo(String sufijo) {
         List<Determinacion> lista = new ArrayList<>();
-        // Nota: RIGHT() no usa índices, pero al limitarlo a 15 y ser una búsqueda muy específica,
-        // no impactará tanto el rendimiento como en el buscador principal.
         String sql = """
             SELECT * FROM determinacion
             WHERE activo = TRUE
@@ -221,10 +211,6 @@ public class DeterminacionDAO {
         return lista;
     }
     
-    // =========================================================================
-    //  MÉTODOS PARA GESTIÓN DE COMPONENTES (PADRE - HIJO) Y ORDENAMIENTO
-    // =========================================================================
-
     public boolean vincularHijo(String codigoPadre, String codigoHijo) {
         String sql = "INSERT IGNORE INTO determinacion_componentes (codigo_padre, codigo_hijo) VALUES (?, ?)";
         try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
@@ -275,13 +261,11 @@ public class DeterminacionDAO {
             ps.setString(2, codigoHijo.trim());
             int filasAfectadas = ps.executeUpdate();
             
-            // ── BLINDAJE: Verificamos si el padre se quedó sin hijos ──
             String sqlCheck = "SELECT COUNT(*) FROM determinacion_componentes WHERE codigo_padre = ?";
             try (PreparedStatement psCheck = con.getConnection().prepareStatement(sqlCheck)) {
                 psCheck.setString(1, codigoPadre.trim());
                 try (ResultSet rs = psCheck.executeQuery()) {
                     if (rs.next() && rs.getInt(1) == 0) {
-                        // Ya no tiene hijos, lo volvemos a la normalidad y le quitamos la prioridad
                         String sqlUpdate = "UPDATE determinacion SET es_compuesta = FALSE, prioridad = 999 WHERE codigo = ?";
                         try (PreparedStatement psUpdate = con.getConnection().prepareStatement(sqlUpdate)) {
                             psUpdate.setString(1, codigoPadre.trim());

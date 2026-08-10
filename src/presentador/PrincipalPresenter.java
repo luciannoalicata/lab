@@ -1,11 +1,11 @@
 package presentador;
 
-import dao.ConfiguracionDAO; // <-- Importación necesaria
+// @author lucianoalicata
+
+import dao.ConfiguracionDAO; 
 import modelo.Usuario;
 import presentador.router.AppRouter;
 import vista.interfaces.IVistaPrincipal;
-import servicio.BackupService;
-import java.io.File;
 import javax.swing.SwingUtilities;
 
 public class PrincipalPresenter {
@@ -13,12 +13,11 @@ public class PrincipalPresenter {
     private final IVistaPrincipal vp;
     private final AppRouter router;
     private final Usuario usuarioLogueado;
-    private final ConfiguracionDAO configuracionDAO; // <-- Declaración agregada
+    private final ConfiguracionDAO configuracionDAO; 
     private boolean permisoModificacion;
     private boolean permisoCargaPacientes;
     private boolean permisoCargaAnalisis;
 
-    // <-- Constructor actualizado para recibir el DAO
     public PrincipalPresenter(IVistaPrincipal vp, AppRouter router, Usuario usuarioLogueado, ConfiguracionDAO configuracionDAO) {
         this.vp = vp;
         this.router = router;
@@ -31,7 +30,6 @@ public class PrincipalPresenter {
 
         vp.setUsuarioLogueado(usuarioLogueado.getUsername(), usuarioLogueado.getRol());
 
-        // ── CONTROL DE ACCESOS SEGÚN ROL (RBAC) ──
         String rol = usuarioLogueado.getRol().toUpperCase();
 
         boolean isAdmin = rol.equals("ADMIN") || rol.equals("ADMINISTRADOR");
@@ -53,9 +51,6 @@ public class PrincipalPresenter {
     vp.ejecutar();
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  EVENTOS DE NAVEGACIÓN
-    // ════════════════════════════════════════════════════════════════
     public void onPacientes() {
         router.irAPacientes();
     }
@@ -88,52 +83,44 @@ public class PrincipalPresenter {
         router.irAAuditoria();
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  CIERRE Y BACKUPS AUTOMÁTICOS
-    // ════════════════════════════════════════════════════════════════
     public void onCerrarSesion() {
         int confirmacion = vp.confirmarAccion("¿Está seguro de que desea cerrar sesión?", "Cerrar Sesión");
         if (confirmacion == 0) {
-            ejecutarBackupYSalir(false); // false = Solo cierra sesión, vuelve al login
+            ejecutarBackupYSalir(false); 
         }
     }
 
     public void onCerrarAplicacionCompleta() {
-        int confirmacion = vp.confirmarAccion("¿Está seguro de que desea salir completamente del sistema?", "Salir del Sistema");
+        int confirmacion = vp.confirmarAccion("¿Está seguro de que desea salir del sistema?", "Salir del Sistema");
         if (confirmacion == 0) {
-            ejecutarBackupYSalir(true); // true = Apaga el programa completo
+            ejecutarBackupYSalir(true); 
         }
     }
 
     private void ejecutarBackupYSalir(boolean salirCompletamente) {
         vp.mostrarAvisoBackup(true);
 
-        // 1. Obtenemos la ruta configurada dinámicamente desde la Base de Datos
         String rutaConfigurada = configuracionDAO.getValor("ruta_backup"); 
         
         String rutaDirectorio;
 
-        // 2. Red de seguridad: Si el usuario borró la ruta en ajustes o está vacía, usamos Mis Documentos por defecto
         if (rutaConfigurada == null || rutaConfigurada.trim().isEmpty()) {
             String rutaMisDocumentos = javax.swing.filechooser.FileSystemView.getFileSystemView().getDefaultDirectory().getPath();
             rutaDirectorio = rutaMisDocumentos + java.io.File.separator + "BIOTEC_Backups_Default";
         } else {
-            // Usamos EXACTAMENTE la ruta que el usuario guardó en Ajustes
             rutaDirectorio = rutaConfigurada; 
         }
 
         java.io.File dir = new java.io.File(rutaDirectorio);
         if (!dir.exists()) {
-            dir.mkdirs(); // Si la carpeta definida en Ajustes no existe en el disco, la crea.
+            dir.mkdirs(); 
         }
 
-        // 3. Ejecutamos el backup en un Hilo separado
         new Thread(() -> {
             boolean backupExitoso = servicio.BackupService.crearBackup(rutaDirectorio);
 
-            // 4. Volvemos al hilo visual de Swing para cerrar las cosas
             SwingUtilities.invokeLater(() -> {
-                vp.mostrarAvisoBackup(false); // Ocultamos el cartel
+                vp.mostrarAvisoBackup(false); 
 
                 if (!backupExitoso) {
                     vp.mostrarMensaje("Atención: Ocurrió un error al generar la copia de seguridad automática.");
@@ -143,7 +130,7 @@ public class PrincipalPresenter {
                     System.exit(0); 
                 } else {
                     vp.cerrarPantalla();
-                    router.cerrarSesion(); // Vuelve al login
+                    router.cerrarSesion();
                 }
             });
         }).start();

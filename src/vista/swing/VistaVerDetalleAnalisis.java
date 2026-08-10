@@ -1,5 +1,6 @@
 package vista.swing;
 
+// @author lucianoalicata
 import vista.interfaces.IVistaVerDetalleAnalisis;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -61,7 +62,6 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
     private JList<String> listaSugerenciasMed;
     private DefaultListModel<String> modeloSugerenciasMed;
 
-    // ── Paleta BIOTEC Profesional ────────────────────────────────────
     private final Color C_NAVY = new Color(10, 25, 47);
     private final Color C_FONDO = new Color(238, 242, 246);
     private final Color C_BLANCO = Color.WHITE;
@@ -83,7 +83,7 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         aplicarEsteticaProfesional();
         configurarBuscadorMedicoDinamico();
         configurarNavegacionEnter();
-        configurarDobleClicReferencia(); // ← Nuevo evento para expandir textos largos
+        configurarDobleClicReferencia();
         configurarFocoCelda();
         setMinimumSize(new Dimension(900, 600));
     }
@@ -91,21 +91,29 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
     @Override
     public void setPresenter(DetalleAnalisisPresenter presenter) {
         this.presenter = presenter;
-        
+
         limpiarListeners(btnImprimir);
         limpiarListeners(btnEditar);
         limpiarListeners(btnEliminarFila);
         limpiarListeners(btnCerrar);
-        
+
         btnImprimir.addActionListener(e -> presenter.onImprimir());
-        btnEditar.addActionListener(e -> presenter.onEditar());
         btnEliminarFila.addActionListener(e -> presenter.onEliminarFila());
-        btnCerrar.addActionListener(e -> presenter.onVolver());
-        
+
+        btnEditar.addActionListener(e -> {
+            ocultarSugerenciasFlotantes();
+            presenter.onEditar();
+        });
+
+        btnCerrar.addActionListener(e -> {
+            ocultarSugerenciasFlotantes();
+            presenter.onVolver();
+        });
+
         if (listenerSeleccionTabla != null) {
             grillaDetallesAnalisis.getSelectionModel().removeListSelectionListener(listenerSeleccionTabla);
         }
-        
+
         listenerSeleccionTabla = e -> {
             if (!e.getValueIsAdjusting() && !cargandoDatos) {
                 presenter.onSeleccionarAnalisis();
@@ -120,6 +128,12 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         }
     }
 
+    public void ocultarSugerenciasFlotantes() {
+        if (ventanaSugerenciasMed != null) {
+            ventanaSugerenciasMed.setVisible(false);
+        }
+    }
+
     private void configurarDobleClicReferencia() {
         grillaDetallesAnalisis.addMouseListener(new MouseAdapter() {
             @Override
@@ -127,7 +141,6 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                 if (e.getClickCount() == 2) {
                     int col = grillaDetallesAnalisis.columnAtPoint(e.getPoint());
                     int row = grillaDetallesAnalisis.rowAtPoint(e.getPoint());
-                    // 5 es la columna de Valores de Referencia
                     if (col == 5 && row >= 0) {
                         Object val = grillaDetallesAnalisis.getModel().getValueAt(row, 5);
                         if (val != null && !val.toString().trim().isEmpty()) {
@@ -148,18 +161,18 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         txtArea.setBackground(new Color(250, 252, 254));
         txtArea.setForeground(C_TEXTO_FUERTE);
         txtArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
+
         JScrollPane scroll = new JScrollPane(txtArea);
         scroll.setPreferredSize(new Dimension(380, 250));
         scroll.setBorder(BorderFactory.createLineBorder(C_AZUL_MEDIO, 1));
-        
+
         JOptionPane.showMessageDialog(this, scroll, "Valores de Referencia", JOptionPane.PLAIN_MESSAGE);
     }
 
     private void configurarFocoCelda() {
         grillaDetallesAnalisis.setColumnSelectionAllowed(true);
         grillaDetallesAnalisis.setRowSelectionAllowed(true);
-        
+
         grillaDetallesAnalisis.addFocusListener(new FocusAdapter() {
             @Override
             public void focusGained(FocusEvent e) {
@@ -180,7 +193,7 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
                 int row = grillaDetallesAnalisis.getSelectedRow();
-                
+
                 if (grillaDetallesAnalisis.isEditing()) {
                     grillaDetallesAnalisis.getCellEditor().stopCellEditing();
                 }
@@ -193,7 +206,9 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                         grillaDetallesAnalisis.scrollRectToVisible(grillaDetallesAnalisis.getCellRect(sig, 3, true));
                         grillaDetallesAnalisis.editCellAt(sig, 3);
                         Component ed = grillaDetallesAnalisis.getEditorComponent();
-                        if (ed != null) ed.requestFocusInWindow();
+                        if (ed != null) {
+                            ed.requestFocusInWindow();
+                        }
                         return;
                     }
                 }
@@ -221,22 +236,24 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
             @Override
             public Object getCellEditorValue() {
                 Object value = super.getCellEditorValue();
-                if (value == null) return "";
+                if (value == null) {
+                    return "";
+                }
                 String texto = value.toString().trim();
-                
+
                 if (texto.matches("^-?\\d{4,}([.,]\\d+)?$")) {
                     try {
                         String[] partes = texto.split("[.,]");
                         String parteEntera = partes[0];
                         String parteDecimal = partes.length > 1 ? partes[1] : "";
-                        
+
                         java.text.DecimalFormatSymbols dfs = new java.text.DecimalFormatSymbols();
                         dfs.setGroupingSeparator('.');
                         java.text.DecimalFormat df = new java.text.DecimalFormat("#,###", dfs);
-                        
+
                         String formateado = df.format(Long.parseLong(parteEntera));
                         if (partes.length > 1) {
-                            formateado += "," + parteDecimal; 
+                            formateado += "," + parteDecimal;
                         }
                         return formateado;
                     } catch (Exception ex) {
@@ -246,17 +263,21 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                 return texto;
             }
         };
-        
+
         if (grillaDetallesAnalisis.getColumnCount() > 3) {
             grillaDetallesAnalisis.getColumnModel().getColumn(3).setCellEditor(cellEditor);
         }
     }
-    
+
     private boolean esFilaEditable(int row) {
         Object id = grillaDetallesAnalisis.getModel().getValueAt(row, 0);
-        if (id == null) return false;
+        if (id == null) {
+            return false;
+        }
         try {
-            if (Integer.parseInt(id.toString()) == -1) return false;
+            if (Integer.parseInt(id.toString()) == -1) {
+                return false;
+            }
         } catch (NumberFormatException e) {
             return false;
         }
@@ -270,14 +291,10 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         return true;
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  ESTÉTICA PROFESIONAL
-    // ════════════════════════════════════════════════════════════════
     private void aplicarEsteticaProfesional() {
         setBackground(C_FONDO);
         setLayout(new BorderLayout());
 
-        // ── HEADER ──────────────────────────────────────────────────────
         jPanelHeader.setBackground(C_NAVY);
         jPanelHeader.setBorder(new EmptyBorder(10, 20, 10, 20));
         jPanelHeader.setLayout(new BorderLayout());
@@ -319,10 +336,15 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         jLabel4.setForeground(C_HEADER_TEXT);
         jLabel4.setFont(new Font("Segoe UI", Font.BOLD, 11));
 
-        g.gridx = 0; g.gridy = 0; g.anchor = GridBagConstraints.WEST; g.insets = new Insets(0, 0, 4, 0);
+        g.gridx = 0;
+        g.gridy = 0;
+        g.anchor = GridBagConstraints.WEST;
+        g.insets = new Insets(0, 0, 4, 0);
         pnlDerHeader.add(jLabel4, g);
 
-        g.gridx = 0; g.gridy = 1; g.insets = new Insets(0, 0, 0, 0);
+        g.gridx = 0;
+        g.gridy = 1;
+        g.insets = new Insets(0, 0, 0, 0);
         pnlDerHeader.add(txtMedicoSolicitante, g);
 
         jPanelHeader.add(pnlDerHeader, BorderLayout.EAST);
@@ -331,23 +353,20 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
 
         add(jPanelHeader, BorderLayout.NORTH);
 
-        // ── CONTENEDOR PRINCIPAL ──────────────────────────────────────
         pnlContenedorBlanco = new JPanel(new BorderLayout());
         pnlContenedorBlanco.setBackground(C_BLANCO);
         pnlContenedorBlanco.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(0, 1, 1, 1, C_BORDE),
-            new EmptyBorder(10, 14, 10, 14)
+                BorderFactory.createMatteBorder(0, 1, 1, 1, C_BORDE),
+                new EmptyBorder(10, 14, 10, 14)
         ));
 
-        // ── CUERPO ──────────────────────────────────────────────────────
         pnlCuerpo.setBackground(C_BLANCO);
         pnlCuerpo.setLayout(new BorderLayout());
 
-        // ── TABLA WRAPPER ──────────────────────────────────────────────
         pnlTablaWrapper.setBackground(C_BLANCO);
         pnlTablaWrapper.setBorder(BorderFactory.createCompoundBorder(
-            new EmptyBorder(0, 0, 0, 0),
-            BorderFactory.createLineBorder(C_BORDE, 1, true)
+                new EmptyBorder(0, 0, 0, 0),
+                BorderFactory.createLineBorder(C_BORDE, 1, true)
         ));
 
         lblTituloTabla = new JLabel("RESULTADOS DEL ANÁLISIS");
@@ -385,11 +404,10 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         pnlContenedorBlanco.add(pnlCuerpo, BorderLayout.CENTER);
         add(pnlContenedorBlanco, BorderLayout.CENTER);
 
-        // ── FOOTER ──────────────────────────────────────────────────────
         jPanelFooter.setBackground(C_BLANCO);
         jPanelFooter.setBorder(BorderFactory.createCompoundBorder(
-            new MatteBorder(1, 0, 0, 0, C_BORDE),
-            new EmptyBorder(10, 14, 10, 14)
+                new MatteBorder(1, 0, 0, 0, C_BORDE),
+                new EmptyBorder(10, 14, 10, 14)
         ));
         jPanelFooter.setLayout(new BorderLayout());
 
@@ -398,14 +416,14 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         jdFechaInforme.setPreferredSize(new Dimension(150, 34));
         jdFechaInforme.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         if (jdFechaInforme.getDateEditor() instanceof com.toedter.calendar.JTextFieldDateEditor) {
-            com.toedter.calendar.JTextFieldDateEditor editor =
-                (com.toedter.calendar.JTextFieldDateEditor) jdFechaInforme.getDateEditor();
+            com.toedter.calendar.JTextFieldDateEditor editor
+                    = (com.toedter.calendar.JTextFieldDateEditor) jdFechaInforme.getDateEditor();
             editor.setFont(new Font("Segoe UI", Font.PLAIN, 13));
             editor.setBackground(C_CAMPO);
             editor.setForeground(C_TEXTO_FUERTE);
             editor.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
-                new EmptyBorder(4, 8, 4, 8)
+                    BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
+                    new EmptyBorder(4, 8, 4, 8)
             ));
         }
 
@@ -417,7 +435,7 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
 
         configurarBoton(btnEliminarFila, C_ROJO, "ELIMINAR FILA", 130, 36);
         configurarBoton(btnImprimir, C_AZUL_MEDIO, "IMPRIMIR", 120, 36);
-        configurarBoton(btnEditar, C_VERDE, "GUARDAR CAMBIOS", 150, 36);
+        configurarBoton(btnEditar, C_VERDE, "GUARDAR", 150, 36);
 
         JPanel pnlFooterDer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlFooterDer.setOpaque(false);
@@ -430,8 +448,8 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
 
         aplicarColumnas();
         aplicarRenderersConTitulos();
-        aplicarCellEditor(); 
-        
+        aplicarCellEditor();
+
         this.revalidate();
         this.repaint();
     }
@@ -442,8 +460,8 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         tf.setForeground(C_BLANCO);
         tf.setCaretColor(C_BLANCO);
         tf.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(50, 80, 120), 1, true),
-            new EmptyBorder(6, 10, 6, 10)
+                BorderFactory.createLineBorder(new Color(50, 80, 120), 1, true),
+                new EmptyBorder(6, 10, 6, 10)
         ));
         tf.setPreferredSize(new Dimension(280, 34));
     }
@@ -473,11 +491,20 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         btn.setBorder(new EmptyBorder(0, 0, 0, 12));
 
         ImageIcon ico = icon("/reportes/img/flecha_icon.png", 34, 34);
-        if (ico != null) btn.setIcon(ico);
+        if (ico != null) {
+            btn.setIcon(ico);
+        }
 
         btn.addMouseListener(new MouseAdapter() {
-            @Override public void mouseEntered(MouseEvent e) { btn.setForeground(C_BLANCO); }
-            @Override public void mouseExited(MouseEvent e) { btn.setForeground(C_HEADER_TEXT); }
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                btn.setForeground(C_BLANCO);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                btn.setForeground(C_HEADER_TEXT);
+            }
         });
     }
 
@@ -488,12 +515,15 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                 Image img = new ImageIcon(url).getImage().getScaledInstance(w, h, Image.SCALE_SMOOTH);
                 return new ImageIcon(img);
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
         return null;
     }
 
     private void aplicarColumnas() {
-        if (grillaDetallesAnalisis.getColumnCount() < 6) return;
+        if (grillaDetallesAnalisis.getColumnCount() < 6) {
+            return;
+        }
 
         grillaDetallesAnalisis.getColumnModel().getColumn(0).setMinWidth(0);
         grillaDetallesAnalisis.getColumnModel().getColumn(0).setMaxWidth(0);
@@ -519,7 +549,9 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
     }
 
     private void aplicarRenderersConTitulos() {
-        if (grillaDetallesAnalisis.getColumnCount() < 6) return;
+        if (grillaDetallesAnalisis.getColumnCount() < 6) {
+            return;
+        }
 
         DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
             @Override
@@ -531,7 +563,8 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                 boolean esTituloGenerado = false;
                 try {
                     esTituloGenerado = (id != null && Integer.parseInt(id.toString()) == -1);
-                } catch (Exception e) {}
+                } catch (Exception e) {
+                }
 
                 String nombreFila = table.getModel().getValueAt(row, 2) != null ? table.getModel().getValueAt(row, 2).toString().replaceAll("<[^>]*>", "").trim() : "";
                 boolean esSubtitulo = nombreFila.startsWith("---") && nombreFila.endsWith("---");
@@ -557,34 +590,39 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                     setHorizontalAlignment(SwingConstants.CENTER);
                     setToolTipText(null);
 
-                    if (col == 0) {
-                        setText("");
-                        setBorder(BorderFactory.createCompoundBorder(
-                                BorderFactory.createMatteBorder(1, 4, 1, 0, accentColor),
-                                new EmptyBorder(0, 0, 0, 0)));
-                    } else if (col == 1) {
-                        setText("");
-                        setBorder(BorderFactory.createMatteBorder(1, 0, 1, 0, accentColor));
-                    } else if (col == 2) {
-                        setText(nombreLimpio);
-                        setBorder(BorderFactory.createCompoundBorder(
-                                BorderFactory.createMatteBorder(1, 0, 1, 0, accentColor),
-                                new EmptyBorder(0, 0, 0, 0)));
-                    } else {
-                        setText("");
-                        setBorder(BorderFactory.createMatteBorder(1, 0, 1, 0, accentColor));
+                    switch (col) {
+                        case 0 -> {
+                            setText("");
+                            setBorder(BorderFactory.createCompoundBorder(
+                                    BorderFactory.createMatteBorder(1, 4, 1, 0, accentColor),
+                                    new EmptyBorder(0, 0, 0, 0)));
+                        }
+                        case 1 -> {
+                            setText("");
+                            setBorder(BorderFactory.createMatteBorder(1, 0, 1, 0, accentColor));
+                        }
+                        case 2 -> {
+                            setText(nombreLimpio);
+                            setBorder(BorderFactory.createCompoundBorder(
+                                    BorderFactory.createMatteBorder(1, 0, 1, 0, accentColor),
+                                    new EmptyBorder(0, 0, 0, 0)));
+                        }
+                        default -> {
+                            setText("");
+                            setBorder(BorderFactory.createMatteBorder(1, 0, 1, 0, accentColor));
+                        }
                     }
 
                 } else {
                     setOpaque(true);
                     setFont(col == 3 ? new Font("Segoe UI", Font.BOLD, 13) : new Font("Segoe UI", Font.PLAIN, 13));
-                    
+
                     if (col == 3) {
                         Object objRes = table.getModel().getValueAt(row, 3);
                         Object objRef = table.getModel().getValueAt(row, 5);
                         String resActual = objRes != null ? objRes.toString() : "";
                         String refActual = objRef != null ? objRef.toString() : "";
-                        
+
                         if (!resActual.isEmpty()) {
                             setForeground(evaluarAlertaResultado(resActual, refActual));
                             if (getForeground().equals(C_ROJO) || getForeground().equals(C_NARANJA_ALERTA)) {
@@ -626,17 +664,25 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                                     .replace(">", "&gt;")
                                     .replace(" ", "&nbsp;");
                             sb.append(lineaBlindada);
-                            if (i < lineas.length - 1) sb.append("<br>");
+                            if (i < lineas.length - 1) {
+                                sb.append("<br>");
+                            }
                         }
                         sb.append("</html>");
                         setText(sb.toString());
-                        
-                        if (col == 5) setToolTipText("<html>" + textoOriginal.replace(";", "<br>") + "<br><br><i>(Doble clic para expandir)</i></html>");
-                        else setToolTipText(null);
+
+                        if (col == 5) {
+                            setToolTipText("<html>" + textoOriginal.replace(";", "<br>") + "<br><br><i>(Doble clic para expandir)</i></html>");
+                        } else {
+                            setToolTipText(null);
+                        }
                     } else {
                         setText(textoOriginal);
-                        if (col == 5 && textoOriginal.length() > 30) setToolTipText("<html>" + textoOriginal + "<br><br><i>(Doble clic para expandir)</i></html>");
-                        else setToolTipText(null);
+                        if (col == 5 && textoOriginal.length() > 30) {
+                            setToolTipText("<html>" + textoOriginal + "<br><br><i>(Doble clic para expandir)</i></html>");
+                        } else {
+                            setToolTipText(null);
+                        }
                     }
                 }
 
@@ -653,21 +699,21 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         for (int row = 0; row < grillaDetallesAnalisis.getRowCount(); row++) {
             Object nom = grillaDetallesAnalisis.getValueAt(row, 2);
             boolean esTitulo = nom != null && nom.toString().startsWith("---");
-            
+
             if (esTitulo) {
                 grillaDetallesAnalisis.setRowHeight(row, 34);
                 continue;
             }
-            
+
             Object valRef = grillaDetallesAnalisis.getValueAt(row, 5);
             Object valNom = grillaDetallesAnalisis.getValueAt(row, 2);
-            
+
             int lineasRef = valRef != null && valRef.toString().contains(";") ? valRef.toString().split(";").length : 1;
             int lineasNom = valNom != null && valNom.toString().contains(";") ? valNom.toString().split(";").length : 1;
-            
+
             int maxLineas = Math.max(lineasRef, lineasNom);
             int alturaCalculada = Math.max(34, maxLineas * 18 + 8);
-            
+
             // Capped at 75px max to preserve visual harmony
             grillaDetallesAnalisis.setRowHeight(row, Math.min(alturaCalculada, 75));
         }
@@ -679,9 +725,9 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         }
 
         String refBaja = refStr.toLowerCase();
-        if (refBaja.contains("\n") || refBaja.contains("hombre") || refBaja.contains("mujer") ||
-            refBaja.contains("niño") || refBaja.contains("fase") || refBaja.contains("varon") ||
-            refBaja.contains("positivo") || refBaja.contains("negativo")) {
+        if (refBaja.contains("\n") || refBaja.contains("hombre") || refBaja.contains("mujer")
+                || refBaja.contains("niño") || refBaja.contains("fase") || refBaja.contains("varon")
+                || refBaja.contains("positivo") || refBaja.contains("negativo")) {
             return C_TEXTO_FUERTE;
         }
 
@@ -726,19 +772,28 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                     }
                 }
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
         return C_TEXTO_FUERTE;
     }
 
     private double parsearNumeroLab(String numStr) {
         String s = numStr.replaceAll("[^0-9.,]", "");
-        if (s.isEmpty()) return Double.NaN;
-        if (s.contains(",")) return Double.parseDouble(s.replace(".", "").replace(",", "."));
+        if (s.isEmpty()) {
+            return Double.NaN;
+        }
+        if (s.contains(",")) {
+            return Double.parseDouble(s.replace(".", "").replace(",", "."));
+        }
         if (s.contains(".")) {
             long cantPuntos = s.chars().filter(ch -> ch == '.').count();
-            if (cantPuntos > 1) return Double.parseDouble(s.replace(".", ""));
+            if (cantPuntos > 1) {
+                return Double.parseDouble(s.replace(".", ""));
+            }
             String[] partes = s.split("\\.");
-            if (partes.length == 2 && partes[1].length() == 3) return Double.parseDouble(s.replace(".", ""));
+            if (partes.length == 2 && partes[1].length() == 3) {
+                return Double.parseDouble(s.replace(".", ""));
+            }
         }
         return Double.parseDouble(s);
     }
@@ -770,16 +825,22 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                 if (ventanaSugerenciasMed.isVisible() && !modeloSugerenciasMed.isEmpty()) {
                     int index = listaSugerenciasMed.getSelectedIndex();
                     int size = modeloSugerenciasMed.getSize();
-                    if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-                        listaSugerenciasMed.setSelectedIndex((index + 1) % size);
-                        e.consume();
-                    } else if (e.getKeyCode() == KeyEvent.VK_UP) {
-                        listaSugerenciasMed.setSelectedIndex((index - 1 + size) % size);
-                        e.consume();
-                    } else if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                        txtMedicoSolicitante.setText(listaSugerenciasMed.getSelectedValue());
-                        ventanaSugerenciasMed.setVisible(false);
-                        e.consume();
+                    switch (e.getKeyCode()) {
+                        case KeyEvent.VK_DOWN -> {
+                            listaSugerenciasMed.setSelectedIndex((index + 1) % size);
+                            e.consume();
+                        }
+                        case KeyEvent.VK_UP -> {
+                            listaSugerenciasMed.setSelectedIndex((index - 1 + size) % size);
+                            e.consume();
+                        }
+                        case KeyEvent.VK_ENTER -> {
+                            txtMedicoSolicitante.setText(listaSugerenciasMed.getSelectedValue());
+                            ventanaSugerenciasMed.setVisible(false);
+                            e.consume();
+                        }
+                        default -> {
+                        }
                     }
                 }
             }
@@ -825,7 +886,8 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                     txtMedicoSolicitante.getWidth(), Math.min(180, sugerencias.size() * 28 + 5));
             ventanaSugerenciasMed.setVisible(true);
             listaSugerenciasMed.setSelectedIndex(0);
-        } catch (Exception ex) {}
+        } catch (Exception ex) {
+        }
     }
 
     @Override
@@ -842,23 +904,29 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         aplicarRenderersConTitulos();
         aplicarColumnas();
     }
-    
+
     @Override
     public void cargarResultadosDetalle(ArrayList<ResultadoAnalisis> lista) {
         cargandoDatos = true;
-        
+
         DefaultTableModel modelo = new DefaultTableModel(
                 new Object[][]{},
                 new String[]{"ID", "CÓDIGO", "DETERMINACIÓN", "RESULTADO", "UNIDAD", "REFERENCIA"}
         ) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                if (column != 3) return false;
+                if (column != 3) {
+                    return false;
+                }
 
                 Object id = getValueAt(row, 0);
-                if (id == null) return false;
+                if (id == null) {
+                    return false;
+                }
                 try {
-                    if (Integer.parseInt(id.toString()) == -1) return false;
+                    if (Integer.parseInt(id.toString()) == -1) {
+                        return false;
+                    }
                 } catch (NumberFormatException e) {
                     return false;
                 }
@@ -886,7 +954,7 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                 r.getReferencia()
             });
         }
-        
+
         modelo.addTableModelListener(e -> {
             if (!calculando && e.getColumn() == 3 && e.getType() == javax.swing.event.TableModelEvent.UPDATE) {
                 SwingUtilities.invokeLater(() -> calcularIndicesHematimetricos());
@@ -896,8 +964,8 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         aplicarRenderersConTitulos();
         aplicarColumnas();
         aplicarCellEditor();
-        ajustarAlturaFilas(); // ← Aplicamos la altura calculada al finalizar la carga
-        
+        ajustarAlturaFilas();
+
         cargandoDatos = false;
     }
 
@@ -912,23 +980,28 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                 Object objNombre = grillaDetallesAnalisis.getValueAt(i, 2);
                 String nombreOriginal = objNombre != null ? objNombre.toString() : "";
                 String res = getResultadoEditado(i);
-                
-                if (nombreOriginal.isEmpty()) continue;
-                
+
+                if (nombreOriginal.isEmpty()) {
+                    continue;
+                }
+
                 String nombreStr = nombreOriginal.trim().toLowerCase();
 
-                if (nombreStr.equals("glob. rojos")) {
-                    rbc = parsearNumeroLab(res);
-                } else if (nombreStr.equals("hemoglobina")) {
-                    hb = parsearNumeroLab(res);
-                } else if (nombreStr.equals("hematocrito")) {
-                    hto = parsearNumeroLab(res);
-                } else if (nombreStr.equals("vcm")) {
-                    idxVCM = i;
-                } else if (nombreStr.equals("hcm")) {
-                    idxHCM = i;
-                } else if (nombreStr.equals("chcm")) {
-                    idxCHCM = i;
+                switch (nombreStr) {
+                    case "glob. rojos" ->
+                        rbc = parsearNumeroLab(res);
+                    case "hemoglobina" ->
+                        hb = parsearNumeroLab(res);
+                    case "hematocrito" ->
+                        hto = parsearNumeroLab(res);
+                    case "vcm" ->
+                        idxVCM = i;
+                    case "hcm" ->
+                        idxHCM = i;
+                    case "chcm" ->
+                        idxCHCM = i;
+                    default -> {
+                    }
                 }
             }
 
@@ -956,9 +1029,6 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  UI BUILDER
-    // ════════════════════════════════════════════════════════════════
     private void initComponents() {
         jPanelHeader = new JPanel();
         lblNombrePaciente = new JLabel();
@@ -993,12 +1063,15 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
                 new String[]{"ID", "CÓDIGO", "DETERMINACIÓN", "RESULTADO", "UNIDAD", "REFERENCIA"}
         ) {
             boolean[] canEdit = {false, false, false, true, false, false};
-            @Override public boolean isCellEditable(int r, int c) { return canEdit[c]; }
+
+            @Override
+            public boolean isCellEditable(int r, int c) {
+                return canEdit[c];
+            }
         });
         jScrollPane1.setViewportView(grillaDetallesAnalisis);
     }
 
-    // ── Variables ────────────────────────────────────────────────────
     private JButton btnCerrar, btnEditar, btnEliminarFila, btnImprimir;
     private JTable grillaDetallesAnalisis;
     private JLabel jLabel1, jLabel3, jLabel4, lblTituloTabla, lblNombrePaciente, lblFechaAnalisis;
@@ -1007,27 +1080,56 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
     private JTextField txtMedicoSolicitante;
     private com.toedter.calendar.JDateChooser jdFechaInforme;
 
-    // ════════════════════════════════════════════════════════════════
-    //  IMPLEMENTACIONES DE LA INTERFAZ
-    // ════════════════════════════════════════════════════════════════
-    
-    @Override public void ejecutar() { setVisible(true); }
-    @Override public void limpiarFocos() { this.requestFocusInWindow(); }
+    @Override
+    public void ejecutar() {
+        setVisible(true);
+    }
+
+    @Override
+    public void limpiarFocos() {
+        this.requestFocusInWindow();
+    }
 
     @Override
     public int confirmarAccion(String mensaje, String titulo) {
+        ocultarSugerenciasFlotantes();
         return JOptionPane.showConfirmDialog(this, mensaje, titulo, JOptionPane.YES_NO_OPTION);
     }
 
-    @Override public void setNombrePaciente(String nombre) { lblNombrePaciente.setText(nombre.toUpperCase()); }
-    @Override public void mostrarMensaje(String mensaje) { JOptionPane.showMessageDialog(this, mensaje); }
-    @Override public void setFechaAnalisis(String fecha) { lblFechaAnalisis.setText(fecha); }
-    @Override public int getCantidadFilas() { return grillaDetallesAnalisis.getRowCount(); }
+    @Override
+    public void setVisible(boolean visible) {
+        if (!visible) {
+            ocultarSugerenciasFlotantes();
+        }
+        super.setVisible(visible);
+    }
+
+    @Override
+    public void setNombrePaciente(String nombre) {
+        lblNombrePaciente.setText(nombre.toUpperCase());
+    }
+
+    @Override
+    public void mostrarMensaje(String mensaje) {
+        JOptionPane.showMessageDialog(this, mensaje);
+    }
+
+    @Override
+    public void setFechaAnalisis(String fecha) {
+        lblFechaAnalisis.setText(fecha);
+    }
+
+    @Override
+    public int getCantidadFilas() {
+        return grillaDetallesAnalisis.getRowCount();
+    }
 
     @Override
     public int getIdResultado(int fila) {
         Object val = grillaDetallesAnalisis.getModel().getValueAt(fila, 0);
-        if (val == null) return -1;
+        if (val == null) {
+            return -1;
+        }
         try {
             return Integer.parseInt(val.toString());
         } catch (NumberFormatException e) {
@@ -1035,10 +1137,21 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         }
     }
 
-    @Override public void setMedicoSolicitante(String medico) { txtMedicoSolicitante.setText(medico); }
-    @Override public String getMedicoSolicitante() { return txtMedicoSolicitante.getText().trim(); }
-    @Override public JTable getGrilla() { return grillaDetallesAnalisis; }
-    
+    @Override
+    public void setMedicoSolicitante(String medico) {
+        txtMedicoSolicitante.setText(medico);
+    }
+
+    @Override
+    public String getMedicoSolicitante() {
+        return txtMedicoSolicitante.getText().trim();
+    }
+
+    @Override
+    public JTable getGrilla() {
+        return grillaDetallesAnalisis;
+    }
+
     @Override
     public String getResultadoEditado(int fila) {
         Object val = grillaDetallesAnalisis.getModel().getValueAt(fila, 3);
@@ -1052,9 +1165,20 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         }
     }
 
-    @Override public void habilitarBotonGuardar(boolean b) { btnEditar.setEnabled(b); }
-    @Override public void habilitarBotonEliminar(boolean b) { btnEliminarFila.setEnabled(b); }
-    @Override public void habilitarBotonImprimir(boolean b) { btnImprimir.setEnabled(b); }
+    @Override
+    public void habilitarBotonGuardar(boolean b) {
+        btnEditar.setEnabled(b);
+    }
+
+    @Override
+    public void habilitarBotonEliminar(boolean b) {
+        btnEliminarFila.setEnabled(b);
+    }
+
+    @Override
+    public void habilitarBotonImprimir(boolean b) {
+        btnImprimir.setEnabled(b);
+    }
 
     @Override
     public void bloquearMedicoSolicitante() {
@@ -1063,9 +1187,20 @@ public class VistaVerDetalleAnalisis extends JPanel implements IVistaVerDetalleA
         txtMedicoSolicitante.setForeground(new Color(180, 200, 220));
     }
 
-    @Override public void setIdAnalisis(int id) { this.idAnalisisActual = id; }
-    @Override public int getIdAnalisis() { return idAnalisisActual; }
-    @Override public void setFechaInforme(Date fecha) { jdFechaInforme.setDate(fecha); }
+    @Override
+    public void setIdAnalisis(int id) {
+        this.idAnalisisActual = id;
+    }
+
+    @Override
+    public int getIdAnalisis() {
+        return idAnalisisActual;
+    }
+
+    @Override
+    public void setFechaInforme(Date fecha) {
+        jdFechaInforme.setDate(fecha);
+    }
 
     @Override
     public Date getFechaSeleccionada() {

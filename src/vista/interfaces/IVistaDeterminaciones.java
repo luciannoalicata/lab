@@ -4,6 +4,8 @@ import java.util.List;
 import modelo.Determinacion;
 import presentador.DeterminacionesPresenter;
 
+// @author lucianoalicata
+
 public interface IVistaDeterminaciones {
 
     static final String BTN_AGREGAR_DETERMINACION = "agregar_determinacion";

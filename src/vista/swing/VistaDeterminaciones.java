@@ -1,5 +1,7 @@
 package vista.swing;
 
+// @author lucianoalicata
+
 import vista.interfaces.IVistaDeterminaciones;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -11,7 +13,6 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Image;
 import java.awt.Insets;
-import java.awt.Window;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.List;
@@ -31,7 +32,6 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -47,8 +47,6 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
     private JList<String> listaSugerencias;
     private DefaultListModel<String> modeloSugerencias;
     private boolean cargandoDatos = false;
-
-    // ── Paleta BIOTEC Profesional ────────────────────────────────────
     private final Color COLOR_AZUL_OSCURO = new Color(0, 51, 102);
     private final Color COLOR_AZUL_MEDIO = new Color(0, 102, 153);
     private final Color COLOR_VERDE = new Color(0, 153, 102);
@@ -69,7 +67,6 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
         setMinimumSize(new Dimension(750, 550));
         setLocationRelativeTo(null);
 
-        // ── ICONO ──
         try {
             java.net.URL url = getClass().getResource("/reportes/img/logo_sw.png");
             if (url != null) {
@@ -114,9 +111,6 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
         });
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  INTERFAZ MVP
-    // ════════════════════════════════════════════════════════════════
     @Override
     public void setPresenter(DeterminacionesPresenter presenter) {
         this.presenter = presenter;
@@ -236,10 +230,6 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
         listaSugerencias.setSelectedIndex(0);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  BUSCADOR
-    // ════════════════════════════════════════════════════════════════
-
     private void configurarBuscadorDeterminaciones() {
         modeloSugerencias = new DefaultListModel<>();
         listaSugerencias = new JList<>(modeloSugerencias);
@@ -258,20 +248,22 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
                     int index = listaSugerencias.getSelectedIndex();
                     int size = modeloSugerencias.getSize();
                     switch (e.getKeyCode()) {
-                        case KeyEvent.VK_DOWN:
+                        case KeyEvent.VK_DOWN -> {
                             index = (index + 1) % size;
                             listaSugerencias.setSelectedIndex(index);
                             listaSugerencias.ensureIndexIsVisible(index);
-                            e.consume(); break;
-                        case KeyEvent.VK_UP:
+                            e.consume();
+                        }
+                        case KeyEvent.VK_UP -> {
                             index = (index - 1 + size) % size;
                             listaSugerencias.setSelectedIndex(index);
                             listaSugerencias.ensureIndexIsVisible(index);
-                            e.consume(); break;
-                        case KeyEvent.VK_ENTER:
-                            if (index != -1) { seleccionarSugerencia(); e.consume(); } break;
-                        case KeyEvent.VK_ESCAPE:
-                            popupSugerencias.setVisible(false); break;
+                            e.consume();
+                        }
+                        case KeyEvent.VK_ENTER -> {
+                            if (index != -1) { seleccionarSugerencia(); e.consume(); }
+                        }
+                        case KeyEvent.VK_ESCAPE -> popupSugerencias.setVisible(false);
                     }
                 }
             }
@@ -302,17 +294,12 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  ESTÉTICA PROFESIONAL - Diseño Moderno y Responsive
-    // ════════════════════════════════════════════════════════════════
-
     private void configurarEsteticaProfesional() {
         setTitle("Agregar Prácticas — BIOTEC");
         setPreferredSize(new Dimension(850, 620));
         setLocationRelativeTo(null);
         getContentPane().setBackground(COLOR_FONDO);
 
-        // ── HEADER ──────────────────────────────────────────────────────
         pnlHeader.setBackground(COLOR_AZUL_OSCURO);
         pnlHeader.setBorder(new EmptyBorder(12, 24, 12, 24));
         pnlHeader.setLayout(new GridBagLayout());
@@ -360,7 +347,6 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
 
         getContentPane().add(pnlHeader, BorderLayout.NORTH);
 
-        // ── TABLA ──────────────────────────────────────────────────────
         pnlTablaContainer.setBackground(COLOR_BLANCO);
         pnlTablaContainer.setBorder(BorderFactory.createCompoundBorder(
             new EmptyBorder(12, 16, 10, 16),
@@ -410,7 +396,6 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
         pnlTablaContainer.add(jScrollPane1, BorderLayout.CENTER);
         getContentPane().add(pnlTablaContainer, BorderLayout.CENTER);
 
-        // ── FOOTER ──────────────────────────────────────────────────────
         pnlFooter.setBackground(COLOR_BLANCO);
         pnlFooter.setBorder(BorderFactory.createCompoundBorder(
             new MatteBorder(1, 0, 0, 0, COLOR_BORDE),
@@ -452,7 +437,6 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
     }
 
     private void aplicarRenderers() {
-        // Renderer columna CÓDIGO
         grillaDeterminaciones.getColumnModel().getColumn(0).setCellRenderer(
             new DefaultTableCellRenderer() {
                 @Override
@@ -478,7 +462,6 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
             }
         );
 
-        // Renderer columna DETERMINACIÓN
         grillaDeterminaciones.getColumnModel().getColumn(1).setCellRenderer(
             new DefaultTableCellRenderer() {
                 @Override
@@ -510,11 +493,7 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
             }
         );
     }
-
-    // ════════════════════════════════════════════════════════════════
-    //  initComponents
-    // ════════════════════════════════════════════════════════════════
-
+    
     @SuppressWarnings("unchecked")
     private void initComponents() {
         pnlHeader = new JPanel();
@@ -546,7 +525,6 @@ public class VistaDeterminaciones extends javax.swing.JDialog implements IVistaD
         pnlFooter.setLayout(new BorderLayout());
     }
 
-    // ── Variables ────────────────────────────────────────────────────
     private JButton btnAgregarDeterminacion;
     private JButton btnContinuar;
     private JButton btnEliminar;

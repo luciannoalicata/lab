@@ -1,5 +1,7 @@
 package presentador;
 
+// @author lucianoalicata
+
 import dao.AnalisisDAO;
 import dao.AuditoriaDAO;
 import modelo.Analisis;
@@ -8,7 +10,6 @@ import modelo.Usuario;
 import presentador.router.AppRouter;
 import vista.interfaces.IVistaHistorialAnalisis;
 import java.util.ArrayList;
-import java.util.Date;
 import servicio.ReporteService;
 
 public class HistorialPresenter {
@@ -18,7 +19,7 @@ public class HistorialPresenter {
     private final AnalisisDAO analisisDAO;
     private final AuditoriaDAO auditoriaDAO;
     private final Usuario usuarioLogueado;
-    private ReporteService reporteService;
+    private final ReporteService reporteService;
     private final Paciente pacienteActual; 
 
     public HistorialPresenter(IVistaHistorialAnalisis vista, AppRouter router, AnalisisDAO analisisDAO, 
@@ -35,51 +36,41 @@ public class HistorialPresenter {
     public void iniciar() {
         vista.setPresenter(this); 
         
-        // 1. Configuramos el título con el nombre del paciente
         String nombreCompleto = pacienteActual.getApellido() + " " + pacienteActual.getNombre();
         vista.setNombrePaciente(nombreCompleto);
 
-        // 2. Permisos LECTOR
         if (usuarioLogueado != null && "LECTOR".equals(usuarioLogueado.getRol())) {
             vista.habilitarBotonVerDetalles(true);
             vista.habilitarBotonImprimir(true);
         }
-
-        // 3. Cargamos los datos
         cargarTabla();
     }
     
     private void cargarTabla() {
-        // Usamos getIdPaciente(), no el DNI
         ArrayList<Analisis> lista = analisisDAO.listarPorPaciente(pacienteActual.getIdPaciente());
         vista.cargarHistorial(lista);
         
-        // Autoseleccionar la fecha más reciente si hay historial
         if (lista != null && !lista.isEmpty()) {
             vista.setFechaSeleccionada(lista.get(0).getFecha());
         }
     }
 
-    // ── MÉTODOS DE LOS BOTONES ──
     public void onGenerarInforme() {
         int idAnalisis = vista.getAnalisisSeleccionadoId();
         java.util.Date fechaImpresion = vista.getFechaSeleccionada();
 
         if (idAnalisis != -1) {
             
-            // Usamos un hilo secundario igual que en el AnalisisPresenter para no congelar la GUI
             new Thread(() -> {
                 try {
-                    // ¡Llamada limpia, solo datos de negocio!
                     reporteService.generarInforme(idAnalisis, fechaImpresion);
 
                     if (analisisDAO.cambiarEstadoGenerado(idAnalisis)) {
                         auditoriaDAO.registrar(this.usuarioLogueado, "IMPRIMIR", "analisis", idAnalisis, 
                                 null, "Informe generado", "Impresión desde Historial");
                         
-                        // Refrescamos la tabla desde el hilo principal de Swing
                         javax.swing.SwingUtilities.invokeLater(() -> {
-                            cargarTabla(); // Repintará de verde
+                            cargarTabla();
                         });
                     }
                 } catch (Exception e) {
@@ -106,7 +97,5 @@ public class HistorialPresenter {
     }
 
     public void onSeleccionarAnalisis() {
-        // Tu VistaHistorialAnalisis ya habilita/deshabilita los botones internamente 
-        // cuando detecta un clic, así que aquí no hace falta agregar más código.
     }
 }

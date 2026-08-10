@@ -1,8 +1,10 @@
 package dao;
 
+import java.sql.Connection;
 import modelo.Conexion;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+
 import java.util.ArrayList;
 import modelo.PasswordUtils;
 import modelo.Usuario;
@@ -15,10 +17,15 @@ public class UsuarioDAO {
         this.con = con;
     }
 
-    // ── LOGIN — único método de autenticación ────────────────────────
-    public Usuario login(String username, String password) {
+    public Usuario login(String username, String password) throws RuntimeException {
+        Connection connection = con.getConnection();
+        
+        if (connection == null) {
+            throw new RuntimeException("ERROR_CONEXION");
+        }
+
         String sql = "SELECT * FROM usuario WHERE username = ? AND activo = 1";
-        try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, username);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -36,10 +43,9 @@ public class UsuarioDAO {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return null;
+        return null; 
     }
 
-    // ── VALIDAR CLAVE (para cambio de contraseña) ────────────────────
     public boolean validarClave(String username, String claveIngresada) {
         String sql = "SELECT password_hash FROM usuario WHERE username = ? AND activo = 1";
         try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
@@ -54,8 +60,7 @@ public class UsuarioDAO {
         }
         return false;
     }
-
-    // ── ACTUALIZAR CLAVE ─────────────────────────────────────────────
+    
     public boolean actualizarClave(String username, String nuevaClave) {
         String sql = "UPDATE usuario SET password_hash = ? WHERE username = ?";
         try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
@@ -69,7 +74,6 @@ public class UsuarioDAO {
         }
     }
 
-    // ── LISTAR ───────────────────────────────────────────────────────
     public ArrayList<Usuario> listarTodos() {
         ArrayList<Usuario> lista = new ArrayList<>();
         String sql = "SELECT id_usuario, username, rol, activo FROM usuario ORDER BY username ASC";
@@ -90,7 +94,6 @@ public class UsuarioDAO {
         return lista;
     }
 
-    // ── GUARDAR ──────────────────────────────────────────────────────
     public boolean guardar(Usuario u, String passwordPlana) {
         String sql = "INSERT INTO usuario (username, password_hash, rol, activo) VALUES (?, ?, ?, ?)";
         try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
@@ -106,7 +109,6 @@ public class UsuarioDAO {
         }
     }
 
-    // ── ELIMINAR ─────────────────────────────────────────────────────
     public boolean eliminar(int idUsuario) {
         String sql = "DELETE FROM usuario WHERE id_usuario = ?";
         try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {

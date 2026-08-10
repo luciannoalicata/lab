@@ -1,5 +1,7 @@
 package vista.interfaces;
 
+// @author lucianoalicata
+
 import java.util.ArrayList;
 import modelo.Analisis;
 import presentador.AnalisisPresenter;

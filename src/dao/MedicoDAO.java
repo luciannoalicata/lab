@@ -17,7 +17,6 @@ public class MedicoDAO {
     }
 
     public boolean guardarMedico(Medico m) {
-        // Mejorado para actualizar TODOS los datos en caso de encontrar una matrícula repetida
         String sql = "INSERT INTO medico (apellido, nombre, matricula, especialidad, observaciones) VALUES (?, ?, ?, ?, ?) "
                    + "ON DUPLICATE KEY UPDATE apellido = ?, nombre = ?, especialidad = ?, observaciones = ?";
 
@@ -26,14 +25,12 @@ public class MedicoDAO {
             String nom = convertirNombrePropio(m.getNombreMedico());
             String esp = m.getEspecialidad().toUpperCase();
 
-            // Insert
             ps.setString(1, ap);
             ps.setString(2, nom);
             ps.setString(3, m.getMatricula());
             ps.setString(4, esp);
             ps.setString(5, m.getObservaciones());
             
-            // Update
             ps.setString(6, ap);
             ps.setString(7, nom);
             ps.setString(8, esp);
@@ -144,7 +141,6 @@ public class MedicoDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    // AQUÍ ESTÁ EL NUEVO FORMATO: Juan Pérez (mp. 123)
                     String item = rs.getString("nombre") + " " + rs.getString("apellido") + " (mp. " + rs.getString("matricula") + ")";
                     sugerencias.add(item);
                 }
@@ -170,7 +166,6 @@ public class MedicoDAO {
         }
     }
     
-    // Método auxiliar para evitar duplicar código
     private Medico mapearMedico(ResultSet res) throws SQLException {
         Medico m = new Medico();
         m.setApellidoMedico(res.getString("apellido"));

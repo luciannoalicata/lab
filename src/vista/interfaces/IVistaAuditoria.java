@@ -6,10 +6,8 @@ import java.util.List;
 import modelo.Auditoria;
 import presentador.AuditoriaPresenter;
 
-/**
- *
- * @author luciano
- */
+// @author lucianoalicata
+
 public interface IVistaAuditoria {
     
     String BTN_FILTRAR_USUARIO ="filtro_por_usuario";

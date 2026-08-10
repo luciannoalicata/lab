@@ -1,5 +1,7 @@
 package servicio;
 
+// @author lucianoalicata
+
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -10,22 +12,29 @@ public class BackupService {
 
     public static boolean crearBackup(String rutaCarpeta) {
         try {
+            String rutaDocumentos = javax.swing.filechooser.FileSystemView.getFileSystemView().getDefaultDirectory().getAbsolutePath();
+            String carpetaDestino = rutaDocumentos + java.io.File.separator + "biotec_backups";
+            
+            File folder = new File(carpetaDestino);
+            if (!folder.exists()) {
+                folder.mkdirs();
+            }
+
             String fecha = new SimpleDateFormat("dd_MM_yyyy_HHmm").format(new Date());
             String nombreArchivo = "backup_biotec_" + fecha + ".sql";
-            File archivoDestino = new File(rutaCarpeta, nombreArchivo);
+            File archivoDestino = new File(folder, nombreArchivo);
 
-            // Al estar en la variable de entorno PATH, Windows y Linux entienden este comando directo
             String pathMysqldump = "mysqldump"; 
 
             List<String> comando = new ArrayList<>();
             comando.add(pathMysqldump);
             comando.add("-h");
-            comando.add("127.0.0.1"); // FORZAMOS IP para evitar error de socket
+            comando.add("127.0.0.1"); 
             comando.add("-P");
-            comando.add("3306");      // Puerto de MySQL
+            comando.add("3306");     
             comando.add("-u");
             comando.add("root");
-            comando.add("-p1152");    // Clave sin espacio
+            comando.add("-p1152");  
             comando.add("laboratorio");
             comando.add("--result-file=" + archivoDestino.getAbsolutePath());
 
@@ -44,15 +53,15 @@ public class BackupService {
 
             int exitCode = process.waitFor();
             if (exitCode == 0) {
-                System.out.println("✅ BACKUP EXITOSO: " + archivoDestino.getAbsolutePath());
+                System.out.println("BACKUP EXITOSO: " + archivoDestino.getAbsolutePath());
                 return true;
             } else {
-                System.err.println("❌ ERROR: Código " + exitCode);
+                System.err.println("ERROR: Código " + exitCode);
                 return false;
             }
 
         } catch (Exception e) {
-            System.err.println("❌ ERROR CRÍTICO: " + e.getMessage());
+            System.err.println("ERROR CRÍTICO: " + e.getMessage());
             return false;
         }
     }

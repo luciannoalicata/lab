@@ -1,5 +1,7 @@
 package modelo;
 
+// @author lucianoalicata
+
 public class Determinacion {
 
     private int id;
@@ -18,7 +20,6 @@ public class Determinacion {
     public String getArea() { return area; }
     public void setArea(String area) { this.area = area; }
 
-    // getters y setters
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
 
@@ -50,4 +51,3 @@ public class Determinacion {
         this.ub = ub;
     }
 }
-

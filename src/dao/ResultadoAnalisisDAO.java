@@ -15,7 +15,6 @@ public class ResultadoAnalisisDAO {
         this.con = con;
     }
 
-    // ================== GUARDAR RESULTADO ==================
     public boolean guardar(ResultadoAnalisis r) {
         String sql = """
             INSERT INTO resultado_analisis 
@@ -39,7 +38,6 @@ public class ResultadoAnalisisDAO {
         }
     }
 
-    // ================== LISTAR RESULTADOS POR ANALISIS ==================
     public List<ResultadoAnalisis> listarPorAnalisis(int idAnalisis) {
         ArrayList<ResultadoAnalisis> lista = new ArrayList<>();
         String sql = """
@@ -65,7 +63,6 @@ public class ResultadoAnalisisDAO {
         return lista;
     }
 
-    // ================== ELIMINAR RESULTADOS DE UN ANALISIS ==================
     public boolean eliminarPorAnalisis(int idAnalisis) {
         String sql = "DELETE FROM resultado_analisis WHERE id_analisis = ?";
         try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
@@ -77,7 +74,6 @@ public class ResultadoAnalisisDAO {
         }
     }
 
-    // ================== LISTAR RESULTADOS INCLUIDOS ==================
     public List<ResultadoAnalisis> listarIncluidosPorAnalisis(int idAnalisis) {
         List<ResultadoAnalisis> lista = new ArrayList<>();
         String sql = """
@@ -115,7 +111,6 @@ public class ResultadoAnalisisDAO {
         }
     }
     
-    // ================== ELIMINAR CON LIMPIEZA DE HUÉRFANOS ==================
     public boolean eliminarResultado(int idResultado) {
         ResultadoAnalisis r = buscarPorId(idResultado);
         if (r == null) return false;
@@ -189,7 +184,6 @@ public class ResultadoAnalisisDAO {
         return null;
     }
     
-    // Método auxiliar 
     private ResultadoAnalisis mapearResultado(ResultSet rs) throws Exception {
         ResultadoAnalisis r = new ResultadoAnalisis();
         r.setIdResultado(rs.getInt("id_resultado"));

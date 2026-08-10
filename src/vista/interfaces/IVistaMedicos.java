@@ -3,10 +3,9 @@ package vista.interfaces;
 import java.util.ArrayList;
 import modelo.Medico;
 import presentador.MedicoPresenter;
-/**
- *
- * @author luciano
- */
+
+// @author lucianoalicata
+
 public interface IVistaMedicos {
     
     String BTN_GUARDAR_MEDICO = "guardar_medico";
@@ -30,5 +29,4 @@ public interface IVistaMedicos {
     void cargarDatosMedico(Medico m);
     void limpiarCampos();
     void mostrarMensaje(String mensaje); 
-    
 }

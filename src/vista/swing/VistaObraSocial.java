@@ -1,5 +1,7 @@
 package vista.swing;
 
+// @author lucianoalicata
+
 import vista.interfaces.IVistaObraSocial;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -27,7 +29,6 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.MatteBorder;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
@@ -39,7 +40,6 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
     private ObraSocialPresenter presenter;
     private ListSelectionListener listenerSeleccionTabla;
     
-    // ── Paleta BIOTEC Profesional ────────────────────────────────────
     private final Color C_NAVY         = new Color(10, 25, 47);
     private final Color C_FONDO        = new Color(238, 242, 246);
     private final Color C_BLANCO       = Color.WHITE;
@@ -66,9 +66,6 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
         setMinimumSize(new Dimension(900, 550));
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  DESELECCIÓN DE FILA AL HACER CLIC FUERA DE LA TABLA
-    // ══════════════════════════════════════════════════════════════════
     private void configurarDeseleccionPorClic() {
         JPanel[] paneles = {pnlCuerpo, pnlFormulario, pnlTablaWrapper, pnlFooter, pnlBotonesEdicion, pnlHeader};
         java.awt.event.MouseAdapter deseleccionador = new java.awt.event.MouseAdapter() {
@@ -91,14 +88,10 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
         this.addMouseListener(deseleccionador);
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  ESTILO Y UX - Diseño Profesional y Responsive
-    // ══════════════════════════════════════════════════════════════════
     private void aplicarEstiloProfesional() {
         setBackground(C_FONDO);
         setLayout(new BorderLayout());
 
-        // ── HEADER ──────────────────────────────────────────────────────
         pnlHeader.setBackground(C_NAVY);
         pnlHeader.setBorder(new EmptyBorder(10, 20, 10, 20));
         pnlHeader.setLayout(new BorderLayout());
@@ -124,7 +117,6 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
 
         add(pnlHeader, BorderLayout.NORTH);
 
-        // ── CONTENEDOR PRINCIPAL ──────────────────────────────────────
         pnlContenedorBlanco = new JPanel(new BorderLayout());
         pnlContenedorBlanco.setBackground(C_BLANCO);
         pnlContenedorBlanco.setBorder(BorderFactory.createCompoundBorder(
@@ -132,14 +124,12 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
             new EmptyBorder(10, 12, 10, 12)
         ));
 
-        // ── CUERPO ──────────────────────────────────────────────────────
         pnlCuerpo.setBackground(C_BLANCO);
         pnlCuerpo.setLayout(new GridBagLayout());
         GridBagConstraints gc = new GridBagConstraints();
         gc.fill = GridBagConstraints.BOTH;
         gc.weighty = 1.0;
 
-        // ── FORMULARIO ──────────────────────────────────────────────────
         pnlFormulario.setBackground(C_BLANCO);
         pnlFormulario.setBorder(BorderFactory.createCompoundBorder(
             new EmptyBorder(8, 10, 8, 10),
@@ -160,7 +150,6 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
         estilizarCampo(txtNombreObraSocial);
         estilizarCampo(txtArancelObraSocial);
 
-        // ── BOTONES ───────────────────────────────────────────────────
         configurarBoton(btnAgregarObraSocial, C_VERDE, "GUARDAR", 130, 36);
         configurarBoton(btnCambiarArancel, C_AZUL_MEDIO, "ARANCEL", 130, 36);
         configurarBoton(btnEliminarObraSocial, C_ROJO, "ELIMINAR", 130, 36);
@@ -168,7 +157,6 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
         btnCambiarArancel.setEnabled(false);
         habilitarBotonEliminar(false);
 
-        // ── LAYOUT DEL FORMULARIO ─────────────────────────────────────
         pnlFormulario.setLayout(new GridBagLayout());
         GridBagConstraints gf = new GridBagConstraints();
         gf.fill = GridBagConstraints.HORIZONTAL;
@@ -191,7 +179,6 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
         gf.insets = new Insets(0, 0, 14, 0);
         gf.gridy = r++; pnlFormulario.add(txtArancelObraSocial, gf);
 
-        // ── BOTONES DE ACCIÓN ────────────────────────────────────────
         pnlBotonesEdicion.setOpaque(false);
         pnlBotonesEdicion.setLayout(new GridLayout(2, 1, 0, 8));
         
@@ -215,7 +202,6 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
         gf.fill = GridBagConstraints.VERTICAL;
         pnlFormulario.add(new JPanel() {{ setOpaque(false); }}, gf);
 
-        // ── TABLA ──────────────────────────────────────────────────────
         pnlTablaWrapper.setBackground(C_BLANCO);
         pnlTablaWrapper.setBorder(BorderFactory.createCompoundBorder(
             new EmptyBorder(8, 0, 8, 8),
@@ -251,7 +237,6 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
         pnlTablaWrapper.add(lblTituloTabla, BorderLayout.NORTH);
         pnlTablaWrapper.add(jScrollPane1, BorderLayout.CENTER);
 
-        // ── DISTRIBUCIÓN ──────────────────────────────────────────────
         JScrollPane scrollFormulario = new JScrollPane(pnlFormulario);
         scrollFormulario.setBorder(BorderFactory.createEmptyBorder());
         scrollFormulario.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
@@ -272,13 +257,11 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
         pnlContenedorBlanco.add(pnlCuerpo, BorderLayout.CENTER);
         add(pnlContenedorBlanco, BorderLayout.CENTER);
 
-        // ── FOOTER ──────────────────────────────────────────────────────
         pnlFooter.setBackground(C_FONDO);
         pnlFooter.setBorder(new EmptyBorder(6, 12, 10, 12));
         pnlFooter.setLayout(new BorderLayout());
         add(pnlFooter, BorderLayout.SOUTH);
 
-        // ── ESTILIZAR CAMPOS ──────────────────────────────────────────
         estilizarCampoBuscador(txtBuscarObraSocial);
         configurarBotonRetroceso(btnVolver);
 
@@ -373,9 +356,6 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
         return null;
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  LÓGICA
-    // ══════════════════════════════════════════════════════════════════
     private void configurarNavegacionEnter() {
         KeyAdapter enterAdapter = new KeyAdapter() {
             @Override
@@ -546,9 +526,6 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
     @Override public void mostrarMensaje(String mensaje)    { JOptionPane.showMessageDialog(this, mensaje); }
     @Override public void ejecutar()                        { setVisible(true); }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  UI BUILDER
-    // ══════════════════════════════════════════════════════════════════
     private void initComponents() {
         pnlHeader = new JPanel();
         lblTituloHeader = new JLabel("GESTIÓN DE OBRAS SOCIALES");
@@ -587,7 +564,6 @@ public class VistaObraSocial extends JPanel implements IVistaObraSocial {
         jScrollPane1.setViewportView(grillaObrasSociales);
     }
 
-    // ── Variables ────────────────────────────────────────────────────
     private JPanel pnlHeader;
     private JLabel lblTituloHeader;
     private JPanel pnlContenedorBlanco;

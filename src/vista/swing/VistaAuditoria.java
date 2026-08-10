@@ -1,5 +1,7 @@
 package vista.swing;
 
+// @author lucianoalicata
+
 import vista.interfaces.IVistaAuditoria;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -33,11 +35,9 @@ import presentador.AuditoriaPresenter;
 
 public class VistaAuditoria extends JPanel implements IVistaAuditoria {
 
-    private AuditoriaPresenter presenter;    
     private ArrayList<Auditoria> datosActuales;
     private boolean cargandoDatos = false;
 
-    // ── Paleta BIOTEC Profesional ────────────────────────────────────
     private final Color C_NAVY         = new Color(10, 25, 47);    
     private final Color C_FONDO        = new Color(238, 242, 246);
     private final Color C_BLANCO       = Color.WHITE;
@@ -59,13 +59,8 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
         btnDetallarCambios.setEnabled(false);
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  INTERFAZ IVistaAuditoria - MÉTODOS MVP
-    // ══════════════════════════════════════════════════════════════════
-
     @Override
     public void setPresenter(AuditoriaPresenter presenter) {
-        this.presenter = presenter;
         
         limpiarListeners(btnFiltrarFecha);
         limpiarListeners(btnFiltrarUsuario);
@@ -170,14 +165,10 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
         btnDetallarCambios.setEnabled(b); 
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  ESTILO Y UX - Diseño Profesional y Responsive
-    // ══════════════════════════════════════════════════════════════════
     private void aplicarEstiloProfesional() {
         setBackground(C_FONDO);
         setLayout(new BorderLayout());
 
-        // ── HEADER ──────────────────────────────────────────────────────
         pnlHeader.setBackground(C_NAVY);
         pnlHeader.setBorder(new EmptyBorder(10, 20, 10, 20));
         pnlHeader.setLayout(new BorderLayout());
@@ -193,7 +184,6 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
 
         add(pnlHeader, BorderLayout.NORTH);
 
-        // ── CONTENEDOR PRINCIPAL ──────────────────────────────────────
         pnlContenedorBlanco = new JPanel(new BorderLayout());
         pnlContenedorBlanco.setBackground(C_BLANCO);
         pnlContenedorBlanco.setBorder(BorderFactory.createCompoundBorder(
@@ -201,7 +191,6 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
             new EmptyBorder(10, 14, 10, 14)
         ));
 
-        // ── PANEL DE FILTROS ──────────────────────────────────────────
         pnlFiltros.setBackground(C_BLANCO);
         pnlFiltros.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(C_BORDE, 1, true),
@@ -227,9 +216,7 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
         jdFechaFiltro.setPreferredSize(new Dimension(160, 34));
         jdFechaFiltro.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         jdFechaFiltro.setBackground(C_CAMPO);
-        if (jdFechaFiltro.getDateEditor() instanceof com.toedter.calendar.JTextFieldDateEditor) {
-            com.toedter.calendar.JTextFieldDateEditor editor =
-                (com.toedter.calendar.JTextFieldDateEditor) jdFechaFiltro.getDateEditor();
+        if (jdFechaFiltro.getDateEditor() instanceof com.toedter.calendar.JTextFieldDateEditor editor) {
             editor.setFont(new Font("Segoe UI", Font.PLAIN, 13));
             editor.setBackground(C_CAMPO);
             editor.setForeground(C_TEXTO_FUERTE);
@@ -246,7 +233,6 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
         gf.insets = new Insets(0, 0, 0, 0);
         gf.anchor = GridBagConstraints.WEST;
 
-        // Usuario
         gf.gridx = 0; gf.gridy = 0; gf.insets = new Insets(0, 0, 2, 10);
         pnlFiltros.add(lblBusqueda, gf);
         gf.gridy = 1; gf.insets = new Insets(0, 0, 0, 10);
@@ -254,7 +240,6 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
         gf.gridy = 1; gf.gridx = 1; gf.insets = new Insets(0, 0, 0, 20);
         pnlFiltros.add(btnFiltrarUsuario, gf);
 
-        // Separador
         JSeparator sep = new JSeparator(JSeparator.VERTICAL);
         sep.setPreferredSize(new Dimension(1, 40));
         sep.setForeground(C_BORDE);
@@ -263,7 +248,6 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
         pnlFiltros.add(sep, gf);
         gf.gridheight = 1;
 
-        // Fecha
         gf.gridx = 3; gf.gridy = 0; gf.insets = new Insets(0, 0, 2, 10);
         pnlFiltros.add(lblFecha, gf);
         gf.gridy = 1; gf.insets = new Insets(0, 0, 0, 10);
@@ -277,7 +261,6 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
 
         pnlContenedorBlanco.add(pnlFiltros, BorderLayout.NORTH);
 
-        // ── TABLA WRAPPER ─────────────────────────────────────────────
         pnlTablaWrapper.setBackground(C_BLANCO);
         pnlTablaWrapper.setBorder(BorderFactory.createCompoundBorder(
             new EmptyBorder(10, 0, 0, 0),
@@ -336,7 +319,6 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
         pnlContenedorBlanco.add(pnlTablaWrapper, BorderLayout.CENTER);
         add(pnlContenedorBlanco, BorderLayout.CENTER);
 
-        // ── FOOTER ──────────────────────────────────────────────────────
         pnlFooter.setBackground(C_FONDO);
         pnlFooter.setBorder(new EmptyBorder(6, 12, 10, 12));
         pnlFooter.setLayout(new BorderLayout());
@@ -350,7 +332,6 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
         
         add(pnlFooter, BorderLayout.SOUTH);
 
-        // ── CONFIGURAR BOTÓN RETROCESO ──────────────────────────────
         configurarBotonRetroceso(btnVolver);
     }
 
@@ -420,10 +401,7 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
             }
         };
     }
-
-    // ══════════════════════════════════════════════════════════════════
-    //  initComponents
-    // ══════════════════════════════════════════════════════════════════
+    
     private void initComponents() {
         pnlHeader = new JPanel();
         lblTituloHeader = new JLabel("REGISTRO GLOBAL DE AUDITORÍA");
@@ -465,7 +443,6 @@ public class VistaAuditoria extends JPanel implements IVistaAuditoria {
         add(pnlHeader, BorderLayout.NORTH);
     }
 
-    // ── Variables ────────────────────────────────────────────────────
     private JPanel pnlHeader;
     private JLabel lblTituloHeader;
     private JButton btnVolver;

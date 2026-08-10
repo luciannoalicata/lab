@@ -1,5 +1,7 @@
 package presentador;
 
+// @author lucianoalicata
+
 import dao.ObraSocialDAO;
 import modelo.ObraSocial;
 import vista.interfaces.IVistaObraSocial;
@@ -11,7 +13,7 @@ public class ObraSocialPresenter {
     private final IVistaObraSocial vos;
     private final AppRouter router; 
     private final ObraSocialDAO obraSocialDAO;
-    private boolean actualizandoVista = false; // ← NUEVO: evita eventos durante actualizaciones
+    private boolean actualizandoVista = false; 
 
     public ObraSocialPresenter(IVistaObraSocial vos, AppRouter router, ObraSocialDAO obraSocialDAO) {
         this.vos = vos;
@@ -26,10 +28,10 @@ public class ObraSocialPresenter {
     }
 
     private void cargarObrasSocialesEnTabla() {
-        actualizandoVista = true; // ← Desactivar eventos
+        actualizandoVista = true; 
         ArrayList<ObraSocial> lista = obraSocialDAO.listarObrasSociales();
         vos.cargarObrasSocialesEnTabla(lista);
-        actualizandoVista = false; // ← Reactivar eventos
+        actualizandoVista = false; 
     }
 
     private void cargarObrasSocialesFiltradas(ArrayList<ObraSocial> lista) {
@@ -37,8 +39,6 @@ public class ObraSocialPresenter {
         vos.cargarObrasSocialesEnTabla(lista);
         actualizandoVista = false;
     }
-
-    // ── MÉTODOS EXPLÍCITOS LLAMADOS POR LA VISTA ──
 
     public void onAgregarOS() {
         String cod = vos.getCodigoObraSocial();
@@ -79,7 +79,6 @@ public class ObraSocialPresenter {
     }
 
     public void onCambiarArancel() {
-        // ← EVITAR ejecución durante actualizaciones
         if (actualizandoVista) {
             return;
         }
@@ -108,7 +107,6 @@ public class ObraSocialPresenter {
         }
     }
     
-    // ← NUEVO: Método unificado para limpiar y recargar sin disparar eventos
     private void limpiarYRecargar() {
         actualizandoVista = true;
         vos.limpiarCampos();
@@ -133,16 +131,13 @@ public class ObraSocialPresenter {
     }
 
     public void onSeleccionarOS() {
-        // ← EVITAR ejecución durante actualizaciones
         if (actualizandoVista) {
             return;
         }
         
-        // Solo habilitar botones visualmente, no mostrar mensajes
         ObraSocial seleccionada = vos.getObraSocialSeleccionada();
         if (seleccionada != null) {
             vos.habilitarBotonEliminar(true);
-            // El botón CambiarArancel se habilita en la vista
         } else {
             vos.habilitarBotonEliminar(false);
         }

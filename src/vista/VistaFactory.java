@@ -1,5 +1,7 @@
 package vista;
 
+// @author lucianoalicata
+
 import vista.interfaces.*;
 import vista.swing.*; 
 
@@ -60,5 +62,4 @@ public class VistaFactory {
     public IVistaAjustes getVistaAjustes() {
         return new VistaAjustes(null);
     }
-
 }

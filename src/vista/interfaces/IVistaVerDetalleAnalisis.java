@@ -5,10 +5,9 @@ import java.util.Date;
 import java.util.List;
 import modelo.ResultadoAnalisis;
 import presentador.DetalleAnalisisPresenter;
-/**
- *
- * @author luciano
- */
+
+// @author lucianoalicata
+
 public interface IVistaVerDetalleAnalisis {
     
     String BTN_IMPRIMIR = "imprimir";

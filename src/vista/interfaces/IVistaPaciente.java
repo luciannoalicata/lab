@@ -1,8 +1,7 @@
 package vista.interfaces;
-/**
- *
- * @author luciano
- */
+
+// @author lucianoalicata
+
 import java.util.ArrayList;
 import java.util.List;
 import modelo.Paciente;
@@ -43,5 +42,4 @@ public interface IVistaPaciente {
     void mostrarMensaje(String mensaje); 
     int confirmarAccion(String mensaje, String titulo);
     void limpiarFocos();
-
 }

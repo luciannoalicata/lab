@@ -1,43 +1,33 @@
 package servicio;
 
+// @author lucianoalicata
+
 import dao.AnalisisDAO;
 import dao.ConfiguracionDAO;
 import dao.DeterminacionDAO;
 import dao.MedicoDAO;
 import dao.PacienteDAO;
 import dao.ResultadoAnalisisDAO;
-import java.io.File;
-import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.HashMap;
-import java.util.Map;
 import javax.swing.JDialog;
-import javax.swing.JOptionPane;
-import modelo.Analisis;
-import modelo.Paciente;
-import modelo.ResultadoAnalisis;
-import net.sf.jasperreports.engine.JasperCompileManager;
-import net.sf.jasperreports.engine.JasperFillManager;
-import net.sf.jasperreports.engine.JasperPrint;
-import net.sf.jasperreports.engine.JasperReport;
-import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
-import net.sf.jasperreports.swing.JRViewer;
+import net.sf.jasperreports.engine.JRException;
 
 public class ReporteService {
 
-    private ConfiguracionDAO configDAO;
-    private AnalisisDAO analisisDAO;
-    private PacienteDAO pacienteDAO;
-    private MedicoDAO medicoDAO;
-    private ResultadoAnalisisDAO resultadoDAO;
-    private DeterminacionDAO determinacionDAO;
+    private final ConfiguracionDAO configDAO;
+    private final AnalisisDAO analisisDAO;
+    private final PacienteDAO pacienteDAO;
+    private final MedicoDAO medicoDAO;
+    private final ResultadoAnalisisDAO resultadoDAO;
+    private final DeterminacionDAO determinacionDAO;
 
     public ReporteService(ConfiguracionDAO configDAO, AnalisisDAO analisisDAO,
             PacienteDAO pacienteDAO, ResultadoAnalisisDAO resultadoDAO,
             DeterminacionDAO determinacionDAO, MedicoDAO medicoDAO) {
-        
+
         this.configDAO = configDAO;
         this.analisisDAO = analisisDAO;
         this.pacienteDAO = pacienteDAO;
@@ -46,9 +36,9 @@ public class ReporteService {
         this.medicoDAO = medicoDAO;
     }
 
-public void generarInforme(int idAnalisis, Date fechaImpresion) {
+    public void generarInforme(int idAnalisis, Date fechaImpresion) {
 
-        List<java.io.FileInputStream> streamsAbiertos = new ArrayList<>();
+        List<java.io.InputStream> streamsAbiertos = new ArrayList<>();
         JDialog dialog = null;
 
         try {
@@ -73,7 +63,6 @@ public void generarInforme(int idAnalisis, Date fechaImpresion) {
                 return;
             }
 
-            // ── FILTRAR FILAS SIN RESULTADO ──
             List<modelo.ResultadoAnalisis> resultadosFiltrados = new ArrayList<>();
             for (modelo.ResultadoAnalisis r : resultadosOriginales) {
                 String res = r.getResultado();
@@ -89,7 +78,6 @@ public void generarInforme(int idAnalisis, Date fechaImpresion) {
                 return;
             }
 
-            // ── TÍTULOS DINÁMICOS Y FORMATEO ──
             List<modelo.ResultadoAnalisis> listaConTitulos = new ArrayList<>();
             String codigoPadreActual = "";
 
@@ -133,7 +121,6 @@ public void generarInforme(int idAnalisis, Date fechaImpresion) {
                 listaConTitulos.add(r);
             }
 
-            // ── SELECCIÓN DE REPORTE SEGÚN CONFIGURACIÓN ──
             String tamanoHoja = configDAO.getValor("print_tamano");
             String orientacion = configDAO.getValor("print_orientacion");
 
@@ -171,27 +158,25 @@ public void generarInforme(int idAnalisis, Date fechaImpresion) {
                 return;
             }
 
-            // ── COMPILACIÓN Y PARÁMETROS ──
+            System.setProperty("jasper.reports.compile.temp", System.getProperty("java.io.tmpdir"));
+
             net.sf.jasperreports.engine.JasperReport jasperReport = net.sf.jasperreports.engine.JasperCompileManager.compileReport(reporteStream);
             java.util.Map<String, Object> params = new HashMap<>();
 
-            // ── RECONSTRUCCIÓN DEL MÉDICO PARA EL PDF ──
             String matriculaDB = analisis.getMedicoSolicitante();
             String medicoParaPDF = "";
-            
+
             if (matriculaDB != null && !matriculaDB.trim().isEmpty() && !matriculaDB.equals("-")) {
                 modelo.Medico medicoReal = medicoDAO.buscarPorMatricula(matriculaDB.trim());
                 if (medicoReal != null) {
                     medicoParaPDF = medicoReal.getNombreMedico() + " " + medicoReal.getApellidoMedico() + " (mp. " + medicoReal.getMatricula() + ")";
                 } else {
-                    medicoParaPDF = matriculaDB; // Por si el médico se borró de la base de datos
+                    medicoParaPDF = matriculaDB;
                 }
             }
             params.put("medicoSolicitante", medicoParaPDF);
-            
             params.put("fechaAnalisis", fechaImpresion);
             params.put("precio", analisis.getPrecio());
-
             params.put("labNombre", configDAO.getValor("lab_nombre") != null ? configDAO.getValor("lab_nombre") : "BIOTEC LABORATORIOS");
             params.put("labDireccion", configDAO.getValor("lab_direccion") != null ? configDAO.getValor("lab_direccion") : "");
             params.put("labLocalidad", configDAO.getValor("lab_localidad") != null ? configDAO.getValor("lab_localidad") : "");
@@ -202,21 +187,14 @@ public void generarInforme(int idAnalisis, Date fechaImpresion) {
             params.put("pacienteNombre", paciente.getApellido() + " " + paciente.getNombre());
             params.put("pacienteDni", paciente.getDni());
 
-            // ── LOGO Y FIRMA ──
             String valLogo = configDAO.getValor("print_logo");
             boolean incluirLogo = valLogo != null && (valLogo.trim().equalsIgnoreCase("true") || valLogo.trim().equals("1"));
-            String rutaLogo = configDAO.getValor("lab_logo");
 
-            if (incluirLogo && rutaLogo != null && !rutaLogo.trim().isEmpty()) {
-                java.io.File logoFile = new java.io.File(rutaLogo);
-                if (logoFile.exists() && logoFile.isFile()) {
-                    try {
-                        java.io.FileInputStream fis = new java.io.FileInputStream(logoFile);
-                        streamsAbiertos.add(fis);
-                        params.put("urlLogo", fis);
-                    } catch (Exception e) {
-                        params.put("urlLogo", null);
-                    }
+            if (incluirLogo) {
+                java.io.InputStream streamLogo = configDAO.getValorBinario("lab_logo");
+                if (streamLogo != null) {
+                    streamsAbiertos.add(streamLogo);
+                    params.put("urlLogo", streamLogo);
                 } else {
                     params.put("urlLogo", null);
                 }
@@ -224,42 +202,27 @@ public void generarInforme(int idAnalisis, Date fechaImpresion) {
                 params.put("urlLogo", null);
             }
 
-            String rutaFirma = configDAO.getValor("lab_firma");
-            if (rutaFirma != null && !rutaFirma.trim().isEmpty()) {
-                java.io.File firmaFile = new java.io.File(rutaFirma);
-                if (firmaFile.exists() && firmaFile.isFile()) {
-                    try {
-                        java.io.FileInputStream fis = new java.io.FileInputStream(firmaFile);
-                        streamsAbiertos.add(fis);
-                        params.put("urlFirma", fis);
-                    } catch (Exception e) {
-                        params.put("urlFirma", null);
-                    }
-                } else {
-                    params.put("urlFirma", null);
-                }
+            java.io.InputStream streamFirma = configDAO.getValorBinario("lab_firma");
+            if (streamFirma != null) {
+                streamsAbiertos.add(streamFirma);
+                params.put("urlFirma", streamFirma);
             } else {
                 params.put("urlFirma", null);
             }
 
-            // ── LLENAR EL REPORTE ──
             net.sf.jasperreports.engine.data.JRBeanCollectionDataSource ds = new net.sf.jasperreports.engine.data.JRBeanCollectionDataSource(listaConTitulos);
             net.sf.jasperreports.engine.JasperPrint jasperPrint = net.sf.jasperreports.engine.JasperFillManager.fillReport(jasperReport, params, ds);
 
-            // ── EXPORTAR PDF AUTOMÁTICO ──
             boolean pdfGuardadoExito = false;
             String rutaPdfGenerado = "";
 
             try {
                 String valAuto = configDAO.getValor("print_auto");
                 boolean autoPrint = valAuto != null && (valAuto.trim().equalsIgnoreCase("true") || valAuto.trim().equals("1"));
-                String carpetaPdf = configDAO.getValor("ruta_pdf");
 
-                if (autoPrint && carpetaPdf != null && !carpetaPdf.trim().isEmpty()) {
-
-                    if (carpetaPdf.startsWith("~/")) {
-                        carpetaPdf = System.getProperty("user.home") + carpetaPdf.substring(1);
-                    }
+                if (autoPrint) {
+                    String rutaEscritorio = javax.swing.filechooser.FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
+                    String carpetaPdf = rutaEscritorio + java.io.File.separator + "biotec_informes";
 
                     java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd-MM-yyyy");
                     String fechaEstudio = sdf.format(analisis.getFecha());
@@ -282,15 +245,14 @@ public void generarInforme(int idAnalisis, Date fechaImpresion) {
                         pdfGuardadoExito = true;
                         rutaPdfGenerado = pdfFile.getAbsolutePath();
                     } else {
-                        System.err.println("No se pudo crear la carpeta: " + carpetaPdf);
+                        System.err.println("No se pudo crear la carpeta en el Escritorio: " + carpetaPdf);
                     }
                 }
-            } catch (Exception exPdf) {
+            } catch (JRException exPdf) {
                 System.err.println("Error al exportar el PDF: " + exPdf.getMessage());
                 exPdf.printStackTrace();
             }
 
-            // ── MOSTRAR VISOR (CON PARCHE ANTI-CRASH Y WHATSAPP) ──
             final JDialog dialogFinal = new JDialog((java.awt.Frame) null, "Visor de Informe - BIOTEC", true);
             dialogFinal.setSize(1024, 800);
             dialogFinal.setLocationRelativeTo(null);
@@ -326,40 +288,53 @@ public void generarInforme(int idAnalisis, Date fechaImpresion) {
             final String finalRutaPdf = rutaPdfGenerado;
 
             dialogFinal.addWindowListener(new java.awt.event.WindowAdapter() {
-
                 @Override
                 public void windowOpened(java.awt.event.WindowEvent e) {
                     if (finalPdfGuardado) {
-                        Object[] opciones = {"Cerrar", "Enviar por WhatsApp"};
+                        // ── AQUÍ AGREGAMOS LA OPCIÓN DE EMAIL ──
+                        Object[] opciones = {"Cerrar", "Enviar por WhatsApp", "Enviar por Email"};
 
                         int eleccion = javax.swing.JOptionPane.showOptionDialog(dialogFinal,
-                                "✓ PDF guardado exitosamente en:\n" + finalRutaPdf + "\n\n¿Desea notificar al paciente ahora?",
+                                "PDF guardado exitosamente en:\n" + finalRutaPdf + "\n\n¿Desea notificar al paciente ahora?",
                                 "Informe Generado - BIOTEC",
-                                javax.swing.JOptionPane.YES_NO_OPTION,
+                                javax.swing.JOptionPane.DEFAULT_OPTION,
                                 javax.swing.JOptionPane.INFORMATION_MESSAGE,
                                 null,
                                 opciones,
                                 opciones[0]);
 
                         if (eleccion == 1) {
-                            String celular = paciente.getCelular();
+                            // ── LÓGICA DE WHATSAPP ──
+                            try {
+                                String celular = paciente.getCelular();
+                                String mensaje = "Hola *" + paciente.getNombre().trim() + "*, te informamos que los resultados de tus análisis clínicos en *BIOTEC* ya están listos. Podés pasar a retirarlos en el Laboratorio (Av. Sarmiento 602, Aguilares). \n\nBIOTEC.";
+                                String mensajeCodificado = java.net.URLEncoder.encode(mensaje, "UTF-8");
+                                String url;
 
-                            if (celular != null && !celular.trim().isEmpty()) {
-                                try {
+                                if (celular != null && !celular.trim().isEmpty()) {
                                     String celularLimpio = celular.replaceAll("[^0-9]", "");
-                                    String mensaje = "Hola *" + paciente.getNombre().trim() + "*, te informamos que los resultados de tus análisis clínicos en *BIOTEC* ya están listos. \n\nPuedes pasar a retirarlos o solicitarlos en formato PDF respondiendo a este mensaje.";
-                                    String url = "https://api.whatsapp.com/send?phone=" + celularLimpio + "&text=" + java.net.URLEncoder.encode(mensaje, "UTF-8");
-
-                                    if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.BROWSE)) {
-                                        java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
-                                    } else {
-                                        javax.swing.JOptionPane.showMessageDialog(dialogFinal, "No se pudo abrir el navegador automáticamente en este sistema.");
-                                    }
-                                } catch (Exception exWsp) {
-                                    javax.swing.JOptionPane.showMessageDialog(dialogFinal, "Error al intentar abrir WhatsApp: " + exWsp.getMessage());
+                                    url = "https://api.whatsapp.com/send?phone=" + celularLimpio + "&text=" + mensajeCodificado;
+                                } else {
+                                    url = "https://api.whatsapp.com/send?text=" + mensajeCodificado;
                                 }
-                            } else {
-                                javax.swing.JOptionPane.showMessageDialog(dialogFinal, "El paciente no tiene un número de celular registrado en el sistema.", "Atención", javax.swing.JOptionPane.WARNING_MESSAGE);
+
+                                if (java.awt.Desktop.isDesktopSupported() && java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.BROWSE)) {
+                                    java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
+                                } else {
+                                    javax.swing.JOptionPane.showMessageDialog(dialogFinal, "No se pudo abrir el navegador automáticamente en este sistema.");
+                                }
+                            } catch (Exception exWsp) {
+                                javax.swing.JOptionPane.showMessageDialog(dialogFinal, "Error al intentar abrir WhatsApp: " + exWsp.getMessage());
+                            }
+                        } else if (eleccion == 2) {
+                            // ── LÓGICA DE EMAIL ──
+                            String emailDestino = javax.swing.JOptionPane.showInputDialog(dialogFinal,
+                                    "Ingrese el correo electrónico del paciente:",
+                                    "Enviar Informe por Email",
+                                    javax.swing.JOptionPane.QUESTION_MESSAGE);
+
+                            if (emailDestino != null && !emailDestino.trim().isEmpty()) {
+                                enviarEmailConAdjunto(emailDestino, finalRutaPdf, paciente.getNombre());
                             }
                         }
                     }
@@ -370,7 +345,6 @@ public void generarInforme(int idAnalisis, Date fechaImpresion) {
                     dialogFinal.dispose();
                 }
             });
-
             dialogFinal.setVisible(true);
 
         } catch (Exception e) {
@@ -379,23 +353,71 @@ public void generarInforme(int idAnalisis, Date fechaImpresion) {
                 javax.swing.JOptionPane.showMessageDialog(null, "Error al generar informe: " + e.getMessage());
             });
         } finally {
-            for (java.io.FileInputStream fis : streamsAbiertos) {
+            for (java.io.InputStream is : streamsAbiertos) {
                 try {
-                    if (fis != null) {
-                        fis.close();
+                    if (is != null) {
+                        is.close();
                     }
                 } catch (Exception ex) {
                 }
             }
         }
     }
+    
+    private void enviarEmailConAdjunto(String destinatario, String rutaPdf, String nombrePaciente) {
+        final String remitente = "lucianoaalicata@gmail.com";
+        final String password = "lugn vfjq yirp llrh";
 
-    private String getValorConfig(String clave, String defaultValue) {
-        try {
-            String valor = configDAO.getValor(clave);
-            return (valor != null && !valor.trim().isEmpty()) ? valor : defaultValue;
-        } catch (Exception e) {
-            return defaultValue;
-        }
+        java.util.Properties props = new java.util.Properties();
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.host", "smtp.gmail.com");
+        props.put("mail.smtp.port", "587");
+        props.put("mail.smtp.ssl.protocols", "TLSv1.2");
+
+        javax.mail.Session session = javax.mail.Session.getInstance(props,
+                new javax.mail.Authenticator() {
+            @Override
+            protected javax.mail.PasswordAuthentication getPasswordAuthentication() {
+                return new javax.mail.PasswordAuthentication(remitente, password);
+            }
+        });
+
+        new Thread(() -> {
+            try {
+                javax.mail.Message mensaje = new javax.mail.internet.MimeMessage(session);
+                mensaje.setFrom(new javax.mail.internet.InternetAddress(remitente, "Laboratorio BIOTEC"));
+                mensaje.setRecipients(javax.mail.Message.RecipientType.TO, javax.mail.internet.InternetAddress.parse(destinatario));
+                mensaje.setSubject("Resultados de Análisis Clínicos - BIOTEC");
+
+                javax.mail.BodyPart textoParte = new javax.mail.internet.MimeBodyPart();
+                textoParte.setText("Hola " + nombrePaciente.trim() + ",\n\nAdjuntamos en formato PDF los resultados de tus análisis clínicos realizados en BIOTEC.\n\nSaludos cordiales,\nLaboratorio BIOTEC.\nAv. Sarmiento 602, Aguilares.");
+
+                javax.mail.BodyPart adjuntoParte = new javax.mail.internet.MimeBodyPart();
+                javax.activation.DataSource source = new javax.activation.FileDataSource(rutaPdf);
+                adjuntoParte.setDataHandler(new javax.activation.DataHandler(source));
+
+                java.io.File archivoPdf = new java.io.File(rutaPdf);
+                adjuntoParte.setFileName(archivoPdf.getName());
+
+                javax.mail.Multipart multipart = new javax.mail.internet.MimeMultipart();
+                multipart.addBodyPart(textoParte);
+                multipart.addBodyPart(adjuntoParte);
+
+                mensaje.setContent(multipart);
+
+                javax.mail.Transport.send(mensaje);
+
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    javax.swing.JOptionPane.showMessageDialog(null, "El informe fue enviado exitosamente con su adjunto a:\n" + destinatario);
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    javax.swing.JOptionPane.showMessageDialog(null, "Error al enviar el correo:\n" + e.getMessage(), "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+                });
+            }
+        }).start();
     }
 }

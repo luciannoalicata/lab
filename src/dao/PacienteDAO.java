@@ -189,7 +189,6 @@ public class PacienteDAO {
         return null;
     }
     
-    // Método auxiliar para evitar repetir código al rellenar el objeto Paciente
     private Paciente mapearPaciente(ResultSet rs) throws Exception {
         Paciente p = new Paciente();
         p.setIdPaciente(rs.getInt("id_paciente"));

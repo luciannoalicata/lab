@@ -1,9 +1,8 @@
 package vista.swing;
 
+// @author lucianoalicata
 import vista.interfaces.IVistaPrincipal;
 import java.awt.*;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import javax.swing.*;
@@ -14,21 +13,20 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
 
     private PrincipalPresenter presenter;
     private javax.swing.JDialog dialogoEspera;
-    
-    // ── Paleta BIOTEC Mejorada (Estética Minimalista) ────────────────
-    private final Color C_NAVY        = new Color(10, 25, 47);    
+
+    private final Color C_NAVY = new Color(10, 25, 47);
     private final Color C_AZUL_OSCURO = new Color(0, 51, 102);
-    private final Color C_AZUL_MEDIO  = new Color(30, 110, 180);
-    private final Color C_VERDE       = new Color(35, 160, 115);
-    private final Color C_ROJO        = new Color(220, 53, 69);
-    private final Color C_ROJO_HOV    = new Color(200, 35, 51);
-    private final Color C_FONDO       = new Color(238, 242, 246); 
-    private final Color C_BLANCO      = Color.WHITE;
-    private final Color C_BORDE       = new Color(215, 225, 235);
+    private final Color C_AZUL_MEDIO = new Color(30, 110, 180);
+    private final Color C_VERDE = new Color(35, 160, 115);
+    private final Color C_ROJO = new Color(220, 53, 69);
+    private final Color C_ROJO_HOV = new Color(200, 35, 51);
+    private final Color C_FONDO = new Color(238, 242, 246);
+    private final Color C_BLANCO = Color.WHITE;
+    private final Color C_BORDE = new Color(215, 225, 235);
     private final Color C_TEXTO_SUAVE = new Color(100, 115, 130);
-    private final Color C_TEXTO_FUERTE= new Color(40, 50, 60);
-    private final Color C_LABEL_HDR   = new Color(175, 205, 235);
-    private final Color C_HOVER_BG    = new Color(245, 250, 255);
+    private final Color C_TEXTO_FUERTE = new Color(40, 50, 60);
+    private final Color C_LABEL_HDR = new Color(175, 205, 235);
+    private final Color C_HOVER_BG = new Color(245, 250, 255);
     private final Color C_HOVER_BORDER = new Color(180, 210, 240);
 
     private javax.swing.JButton btnNBU;
@@ -45,14 +43,14 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
     private javax.swing.JLabel lblRolUsuario;
     private javax.swing.JLabel lblAvatar;
     private javax.swing.JPanel pnlUsuarioInfo;
-    
+
     private CardLayout cardLayout;
     private JPanel pnlContenido;
-    
+
     private JPanel pnlMenuIzquierdo;
     private JPanel pnlMenuDerecho;
     private JPanel pnlFooterCerrar;
-    
+
     private JPanel pnlCentroWrapper;
 
     public VistaPrincipal() {
@@ -60,11 +58,11 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         construirUI();
         configurarCierreVentana();
     }
-    
+
     @Override
     public void setPresenter(PrincipalPresenter presenter) {
         this.presenter = presenter;
-        
+
         btnPacientes.addActionListener(e -> presenter.onPacientes());
         btnAnalisis.addActionListener(e -> presenter.onAnalisis());
         btnMedicos.addActionListener(e -> presenter.onMedicos());
@@ -77,41 +75,40 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
     }
 
     private void construirUI() {
-    setTitle("BIOTEC LABORATORIOS");
-    setBackground(C_FONDO);
-    construirHeader();
-    construirCuerpo();
-    pack();
+        setTitle("BIOTEC LABORATORIOS");
+        setBackground(C_FONDO);
+        construirHeader();
+        construirCuerpo();
+        pack();
 
-    // Tamaño mínimo: 85% de la pantalla
-    Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
-    setMinimumSize(new Dimension(
-            (int) (screen.width * 0.85),
-            (int) (screen.height * 0.85)
-    ));
+        Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+        setMinimumSize(new Dimension(
+                (int) (screen.width * 0.85),
+                (int) (screen.height * 0.85)
+        ));
 
-    setExtendedState(JFrame.MAXIMIZED_BOTH);
-    setLocationRelativeTo(null);
-    
-    // ── ICONO CORRECTO ──
-    try {
-        java.net.URL url = getClass().getResource("/reportes/img/logo_sw.png");
-        if (url != null) {
-            // Usar Toolkit para cargar .ico
-            Image img = Toolkit.getDefaultToolkit().getImage(url);
-            setIconImage(img);
-            System.out.println("Icono cargado correctamente.");
-        } else {
-            System.out.println("No se encontró el icono en: /reportes/img/logo_sw.png");
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
+        setLocationRelativeTo(null);
+
+        try {
+            java.net.URL url = getClass().getResource("/reportes/img/logo_sw.png");
+            if (url != null) {
+                java.awt.image.BufferedImage imgFrame = javax.imageio.ImageIO.read(url);
+                setIconImage(imgFrame);
+                System.out.println("Icono cargado correctamente.");
+            } else {
+                System.out.println("No se encontró el icono en: /reportes/img/logo_sw.png");
+            }
+        } catch (Exception e) {
+            System.out.println("Error al cargar el icono: " + e.getMessage());
         }
-    } catch (Exception e) {
-        System.out.println("Error al cargar el icono: " + e.getMessage());
     }
-}
 
     private void construirHeader() {
-        if (pnlHeader == null) return;
-        
+        if (pnlHeader == null) {
+            return;
+        }
+
         pnlHeader.setBackground(C_NAVY);
         pnlHeader.setBorder(new EmptyBorder(0, 36, 0, 36));
         pnlHeader.setPreferredSize(new Dimension(0, 85));
@@ -130,7 +127,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         JPanel pnlCentro = new JPanel();
         pnlCentro.setOpaque(false);
         pnlCentro.setLayout(new BoxLayout(pnlCentro, BoxLayout.Y_AXIS));
-        
+
         if (lblBienvenida != null) {
             lblBienvenida.setFont(new Font("Segoe UI", Font.BOLD, 26));
             lblBienvenida.setForeground(C_BLANCO);
@@ -183,9 +180,9 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         lblAvatar.setBorder(BorderFactory.createLineBorder(C_LABEL_HDR, 1));
 
         ImageIcon icoUser = icon("/reportes/img/monigote_icon.png", 28, 28);
-        if (icoUser != null) { 
-            lblAvatar.setIcon(icoUser); 
-            lblAvatar.setText(""); 
+        if (icoUser != null) {
+            lblAvatar.setIcon(icoUser);
+            lblAvatar.setText("");
         }
 
         pnlUsuarioInfo.add(pnlTextoUser);
@@ -195,20 +192,22 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
     }
 
     private void construirCuerpo() {
-        if (pnlEscritorio == null) return;
+        if (pnlEscritorio == null) {
+            return;
+        }
 
         pnlEscritorio.setLayout(new BorderLayout());
         pnlEscritorio.setBackground(C_FONDO);
 
         pnlCentroWrapper = new JPanel(new BorderLayout());
         pnlCentroWrapper.setBackground(C_FONDO);
-        pnlCentroWrapper.setBorder(new EmptyBorder(16, 20, 20, 20)); 
+        pnlCentroWrapper.setBorder(new EmptyBorder(16, 20, 20, 20));
 
         cardLayout = new CardLayout();
         pnlContenido = new JPanel(cardLayout);
         pnlContenido.setBackground(C_BLANCO);
         pnlContenido.setBorder(BorderFactory.createLineBorder(C_BORDE, 1, true));
-        
+
         pnlContenido.add(construirPanelInicio(), "inicio");
 
         pnlCentroWrapper.add(pnlContenido, BorderLayout.CENTER);
@@ -223,10 +222,10 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         pnlFooterCerrar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 36, 12));
         pnlFooterCerrar.setBackground(C_BLANCO);
         pnlFooterCerrar.setBorder(new MatteBorder(1, 0, 0, 0, C_BORDE));
-        
+
         configurarBotonCerrarSesion();
         pnlFooterCerrar.add(btnCerrarSesion);
-        
+
         pnlEscritorio.add(pnlFooterCerrar, BorderLayout.SOUTH);
     }
 
@@ -234,20 +233,19 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         JPanel panel = new JPanel();
         panel.setBackground(C_BLANCO);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        
-        // Elástico: Ideal de 280px para 17", compresible hasta 220px en 14"
-        panel.setPreferredSize(new Dimension(280, 0)); 
+
+        panel.setPreferredSize(new Dimension(280, 0));
         panel.setMinimumSize(new Dimension(220, 0));
 
         if (esIzquierdo) {
             panel.setBorder(BorderFactory.createCompoundBorder(
-                new MatteBorder(0, 0, 0, 1, C_BORDE),
-                new EmptyBorder(0, 16, 0, 16)
+                    new MatteBorder(0, 0, 0, 1, C_BORDE),
+                    new EmptyBorder(0, 16, 0, 16)
             ));
         } else {
             panel.setBorder(BorderFactory.createCompoundBorder(
-                new MatteBorder(0, 1, 0, 0, C_BORDE),
-                new EmptyBorder(0, 16, 0, 16)
+                    new MatteBorder(0, 1, 0, 0, C_BORDE),
+                    new EmptyBorder(0, 16, 0, 16)
             ));
         }
 
@@ -285,21 +283,23 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         btn.setFocusPainted(false);
         btn.setOpaque(true);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        
+
         btn.setPreferredSize(new Dimension(260, 80));
-        btn.setMinimumSize(new Dimension(190, 75)); 
+        btn.setMinimumSize(new Dimension(190, 75));
         btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 85));
-        
+
         btn.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(C_BORDE, 1, true),
-            new EmptyBorder(10, 10, 10, 10)
+                BorderFactory.createLineBorder(C_BORDE, 1, true),
+                new EmptyBorder(10, 10, 10, 10)
         ));
 
         JLabel lblIco = new JLabel();
         lblIco.setPreferredSize(new Dimension(46, 46));
         lblIco.setHorizontalAlignment(SwingConstants.CENTER);
-        ImageIcon ico = icon("/reportes/img/" + iconoFile, 38, 38); 
-        if (ico != null) lblIco.setIcon(ico);
+        ImageIcon ico = icon("/reportes/img/" + iconoFile, 38, 38);
+        if (ico != null) {
+            lblIco.setIcon(ico);
+        }
 
         JPanel pnlTexto = new JPanel();
         pnlTexto.setOpaque(false);
@@ -332,23 +332,23 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         btn.add(contenido);
 
         btn.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override 
+            @Override
             public void mouseEntered(java.awt.event.MouseEvent e) {
                 btn.setBackground(C_HOVER_BG);
                 btn.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(C_HOVER_BORDER, 1, true),
-                    BorderFactory.createEmptyBorder(10, 10, 10, 10)
+                        BorderFactory.createLineBorder(C_HOVER_BORDER, 1, true),
+                        BorderFactory.createEmptyBorder(10, 10, 10, 10)
                 ));
                 flecha.setForeground(C_AZUL_MEDIO);
                 lblTitulo.setForeground(C_AZUL_OSCURO);
             }
-            
-            @Override 
+
+            @Override
             public void mouseExited(java.awt.event.MouseEvent e) {
                 btn.setBackground(C_BLANCO);
                 btn.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(C_BORDE, 1, true),
-                    new EmptyBorder(10, 10, 10, 10)
+                        BorderFactory.createLineBorder(C_BORDE, 1, true),
+                        new EmptyBorder(10, 10, 10, 10)
                 ));
                 flecha.setForeground(new Color(200, 210, 220));
                 lblTitulo.setForeground(C_TEXTO_FUERTE);
@@ -374,17 +374,18 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         btnCerrarSesion.setBorderPainted(false);
         btnCerrarSesion.setOpaque(true);
         btnCerrarSesion.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnCerrarSesion.setPreferredSize(new Dimension(240, 48));
+        btnCerrarSesion.setPreferredSize(new Dimension(220, 35));
         btnCerrarSesion.setHorizontalAlignment(SwingConstants.CENTER);
-        
+
         btnCerrarSesion.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override 
-            public void mouseEntered(java.awt.event.MouseEvent e) { 
-                btnCerrarSesion.setBackground(C_ROJO_HOV); 
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                btnCerrarSesion.setBackground(C_ROJO_HOV);
             }
-            @Override 
-            public void mouseExited(java.awt.event.MouseEvent e) { 
-                btnCerrarSesion.setBackground(C_ROJO); 
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                btnCerrarSesion.setBackground(C_ROJO);
             }
         });
     }
@@ -397,7 +398,6 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         card.setBackground(C_BLANCO);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
 
-        // Pegamento superior
         card.add(Box.createVerticalGlue());
 
         JLabel lblLogo = new JLabel();
@@ -406,8 +406,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         try {
             java.net.URL url = getClass().getResource("/reportes/img/biotec_logo.png");
             if (url != null) {
-                Image img = new ImageIcon(url).getImage().getScaledInstance(280, -1, Image.SCALE_SMOOTH);
-                lblLogo.setIcon(new ImageIcon(img));
+                lblLogo.setIcon(iconAncho("/reportes/img/biotec_logo.png", 280));
                 lblLogo.setText("");
             } else {
                 lblLogo.setText("BIOTEC");
@@ -424,7 +423,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
 
         String fechaStr = new SimpleDateFormat("EEEE, dd 'de' MMMM 'de' yyyy").format(new Date());
         fechaStr = fechaStr.substring(0, 1).toUpperCase() + fechaStr.substring(1);
-        
+
         JLabel lblFechaCard = new JLabel(fechaStr);
         lblFechaCard.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         lblFechaCard.setForeground(C_TEXTO_SUAVE);
@@ -438,16 +437,15 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         pnlChips.add(crearChip("● Sistema Operativo", C_VERDE));
         pnlChips.add(crearChip("● Servidor Conectado", C_AZUL_MEDIO));
         card.add(pnlChips);
-        
-        // Pegamento inferior
+
         card.add(Box.createVerticalGlue());
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.anchor = GridBagConstraints.CENTER;
-        gbc.weightx = 1.0; 
+        gbc.weightx = 1.0;
         gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
-        
+
         panel.add(card, gbc);
         return panel;
     }
@@ -457,8 +455,8 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lbl.setForeground(color);
         lbl.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(color.getRed(), color.getGreen(), color.getBlue(), 60), 1, true),
-            new EmptyBorder(8, 16, 8, 16)
+                BorderFactory.createLineBorder(new Color(color.getRed(), color.getGreen(), color.getBlue(), 60), 1, true),
+                new EmptyBorder(8, 16, 8, 16)
         ));
         lbl.setBackground(new Color(color.getRed(), color.getGreen(), color.getBlue(), 12));
         lbl.setOpaque(true);
@@ -468,17 +466,35 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
     private ImageIcon icon(String ruta, int w, int h) {
         try {
             java.net.URL url = getClass().getResource(ruta);
-            if (url != null) {
-                Image img = new ImageIcon(url).getImage().getScaledInstance(w, h, Image.SCALE_SMOOTH);
-                return new ImageIcon(img);
+            if (url == null) {
+                return null;
             }
-        } catch (Exception e) {}
-        return null;
+
+            java.awt.image.BufferedImage original = javax.imageio.ImageIO.read(url);
+            if (original == null) {
+                return null;
+            }
+
+            java.awt.image.BufferedImage escalada
+                    = new java.awt.image.BufferedImage(w, h,
+                            java.awt.image.BufferedImage.TYPE_INT_ARGB);
+
+            java.awt.Graphics2D g2d = escalada.createGraphics();
+            g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                    java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            g2d.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING,
+                    java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+            g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.drawImage(original, 0, 0, w, h, null);
+            g2d.dispose();
+
+            return new ImageIcon(escalada);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  INTERFACE IVistaPrincipal
-    // ════════════════════════════════════════════════════════════════
     @Override
     public void setUsuarioLogueado(String nombreUsuario, String rol) {
         if (lblNombreUsuario != null) {
@@ -489,19 +505,19 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         }
     }
 
-    @Override 
-    public void ejecutar() { 
-        setVisible(true); 
+    @Override
+    public void ejecutar() {
+        setVisible(true);
     }
 
     @Override
     public void mostrarAvisoBackup(boolean mostrar) {
         if (mostrar) {
-            Object[] options = {}; 
+            Object[] options = {};
             JOptionPane pane = new JOptionPane(
-                "Generando copia de seguridad...\nPor favor, no cierre el programa.",
-                JOptionPane.INFORMATION_MESSAGE, 
-                JOptionPane.DEFAULT_OPTION, null, options, null);
+                    "Generando copia de seguridad...\nPor favor, no cierre el programa.",
+                    JOptionPane.INFORMATION_MESSAGE,
+                    JOptionPane.DEFAULT_OPTION, null, options, null);
 
             dialogoEspera = pane.createDialog(this, "Copia de Seguridad en curso");
             dialogoEspera.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
@@ -515,19 +531,19 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         }
     }
 
-    @Override 
-    public void mostrarMensaje(String mensaje) { 
-        JOptionPane.showMessageDialog(this, mensaje); 
+    @Override
+    public void mostrarMensaje(String mensaje) {
+        JOptionPane.showMessageDialog(this, mensaje);
     }
-    
-    @Override 
-    public void cerrarPantalla() { 
-        this.dispose(); 
+
+    @Override
+    public void cerrarPantalla() {
+        this.dispose();
     }
-    
-    @Override 
-    public void limpiarFocos() { 
-        this.requestFocusInWindow(); 
+
+    @Override
+    public void limpiarFocos() {
+        this.requestFocusInWindow();
     }
 
     @Override
@@ -535,23 +551,62 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         return JOptionPane.showConfirmDialog(this, mensaje, titulo, JOptionPane.YES_NO_OPTION);
     }
 
-    @Override 
-    public void habilitarBotonPacientes(boolean b)       { if (btnPacientes != null) btnPacientes.setEnabled(b); }
-    @Override 
-    public void habilitarBotonAnalisis(boolean b)        { if (btnAnalisis != null) btnAnalisis.setEnabled(b); }
-    @Override 
-    public void habilitarBotonMedicos(boolean b)         { if (btnMedicos != null) btnMedicos.setEnabled(b); }
-    @Override 
-    public void habilitarBotonObrasSociales(boolean b)   { if (btnObrasSociales != null) btnObrasSociales.setEnabled(b); }
-    @Override 
-    public void habilitarBotonNBU(boolean b)             { if (btnNBU != null) btnNBU.setEnabled(b); }
-    @Override 
-    public void habilitarBotonAjustes(boolean b)         { if (btnAjustes != null) btnAjustes.setEnabled(b); }
-    @Override 
-    public void habilitarBotonGestionUsuarios(boolean b) { if (btnGestionUsuarios != null) btnGestionUsuarios.setEnabled(b); }
-    @Override 
-    public void habilitarBotonAuditoria(boolean b)       { if (btnAuditoria != null) btnAuditoria.setEnabled(b); }
-    
+    @Override
+    public void habilitarBotonPacientes(boolean b) {
+        if (btnPacientes != null) {
+            btnPacientes.setEnabled(b);
+        }
+    }
+
+    @Override
+    public void habilitarBotonAnalisis(boolean b) {
+        if (btnAnalisis != null) {
+            btnAnalisis.setEnabled(b);
+        }
+    }
+
+    @Override
+    public void habilitarBotonMedicos(boolean b) {
+        if (btnMedicos != null) {
+            btnMedicos.setEnabled(b);
+        }
+    }
+
+    @Override
+    public void habilitarBotonObrasSociales(boolean b) {
+        if (btnObrasSociales != null) {
+            btnObrasSociales.setEnabled(b);
+        }
+    }
+
+    @Override
+    public void habilitarBotonNBU(boolean b) {
+        if (btnNBU != null) {
+            btnNBU.setEnabled(b);
+        }
+    }
+
+    @Override
+    public void habilitarBotonAjustes(boolean b) {
+        if (btnAjustes != null) {
+            btnAjustes.setEnabled(b);
+        }
+    }
+
+    @Override
+    public void habilitarBotonGestionUsuarios(boolean b) {
+        if (btnGestionUsuarios != null) {
+            btnGestionUsuarios.setEnabled(b);
+        }
+    }
+
+    @Override
+    public void habilitarBotonAuditoria(boolean b) {
+        if (btnAuditoria != null) {
+            btnAuditoria.setEnabled(b);
+        }
+    }
+
     @Override
     public void habilitarCargaPacientes(boolean b) {
         if (presenter != null) {
@@ -597,7 +652,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
             pnlContenido.repaint();
         }
     }
-    
+
     private void configurarCierreVentana() {
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
@@ -607,49 +662,97 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
                 if (presenter != null) {
                     presenter.onCerrarAplicacionCompleta();
                 } else {
-                    System.exit(0); 
+                    System.exit(0);
                 }
             }
         });
     }
-    
+
     @Override
     public void activarModoInmersion() {
-        if (pnlMenuIzquierdo != null) pnlMenuIzquierdo.setVisible(false);
-        if (pnlMenuDerecho != null) pnlMenuDerecho.setVisible(false);
-        if (pnlFooterCerrar != null) pnlFooterCerrar.setVisible(false);
-        if (pnlCentroWrapper != null) pnlCentroWrapper.setBorder(new EmptyBorder(0, 0, 0, 0));
-        
+        if (pnlMenuIzquierdo != null) {
+            pnlMenuIzquierdo.setVisible(false);
+        }
+        if (pnlMenuDerecho != null) {
+            pnlMenuDerecho.setVisible(false);
+        }
+        if (pnlFooterCerrar != null) {
+            pnlFooterCerrar.setVisible(false);
+        }
+        if (pnlCentroWrapper != null) {
+            pnlCentroWrapper.setBorder(new EmptyBorder(0, 0, 0, 0));
+        }
+
         revalidate();
         repaint();
     }
 
     @Override
     public void desactivarModoInmersion() {
-        if (pnlMenuIzquierdo != null) pnlMenuIzquierdo.setVisible(true);
-        if (pnlMenuDerecho != null) pnlMenuDerecho.setVisible(true);
-        if (pnlFooterCerrar != null) pnlFooterCerrar.setVisible(true);
-        if (pnlCentroWrapper != null) pnlCentroWrapper.setBorder(new EmptyBorder(16, 20, 20, 20));
-        
+        if (pnlMenuIzquierdo != null) {
+            pnlMenuIzquierdo.setVisible(true);
+        }
+        if (pnlMenuDerecho != null) {
+            pnlMenuDerecho.setVisible(true);
+        }
+        if (pnlFooterCerrar != null) {
+            pnlFooterCerrar.setVisible(true);
+        }
+        if (pnlCentroWrapper != null) {
+            pnlCentroWrapper.setBorder(new EmptyBorder(16, 20, 20, 20));
+        }
+
         revalidate();
         repaint();
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  initComponents — NetBeans
-    // ════════════════════════════════════════════════════════════════
+    private ImageIcon iconAncho(String ruta, int w) {
+        try {
+            java.net.URL url = getClass().getResource(ruta);
+            if (url == null) {
+                return null;
+            }
+
+            java.awt.image.BufferedImage original = javax.imageio.ImageIO.read(url);
+            if (original == null) {
+                return null;
+            }
+
+            // Calcular alto proporcional
+            int h = (int) ((double) original.getHeight() / original.getWidth() * w);
+
+            java.awt.image.BufferedImage escalada
+                    = new java.awt.image.BufferedImage(w, h,
+                            java.awt.image.BufferedImage.TYPE_INT_ARGB);
+
+            java.awt.Graphics2D g2d = escalada.createGraphics();
+            g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                    java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            g2d.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING,
+                    java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+            g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.drawImage(original, 0, 0, w, h, null);
+            g2d.dispose();
+
+            return new ImageIcon(escalada);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private void initComponents() {
-        pnlFondo      = new JPanel();
-        pnlSidebar    = new JPanel();
-        lblMenuTitulo = new JLabel();
-        pnlCuerpo     = new JPanel();
-        pnlHeader     = new JPanel();
-        lblFecha      = new JLabel();
+        pnlFondo = new JPanel();
+        pnlSidebar = new JPanel();
+        new JLabel();
+        pnlCuerpo = new JPanel();
+        pnlHeader = new JPanel();
+        lblFecha = new JLabel();
         lblBienvenida = new JLabel();
         pnlEscritorio = new JPanel();
-        lblLogoHero   = new JLabel();
-        
+        new JLabel();
+
         btnPacientes = new JButton();
         btnAnalisis = new JButton();
         btnMedicos = new JButton();
@@ -662,7 +765,7 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
 
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setBackground(C_FONDO);
-        
+
         pnlFondo.setLayout(new BorderLayout());
         pnlFondo.setBackground(C_FONDO);
 
@@ -676,14 +779,14 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         pnlHeader.setBackground(C_NAVY);
         pnlHeader.setPreferredSize(new Dimension(0, 85));
         pnlHeader.setLayout(new BorderLayout());
-        
+
         lblFecha.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblFecha.setForeground(C_LABEL_HDR);
-        
+
         lblBienvenida.setFont(new Font("Segoe UI", Font.BOLD, 26));
         lblBienvenida.setForeground(C_BLANCO);
         lblBienvenida.setText("BIOTEC");
-        
+
         pnlCuerpo.add(pnlHeader, BorderLayout.NORTH);
 
         pnlEscritorio.setLayout(new BorderLayout());
@@ -695,14 +798,11 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         pack();
     }
 
-    // Variables NetBeans
     private JPanel pnlFondo;
     private JPanel pnlSidebar;
-    private JLabel lblMenuTitulo;
     private JPanel pnlCuerpo;
     private JPanel pnlHeader;
     private JLabel lblFecha;
     private JLabel lblBienvenida;
     private JPanel pnlEscritorio;
-    private JLabel lblLogoHero;
 }

@@ -3,10 +3,9 @@ package vista.interfaces;
 import java.util.List;
 import modelo.Determinacion;
 import presentador.NBUPresenter;
-/**
- *
- * @author luciano
- */
+
+// @author lucianoalicata
+
 public interface IVistaNBU {
     
     String BTN_GUARDAR_CAMBIOS = "guardar_nbu";

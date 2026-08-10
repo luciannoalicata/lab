@@ -1,8 +1,6 @@
-/**
- *
- * @author luciano
- */
 package modelo;
+
+// @author lucianoalicata
 
 import java.util.Date;
 import java.util.List;
@@ -29,9 +27,7 @@ public class Analisis {
     public void setPacienteDni(String pacienteDni) {
         this.pacienteDni = pacienteDni;
     }
-
     
-
     public Analisis() {
     }
 
@@ -46,13 +42,11 @@ public class Analisis {
         this.resultados = resultados;
     }
     
-    // 🔥 HELPER ÚTIL
     public String getPacienteNombreCompleto() {
         if (pacienteApellido == null && pacienteNombre == null) return "Desconocido";
         return pacienteApellido + " " + pacienteNombre;
     }
 
-    // 🔥 GETTERS Y SETTERS PARA LOS NUEVOS CAMPOS
     public String getPacienteNombre() { return pacienteNombre; }
     public void setPacienteNombre(String pacienteNombre) { this.pacienteNombre = pacienteNombre; }
 
@@ -130,7 +124,4 @@ public class Analisis {
     public void setObraSocial(String obraSocial) {
         this.obraSocial = obraSocial;
     }
-    
-    
 }
-

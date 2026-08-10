@@ -1,5 +1,7 @@
 package presentador;
 
+// @author lucianoalicata
+
 import dao.DeterminacionDAO;
 import modelo.Determinacion;
 import vista.interfaces.IVistaNBU;
@@ -12,8 +14,6 @@ public class NBUPresenter {
     private final IVistaNBU vnbu;
     private final AppRouter router;
     private final DeterminacionDAO determinacionDAO;
-    
-    // RASTREADOR: Sabe qué hijos están en la pantalla para autoguardarlos
     private String padreActualmenteEnGrilla = ""; 
 
     public NBUPresenter(IVistaNBU vnbu, AppRouter router, DeterminacionDAO determinacionDAO) {
@@ -33,20 +33,15 @@ public class NBUPresenter {
         vnbu.cargarDeterminaciones(todosNBU);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  MÉTODOS EXPLÍCITOS LLAMADOS POR LA VISTA (Con Autoguardado)
-    // ════════════════════════════════════════════════════════════════
-
     public void onVolver() {
         vnbu.detenerEdicionTabla();
-        guardarTextosHijos(); // Autoguardado preventivo al volver
+        guardarTextosHijos();
         router.irAInicio();
     }
 
     public void onSeleccionarPadre() {
         vnbu.detenerEdicionTabla();
         
-        // Autoguardamos lo que el usuario haya escrito en el padre anterior
         guardarTextosHijos();
         
         String nuevoPadre = vnbu.getCodigoPadreSeleccionado();
@@ -57,7 +52,6 @@ public class NBUPresenter {
             return;
         }
         
-        // Actualizamos el rastreador y cargamos hijos
         padreActualmenteEnGrilla = nuevoPadre;
         List<Determinacion> hijos = determinacionDAO.obtenerComponentes(nuevoPadre);
         vnbu.cargarHijos(hijos);
@@ -75,7 +69,7 @@ public class NBUPresenter {
 
     public void onAgregarHijo() {
         vnbu.detenerEdicionTabla();
-        guardarTextosHijos(); // Autoguardado antes de recargar tabla
+        guardarTextosHijos(); 
 
         String padre = vnbu.getCodigoPadreSeleccionado();
         if (padre == null || padre.trim().isEmpty()) {
@@ -140,9 +134,6 @@ public class NBUPresenter {
     public void onSubirPadre() { moverPadreNBU(-1); }
     public void onBajarPadre() { moverPadreNBU(1); }
 
-    // ════════════════════════════════════════════════════════════════
-    //  MÉTODOS PRIVADOS DE APOYO (Autoguardado de Textos)
-    // ════════════════════════════════════════════════════════════════
 
     private void guardarTextosHijos() {
         if (padreActualmenteEnGrilla == null || padreActualmenteEnGrilla.isEmpty()) return;

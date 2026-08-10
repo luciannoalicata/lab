@@ -1,5 +1,7 @@
 package vista.swing;
 
+// @author lucianoalicata
+
 import vista.interfaces.IVistaLogin;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
@@ -9,20 +11,14 @@ import presentador.SesionPresenter;
 
 public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
 
-    private SesionPresenter presenter;
-
-    // ── Paleta BIOTEC Profesional ────────────────────────────────────
-    private final Color C_PRIMARIO      = new Color(0, 70, 128);      // Azul institucional profundo
-    private final Color C_PRIMARIO_OSCURO = new Color(0, 50, 90);
-    private final Color C_ACENTO        = new Color(0, 150, 200);      // Azul vivo para hover
-    private final Color C_FONDO         = new Color(240, 245, 250);     // Fondo suave
+    private final Color C_PRIMARIO      = new Color(0, 70, 128);      
+    private final Color C_ACENTO        = new Color(0, 150, 200);     
+    private final Color C_FONDO         = new Color(240, 245, 250);    
     private final Color C_BLANCO        = Color.WHITE;
     private final Color C_TEXTO_PRIMARIO = new Color(30, 40, 50);
     private final Color C_TEXTO_SECUNDARIO = new Color(100, 115, 130);
     private final Color C_BORDE_CAMPO    = new Color(210, 225, 235);
     private final Color C_CAMPO          = new Color(248, 250, 252);
-    private final Color C_EXITO          = new Color(40, 180, 130);
-    private final Color C_SOMBRA         = new Color(0, 0, 0, 30);
 
     public VistaLogin() {
         super((java.awt.Frame) null, true);
@@ -33,21 +29,14 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
         setTitle("BIOTEC LIS - Acceso al Sistema");
         setUndecorated(true);
         
-        // 1. EL SECRETO DE LA ADAPTABILIDAD: Usar pack() en lugar de setSize()
-        // pack() calcula dinámicamente el tamaño basándose en el contenido y el DPI de la pantalla.
         pack(); 
         setLocationRelativeTo(null);
         
-        // 2. Bordes redondeados dinámicos (calculados DESPUÉS del pack)
         setShape(new RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), 20, 20));
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  INTERFAZ IVistaLogin - MÉTODOS MVP
-    // ════════════════════════════════════════════════════════════════
     @Override
     public void setPresenter(SesionPresenter presenter) {
-        this.presenter = presenter;
         for (java.awt.event.ActionListener al : btnIngresar.getActionListeners()) {
             btnIngresar.removeActionListener(al);
         }
@@ -56,12 +45,9 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
 
     @Override 
     public void ejecutar() { 
-        // 1. Armamos el hilo gráfico ANTES de congelar el código con setVisible
         SwingUtilities.invokeLater(() -> {
             txtUsuario.requestFocusInWindow();
         });
-        
-        // 2. Ahora sí, hacemos visible la pantalla (aquí el código se congela)
         setVisible(true); 
     }
     
@@ -92,9 +78,6 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
         return JOptionPane.showConfirmDialog(this, mensaje, titulo, JOptionPane.YES_NO_OPTION);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  ESTÉTICA Y UX - Diseño Profesional Moderno
-    // ════════════════════════════════════════════════════════════════
     private void aplicarEsteticaProfesional() {
         getContentPane().setBackground(C_FONDO);
         
@@ -102,18 +85,12 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
         pnlLoginCard.setBackground(C_BLANCO);
         pnlLoginCard.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(220, 225, 230), 1),
-            new EmptyBorder(25, 42, 35, 42) // Ligeramente ajustado arriba para la X
+            new EmptyBorder(25, 42, 35, 42) 
         ));
-
-        // Logo o icono decorativo
+        
         JPanel pnlLogo = new JPanel();
         pnlLogo.setOpaque(false);
         pnlLogo.setLayout(new BoxLayout(pnlLogo, BoxLayout.Y_AXIS));
-        
-        //JLabel lblIcono = new JLabel("🔬", SwingConstants.CENTER);
-        //lblIcono.setFont(new Font("Segoe UI", Font.PLAIN, 48));
-        //lblIcono.setForeground(C_PRIMARIO);
-       // lblIcono.setAlignmentX(Component.CENTER_ALIGNMENT);
         
         lblTitulo.setForeground(C_PRIMARIO);
         lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 34));
@@ -123,7 +100,6 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
         lblSubtitulo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblSubtitulo.setAlignmentX(Component.CENTER_ALIGNMENT);
         
-        //pnlLogo.add(lblIcono);
         pnlLogo.add(Box.createVerticalStrut(10));
         pnlLogo.add(lblTitulo);
         pnlLogo.add(Box.createVerticalStrut(5));
@@ -138,7 +114,6 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
         estilizarCampo(txtUsuario);
         estilizarCampo(txtClave);
 
-        // Botón de ingreso con diseño moderno
         btnIngresar.setBackground(C_PRIMARIO);
         btnIngresar.setForeground(C_BLANCO);
         btnIngresar.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -153,7 +128,6 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
             @Override public void mouseExited(java.awt.event.MouseEvent e) { btnIngresar.setBackground(C_PRIMARIO); }
         });
 
-        // Footer elegante
         lblFooter.setForeground(C_TEXTO_SECUNDARIO);
         lblFooter.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         
@@ -161,7 +135,6 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
         separator.setForeground(new Color(220, 225, 230));
         separator.setPreferredSize(new Dimension(0, 1));
         
-        // 3. Botón de cerrar ADAPTATIVO (Sin setBounds)
         JButton btnCerrar = new JButton("X");
         btnCerrar.setFont(new Font("Segoe UI", Font.BOLD, 16));
         btnCerrar.setForeground(C_TEXTO_SECUNDARIO);
@@ -178,7 +151,6 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
         });
         btnCerrar.addActionListener(e -> System.exit(0));
 
-        // Contenedor superior para alinear la X a la derecha
         JPanel pnlHeader = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         pnlHeader.setOpaque(false);
         pnlHeader.add(btnCerrar);
@@ -189,8 +161,7 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
         gc.weightx = 1.0;
         int r = 0;
 
-        // Fila 0: El header con el botón de cerrar
-        gc.gridy = r++; gc.insets = new Insets(0, 0, 10, -10); // Margen negativo para pegarlo al borde
+        gc.gridy = r++; gc.insets = new Insets(0, 0, 10, -10); 
         pnlLoginCard.add(pnlHeader, gc);
 
         gc.gridy = r++; gc.insets = new Insets(0, 0, 30, 0);
@@ -233,7 +204,6 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
             BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE_CAMPO),
             new EmptyBorder(10, 14, 10, 14)
         ));
-        // Se define un ancho base en lugar de 0 para que pack() tenga referencias
         tf.setPreferredSize(new Dimension(320, 46)); 
         
         tf.addFocusListener(new java.awt.event.FocusAdapter() {
@@ -255,25 +225,9 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
     }
 
     private void configurarNavegacionTeclado() {
-        java.awt.event.KeyAdapter enterAdapter = new java.awt.event.KeyAdapter() {
-            @Override public void keyPressed(java.awt.event.KeyEvent e) {
-                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
-                    if (e.getSource() == txtUsuario) {
-                        txtClave.requestFocus();
-                    } else if (e.getSource() == txtClave) {
-                        btnIngresar.doClick();
-                    }
-                }
-            }
-        };
-        txtUsuario.addKeyListener(enterAdapter);
-        txtClave.addKeyListener(enterAdapter);
         this.getRootPane().setDefaultButton(btnIngresar);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  UI BUILDER
-    // ════════════════════════════════════════════════════════════════
     private void initComponents() {
         pnlLoginCard = new JPanel();
         lblTitulo    = new JLabel("BIOTEC");
@@ -288,7 +242,6 @@ public class VistaLogin extends javax.swing.JDialog implements IVistaLogin {
         getContentPane().setLayout(new BorderLayout());
         pnlLoginCard.setLayout(new BoxLayout(pnlLoginCard, BoxLayout.Y_AXIS));
     }
-
     private JPanel pnlLoginCard;
     private JLabel lblTitulo, lblSubtitulo, lblUser, lblPass, lblFooter;
     private JTextField txtUsuario;

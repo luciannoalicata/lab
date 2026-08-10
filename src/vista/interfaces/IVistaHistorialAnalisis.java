@@ -4,10 +4,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import modelo.Analisis;
 import presentador.HistorialPresenter;
-/**
- *
- * @author luciano
- */
+
+// @author lucianoalicata
+
 public interface IVistaHistorialAnalisis {
     
     String BTN_GENERAR_INFORME = "generar_informe";

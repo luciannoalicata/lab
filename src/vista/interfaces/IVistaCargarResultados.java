@@ -3,9 +3,9 @@ package vista.interfaces;
 import java.util.List;
 import modelo.Determinacion;
 import presentador.ResultadoPresenter;
-/*
- * @author luciano
- */
+
+// @author lucianoalicata
+
 public interface IVistaCargarResultados {
     
     String BTN_GUARDAR_RESULTADOS = "guardar_resultados";
@@ -35,5 +35,4 @@ public interface IVistaCargarResultados {
     boolean getImprimir(int fila);
     void mostrarMensaje(String mensaje);
     double getPrecio();
-
 }

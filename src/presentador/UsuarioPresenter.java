@@ -1,5 +1,7 @@
 package presentador;
 
+// @author lucianoalicata
+
 import dao.UsuarioDAO;
 import modelo.Usuario;
 import presentador.router.AppRouter;
@@ -11,7 +13,7 @@ public class UsuarioPresenter {
     private final AppRouter router;
     private final UsuarioDAO usuarioDAO;
     private final Usuario usuarioLogueado; 
-    private boolean guardando = false; // Flag para evitar loops
+    private boolean guardando = false; 
 
     public UsuarioPresenter(IVistaGestionUsuarios vista, AppRouter router, 
                             UsuarioDAO usuarioDAO, Usuario usuarioLogueado) {
@@ -50,11 +52,11 @@ public class UsuarioPresenter {
             uNuevo.setRol(nuevoRol);
 
             if (usuarioDAO.guardar(uNuevo, nuevaPass)) {
-                vista.mostrarMensaje("✓ Usuario guardado con éxito.");
+                vista.mostrarMensaje("Usuario guardado con éxito.");
                 vista.limpiarCampos();
                 cargarListaUsuarios();
             } else {
-                vista.mostrarMensaje("✗ Error al guardar usuario. El nombre de usuario puede ya existir.");
+                vista.mostrarMensaje("Error al guardar usuario. Puede que el nombre de usuario ya exista.");
             }
         } finally {
             guardando = false;
@@ -85,11 +87,11 @@ public class UsuarioPresenter {
 
             if (confirm == 0) { 
                 if (usuarioDAO.eliminar(idSeleccionado)) {
-                    vista.mostrarMensaje("✓ Usuario eliminado correctamente.");
+                    vista.mostrarMensaje("Usuario eliminado correctamente.");
                     vista.limpiarCampos();
                     cargarListaUsuarios();
                 } else {
-                    vista.mostrarMensaje("✗ Error al intentar eliminar el usuario.");
+                    vista.mostrarMensaje("Error al intentar eliminar el usuario.");
                 }
             }
         } finally {
@@ -102,7 +104,5 @@ public class UsuarioPresenter {
     }
 
     public void onSeleccionarUsuario() {
-        // Sin lógica adicional - previene mensajes duplicados
-        // La vista maneja la selección visual solamente
     }
 }

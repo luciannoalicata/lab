@@ -14,26 +14,8 @@ public class AnalisisDAO {
     public AnalisisDAO(Conexion con) {
         this.con = con;
     }
-
-    private String convertirNombrePropio(String texto) {
-        if (texto == null || texto.trim().isEmpty() || texto.trim().equals("-")) {
-            return "-";
-        }
-        String[] palabras = texto.trim().toLowerCase().split("\\s+");
-        StringBuilder resultado = new StringBuilder();
-        for (String palabra : palabras) {
-            if (palabra.length() > 0) {
-                resultado.append(Character.toUpperCase(palabra.charAt(0)))
-                         .append(palabra.substring(1))
-                         .append(" ");
-            }
-        }
-        return resultado.toString().trim();
-    }
-
-    // ================== CREAR ANALISIS ==================
+    
     public int crear(Analisis a) {
-        // ACTUALIZADO: matricula_medico en lugar de medico_solicitante
         String sql = """
             INSERT INTO analisis (id_paciente, codigo_os, matricula_medico, fecha, precio, observaciones, estado)
             VALUES (?, ?, ?, ?, ?, ?, 'COMPLETO')
@@ -42,18 +24,16 @@ public class AnalisisDAO {
         try (PreparedStatement ps = con.getConnection().prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
 
             ps.setInt(1, a.getIdPaciente());
-            // Manejamos null/vacío para la OS (En la base es clave foránea, si no tiene, debe ser NULL)
             if (a.getObraSocial() == null || a.getObraSocial().trim().isEmpty() || a.getObraSocial().equals("-")) {
                 ps.setNull(2, java.sql.Types.VARCHAR);
             } else {
-                ps.setString(2, a.getObraSocial()); // Aquí debe venir el CÓDIGO de la OS, no el nombre
+                ps.setString(2, a.getObraSocial());
             }
             
-            // La matrícula del médico (Opcional, si viene "-" lo mandamos como NULL para la FK)
             if (a.getMedicoSolicitante() == null || a.getMedicoSolicitante().trim().isEmpty() || a.getMedicoSolicitante().equals("-")) {
                 ps.setNull(3, java.sql.Types.VARCHAR);
             } else {
-                ps.setString(3, a.getMedicoSolicitante()); // Aquí debe venir la MATRÍCULA
+                ps.setString(3, a.getMedicoSolicitante()); 
             }
 
             ps.setTimestamp(4, new java.sql.Timestamp(new java.util.Date().getTime()));
@@ -73,7 +53,6 @@ public class AnalisisDAO {
         return -1;
     }
 
-    // ================== ACTUALIZAR MÉDICO SOLICITANTE ==================
     public boolean actualizarMedico(int idAnalisis, String nuevaMatricula) {
         String sql = "UPDATE analisis SET matricula_medico = ? WHERE id_analisis = ?";
 
@@ -118,7 +97,6 @@ public class AnalisisDAO {
 
     public ArrayList<Analisis> listarPorPaciente(int idPaciente) {
         ArrayList<Analisis> lista = new ArrayList<>();
-        // ACTUALIZADO: Hacemos JOIN para traer el nombre real del médico y la obra social
         String sql = """
             SELECT a.id_analisis, a.fecha, a.precio, a.estado, 
                    CONCAT(os.codigo, ' - ', os.nombre) AS obra_social_analisis, 
@@ -139,7 +117,6 @@ public class AnalisisDAO {
                     a.setPrecio(rs.getDouble("precio"));
                     a.setEstado(rs.getString("estado"));
                     
-                    // Seteamos los nuevos campos extraídos de los JOINs
                     String medicoCompleto = rs.getString("nombre_medico");
                     a.setMedicoSolicitante(medicoCompleto != null ? medicoCompleto : "-");
 
@@ -182,7 +159,6 @@ public class AnalisisDAO {
         ArrayList<Analisis> lista = new ArrayList<>();
         boolean tieneFiltro = (filtro != null && !filtro.trim().isEmpty());
 
-        // ACTUALIZADO: JOIN con tabla de médicos para extraer el nombre real
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT a.*, p.nombre as pac_nombre, p.apellido as pac_apellido, p.dni as pac_dni, ");
         sql.append("CONCAT(os.codigo, ' - ', os.nombre) AS obra_social_analisis, ");
@@ -215,7 +191,6 @@ public class AnalisisDAO {
                     a.setPrecio(rs.getDouble("precio"));
                     a.setEstado(rs.getString("estado"));
                     
-                    // Nombres extraídos por los JOINs
                     a.setPacienteNombre(rs.getString("pac_nombre"));
                     a.setPacienteApellido(rs.getString("pac_apellido"));
                     a.setPacienteDni(rs.getString("pac_dni"));

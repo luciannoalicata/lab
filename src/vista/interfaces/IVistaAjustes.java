@@ -1,10 +1,9 @@
 package vista.interfaces;
 
+// @author lucianoalicata
+
 import presentador.AjustesPresenter;
-/**
- *
- * @author luciano
- */
+
 public interface IVistaAjustes {
     
     String BTN_ACTUALIZAR_CLAVE ="cambiar_clave";

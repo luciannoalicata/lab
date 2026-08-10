@@ -1,5 +1,7 @@
 package presentador.router;
 
+// @author lucianoalicata
+
 import dao.DAOFactory;
 import modelo.Paciente;
 import modelo.Usuario;
@@ -13,16 +15,10 @@ public class AppRouter {
     private final IVistaPrincipal vp;
     private final DAOFactory daoFactory;
     private final VistaFactory vistaFactory;
-
-    // ── ESTADO GLOBAL ──
     private Usuario usuarioLogueado;
-    private ReporteService reporteService;
-
-    // En la clase Router
+    private final ReporteService reporteService;
     private IVistaDeterminaciones vistaDeterminacionesActual;
     private DeterminacionesPresenter determinacionesPresenterActual;
-
-    // ── PRESENTADORES ──
     private PrincipalPresenter principalPresenter;
     private MedicoPresenter medicoPresenter;
     private PacientePresenter pacientePresenter;
@@ -35,13 +31,10 @@ public class AppRouter {
     private AuditoriaPresenter auditoriaPresenter;
     private AjustesPresenter ajustesPresenter;
 
-    // ── CONSTRUCTOR ──
     public AppRouter(IVistaPrincipal vp, DAOFactory daoFactory, VistaFactory vistaFactory) {
         this.vp = vp;
         this.daoFactory = daoFactory;
         this.vistaFactory = vistaFactory;
-
-        // Instanciamos el servicio aquí para prestárselo a los presentadores que lo necesiten
         this.reporteService = new ReporteService(
                 daoFactory.getConfigDAO(),
                 daoFactory.getAnalisisDAO(),
@@ -52,9 +45,8 @@ public class AppRouter {
         );
     }
 
-    // ── NAVEGACIÓN PRINCIPAL ─────────────────────────────────────────
     public void irAInicio() {
-        vp.desactivarModoInmersion(); // <--- Vuelve a mostrar los menús laterales
+        vp.desactivarModoInmersion(); 
         vp.volverInicio();
         vp.limpiarFocos();
     }
@@ -63,19 +55,18 @@ public class AppRouter {
         if (pacientePresenter == null) {
             IVistaPaciente vista = vistaFactory.getVistaPaciente();
             vp.registrarPanel(vista, "pacientes");
-            // En tu AppRouter.java, dentro del método que abre la VistaPaciente
             pacientePresenter = new PacientePresenter(
                     vista,
                     this,
                     daoFactory.getPacienteDAO(),
                     daoFactory.getAuditoriaDAO(),
-                    daoFactory.getObraSocialDAO(), // ← ¡Agrega esta línea!
+                    daoFactory.getObraSocialDAO(),
                     usuarioLogueado
             );
         }
         pacientePresenter.iniciar();
 
-        vp.activarModoInmersion(); // <--- ¡LA MAGIA! Oculta los menús laterales
+        vp.activarModoInmersion(); 
         vp.mostrarSeccion("pacientes");
         vp.limpiarFocos();
     }
@@ -118,9 +109,7 @@ public class AppRouter {
         vp.limpiarFocos();
     }
 
-    // ── FLUJO DE ANÁLISIS E HISTORIAL ────────────────────────────────
     public void irANuevoAnalisis(modelo.Paciente p) {
-        // 1. Limpieza 100% MVP (Sin clases de Java Swing)
         if (vistaDeterminacionesActual != null) {
             vistaDeterminacionesActual.cerrarPantalla();
             vistaDeterminacionesActual = null;
@@ -130,7 +119,6 @@ public class AppRouter {
             determinacionesPresenterActual = null;
         }
 
-        // 2. Instanciar nueva vista y presentador
         vista.interfaces.IVistaDeterminaciones vistaDet = vistaFactory.getVistaDeterminaciones();
         vistaDeterminacionesActual = vistaDet;
 
@@ -141,14 +129,12 @@ public class AppRouter {
                 p
         );
 
-        // 3. Ejecutar (Al ser JDialog Modal, el hilo se pausa aquí hasta cerrarse)
         determinacionesPresenterActual.iniciar();
 
         vp.limpiarFocos();
     }
 
     public void irAHistorial(Paciente p) {
-        // Siempre recreamos la vista/presentador para asegurarnos de que cargue el paciente correcto
         IVistaHistorialAnalisis vista = vistaFactory.getVistaHistorialAnalisis();
         vp.registrarPanel(vista, "historial_analisis");
 
@@ -194,19 +180,15 @@ public class AppRouter {
     }
 
     public void volverAHistorialPaciente(Paciente paciente) {
-        // Cerrar la vista de detalles
         cerrarDetalleAnalisis();
-        // Abrir la vista de historial del paciente
         irAHistorial(paciente);
     }
 
     public void abrirCargaResultados(modelo.Paciente pacienteActual, java.util.List<modelo.Determinacion> listaDeterminaciones) {
         vista.interfaces.IVistaCargarResultados vistaResultados = vistaFactory.getVistaCargarResultados();
 
-        // 3. Registramos el panel
         vp.registrarPanel(vistaResultados, "cargar_resultados");
 
-        // 4. Instanciamos el Presentador
         presentador.ResultadoPresenter resultadoPresenter = new presentador.ResultadoPresenter(
                 vistaResultados,
                 this,
@@ -222,13 +204,11 @@ public class AppRouter {
                 daoFactory.getMedicoDAO()
         );
 
-        // 5. Iniciar y mostrar
         resultadoPresenter.iniciar();
         vp.mostrarSeccion("cargar_resultados");
         vp.limpiarFocos();
     }
 
-    // ── RUTINAS DE COORDINACIÓN (Cerrar pantallas y refrescar) ───────
     public void mostrarVistaDetalleAnalisis() {
         vp.mostrarSeccion("ver_detalle_analisis");
         vp.limpiarFocos();
@@ -250,7 +230,6 @@ public class AppRouter {
     }
 
     public void refrescarVistasAnalisisAbiertas() {
-        // Coordinador: Si hay pantallas abiertas mostrando datos que acaban de cambiar, las recarga.
         if (this.historialPresenter != null) {
             this.historialPresenter.iniciar();
         }
@@ -264,14 +243,13 @@ public class AppRouter {
             IVistaAnalisis vistaAnalisis = vistaFactory.getVistaAnalisis();
             vp.registrarPanel(vistaAnalisis, "analisis_global");
 
-            // CORREGIDO: pasamos los 5 parámetros que requiere el constructor
             this.analisisPresenter = new AnalisisPresenter(
                     vistaAnalisis,
-                    this, // AppRouter
-                    daoFactory.getAnalisisDAO(), // AnalisisDAO
-                    this.reporteService, // ReporteService
-                    daoFactory.getAuditoriaDAO(), // AuditoriaDAO
-                    this.usuarioLogueado // Usuario
+                    this, 
+                    daoFactory.getAnalisisDAO(),
+                    this.reporteService, 
+                    daoFactory.getAuditoriaDAO(), 
+                    this.usuarioLogueado 
             );
         }
 
@@ -340,15 +318,10 @@ public class AppRouter {
     public void iniciarSesion(Usuario u) {
         this.usuarioLogueado = u;
 
-        // 1. Instanciamos el presentador pasando el cuarto parámetro requerido (ConfigDAO)
         this.principalPresenter = new PrincipalPresenter(vp, this, this.usuarioLogueado, daoFactory.getConfigDAO());
 
-        // 2. Arrancamos: esto ejecuta vp.setPresenter(this) Y vp.ejecutar()
         this.principalPresenter.iniciar();
 
-        // 3. QUITAMOS el vp.ejecutar() que estaba dentro de onLoginExitoso
-        // porque ya se ejecutó en principalPresenter.iniciar()
-        // Solo dejamos la lógica de permisos:
         boolean isAdmin = u.getRol().equals("ADMIN");
         vp.habilitarBotonGestionUsuarios(isAdmin);
         vp.habilitarBotonAuditoria(isAdmin);
@@ -360,20 +333,16 @@ public class AppRouter {
     }
 
     public void onLoginExitoso(Usuario u) {
-        // 1. Guardamos la sesión del usuario actual
         this.usuarioLogueado = u;
 
-        // 2. Instanciamos e iniciamos la interfaz pasando el cuarto parámetro (ConfigDAO)
         this.principalPresenter = new PrincipalPresenter(vp, this, this.usuarioLogueado, daoFactory.getConfigDAO());
         vp.desactivarModoInmersion();
         this.principalPresenter.iniciar();
 
-        // 3. Aplicación estricta de políticas de seguridad y permisos por Rol
         String rol = u.getRol().toUpperCase();
 
         switch (rol) {
             case "ADMIN":
-                // Acceso total absoluto a todos los módulos y acciones
                 vp.habilitarBotonPacientes(true);
                 vp.habilitarBotonAnalisis(true);
                 vp.habilitarBotonMedicos(true);
@@ -389,7 +358,6 @@ public class AppRouter {
                 break;
 
             case "BIOQUIMICO":
-                // Módulos clínicos activos con permisos de edición, sin administración
                 vp.habilitarBotonPacientes(true);
                 vp.habilitarBotonAnalisis(true);
                 vp.habilitarBotonMedicos(true);
@@ -406,7 +374,6 @@ public class AppRouter {
                 break;
 
             case "TECNICO":
-                // Puede ingresar a los listados y dar de alta, pero no alterar lo existente
                 vp.habilitarBotonPacientes(true);
                 vp.habilitarBotonAnalisis(true);
                 vp.habilitarBotonMedicos(true);
@@ -417,30 +384,26 @@ public class AppRouter {
                 vp.habilitarBotonGestionUsuarios(false);
                 vp.habilitarBotonAuditoria(false);
 
-                vp.habilitarCargaPacientes(true);         // Puede CREAR pacientes nuevos
-                vp.habilitarCargaAnalisis(true);          // Puede CREAR análisis nuevos
-                vp.habilitarModificacionRegistros(false); // NO puede EDITAR ni borrar registros existentes
+                vp.habilitarCargaPacientes(true);        
+                vp.habilitarCargaAnalisis(true);          
+                vp.habilitarModificacionRegistros(false); 
                 break;
 
             case "LECTOR":
-                // Consulta pura. Puede entrar a ver todo pero no puede tocar ni agregar nada
-                vp.habilitarBotonPacientes(true);         // ¡CLAVE! Puede entrar a ver la lista
-                vp.habilitarBotonAnalisis(true);          // Puede entrar a ver el listado global
-                vp.habilitarBotonMedicos(true);           // Puede ver médicos
-                vp.habilitarBotonObrasSociales(true);     // Puede ver obras sociales
-
+                vp.habilitarBotonPacientes(true);
+                vp.habilitarBotonAnalisis(true);        
+                vp.habilitarBotonMedicos(true);          
+                vp.habilitarBotonObrasSociales(true);  
                 vp.habilitarBotonNBU(false);
                 vp.habilitarBotonAjustes(false);
                 vp.habilitarBotonGestionUsuarios(false);
                 vp.habilitarBotonAuditoria(false);
-
-                vp.habilitarCargaPacientes(false);        // NO puede crear pacientes
-                vp.habilitarCargaAnalisis(false);         // NO puede crear análisis
-                vp.habilitarModificacionRegistros(false); // NO puede editar nada
+                vp.habilitarCargaPacientes(false);   
+                vp.habilitarCargaAnalisis(false);    
+                vp.habilitarModificacionRegistros(false);
                 break;
 
             default:
-                // Fallback de seguridad estricto
                 vp.habilitarBotonPacientes(false);
                 vp.habilitarBotonAnalisis(false);
                 vp.habilitarBotonMedicos(false);
@@ -457,14 +420,8 @@ public class AppRouter {
     }
 
     public void cerrarSesion() {
-        // 1. Limpiamos la memoria de la sesión
         this.usuarioLogueado = null;
-
-        // 2. Destruimos el presentador principal para que al volver a entrar
-        // se recalculen los permisos (botones visibles) del nuevo usuario.
         this.principalPresenter = null;
-
-        // 3. Limpiamos todos los presentadores en caché por seguridad de datos
         this.pacientePresenter = null;
         this.analisisPresenter = null;
         this.medicoPresenter = null;
@@ -476,11 +433,9 @@ public class AppRouter {
         this.auditoriaPresenter = null;
         this.ajustesPresenter = null;
 
-        // 4. Preparamos la Vista Principal de fondo ocultando datos sensibles
-        vp.volverInicio(); // Vuelve a la pantalla del logo
-        vp.activarModoInmersion(); // Oculta las barras laterales y el botón de cerrar sesión
+        vp.volverInicio(); 
+        vp.activarModoInmersion();
 
-        // 5. Lanzamos la pantalla de Login nuevamente
         vista.interfaces.IVistaLogin vistaLogin = vistaFactory.getVistaLogin();
         presentador.SesionPresenter sesion = new presentador.SesionPresenter(
                 vistaLogin,
@@ -488,7 +443,6 @@ public class AppRouter {
                 daoFactory.getUsuarioDAO()
         );
 
-        // Al ser un JDialog modal, esto bloqueará el sistema hasta que se logueen de nuevo
         sesion.iniciar();
     }
 

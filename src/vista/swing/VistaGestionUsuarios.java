@@ -1,5 +1,7 @@
 package vista.swing;
 
+// @author lucianoalicata
+
 import vista.interfaces.IVistaGestionUsuarios;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -21,7 +23,6 @@ import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JSeparator;
 import javax.swing.SwingConstants;
@@ -33,10 +34,8 @@ import presentador.UsuarioPresenter;
 
 public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuarios {
 
-    private UsuarioPresenter presenter;
     private boolean cargandoDatos = false;
     
-    // ── Paleta BIOTEC Profesional ────────────────────────────────────
     private final Color C_NAVY = new Color(10, 25, 47);
     private final Color C_FONDO = new Color(238, 242, 246);
     private final Color C_BLANCO = Color.WHITE;
@@ -63,14 +62,9 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
         configurarNavegacionEnter();
         setMinimumSize(new Dimension(900, 600));
     }
-
-    // ══════════════════════════════════════════════════════════════════
-    //  INTERFAZ IVistaGestionUsuarios - MÉTODOS MVP
-    // ══════════════════════════════════════════════════════════════════
-
+    
     @Override
     public void setPresenter(UsuarioPresenter presenter) {
-        this.presenter = presenter;
         
         limpiarListeners(btnGuardar);
         limpiarListeners(btnEliminar);
@@ -155,14 +149,10 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
         cbxRol.setSelectedItem(rol);
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  ESTILO Y UX - Diseño Profesional y Responsive
-    // ══════════════════════════════════════════════════════════════════
     private void aplicarEstiloProfesional() {
         setBackground(C_FONDO);
         setLayout(new BorderLayout());
 
-        // ── HEADER ──────────────────────────────────────────────────────
         pnlHeader.setBackground(C_NAVY);
         pnlHeader.setBorder(new EmptyBorder(10, 20, 10, 20));
         pnlHeader.setLayout(new BorderLayout());
@@ -178,7 +168,6 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
 
         add(pnlHeader, BorderLayout.NORTH);
 
-        // ── CONTENEDOR PRINCIPAL ──────────────────────────────────────
         pnlContenedorBlanco = new JPanel(new BorderLayout());
         pnlContenedorBlanco.setBackground(C_BLANCO);
         pnlContenedorBlanco.setBorder(BorderFactory.createCompoundBorder(
@@ -186,7 +175,6 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
             new EmptyBorder(10, 12, 10, 12)
         ));
 
-        // ── CUERPO ──────────────────────────────────────────────────────
         pnlCuerpo.setBackground(C_BLANCO);
         pnlCuerpo.setLayout(new GridBagLayout());
         GridBagConstraints gc = new GridBagConstraints();
@@ -194,7 +182,6 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
         gc.weighty = 1.0;
         gc.insets = new Insets(0, 0, 0, 0);
 
-        // ── FORMULARIO ──────────────────────────────────────────────────
         pnlFormulario.setBackground(C_BLANCO);
         pnlFormulario.setBorder(BorderFactory.createCompoundBorder(
             new EmptyBorder(8, 10, 8, 10),
@@ -225,7 +212,6 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
         configurarBoton(btnEliminar, C_ROJO, "ELIMINAR", 160, 38);
         configurarBotonRetroceso(btnVolver);
 
-        // ── LAYOUT DEL FORMULARIO ─────────────────────────────────────
         pnlFormulario.setLayout(new GridBagLayout());
         GridBagConstraints gf = new GridBagConstraints();
         gf.fill = GridBagConstraints.HORIZONTAL;
@@ -267,11 +253,9 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
         gf.insets = new Insets(0, 0, 0, 0);
         pnlFormulario.add(new JPanel() {{ setOpaque(false); }}, gf);
 
-        // ── PANEL DERECHO ─────────────────────────────────────────────
         pnlDerechoWrapper.setBackground(C_BLANCO);
         pnlDerechoWrapper.setLayout(new BorderLayout(0, 12));
 
-        // ── TABLA ──────────────────────────────────────────────────────
         pnlTablaWrapper.setBackground(C_BLANCO);
         pnlTablaWrapper.setBorder(BorderFactory.createCompoundBorder(
             new EmptyBorder(0, 0, 0, 0),
@@ -322,7 +306,6 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
         pnlTablaWrapper.add(lblTituloTabla, BorderLayout.NORTH);
         pnlTablaWrapper.add(jScrollPane1, BorderLayout.CENTER);
 
-        // ── PANEL DE PERMISOS ─────────────────────────────────────────
         pnlInfoRoles.setBackground(C_BLANCO);
         pnlInfoRoles.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(C_BORDE, 1, true),
@@ -363,7 +346,6 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
         pnlDerechoWrapper.add(pnlTablaWrapper, BorderLayout.CENTER);
         pnlDerechoWrapper.add(pnlInfoRoles, BorderLayout.SOUTH);
 
-        // ── DISTRIBUCIÓN ──────────────────────────────────────────────
         gc.gridx = 0;
         gc.weightx = 0.35;
         gc.insets = new Insets(0, 0, 0, 10);
@@ -377,7 +359,6 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
         pnlContenedorBlanco.add(pnlCuerpo, BorderLayout.CENTER);
         add(pnlContenedorBlanco, BorderLayout.CENTER);
 
-        // ── FOOTER ──────────────────────────────────────────────────────
         pnlFooter.setBackground(C_FONDO);
         pnlFooter.setBorder(new EmptyBorder(6, 12, 10, 12));
         pnlFooter.setLayout(new BorderLayout());
@@ -558,9 +539,6 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
         cbxRol.addKeyListener(enterAdapter);
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  initComponents
-    // ══════════════════════════════════════════════════════════════════
     @SuppressWarnings("unchecked")
     private void initComponents() {
         pnlHeader = new JPanel();
@@ -617,7 +595,6 @@ public class VistaGestionUsuarios extends JPanel implements IVistaGestionUsuario
         add(pnlHeader, BorderLayout.NORTH);
     }
 
-    // ── Variables ────────────────────────────────────────────────────
     private JPanel pnlHeader;
     private JLabel lblTituloHeader;
     private JPanel pnlContenedorBlanco;

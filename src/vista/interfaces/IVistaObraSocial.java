@@ -3,10 +3,9 @@ package vista.interfaces;
 import java.util.ArrayList;
 import modelo.ObraSocial;
 import presentador.ObraSocialPresenter;
-/**
- *
- * @author luciano
- */
+
+// @author lucianoalicata
+
 public interface IVistaObraSocial {
     
     String BTN_AGREGAR_OS = "agregar_obra_social";

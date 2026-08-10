@@ -1,5 +1,7 @@
 package modelo;
 
+// @author lucianoalicata
+
 public class Usuario {
     private int idUsuario;
     private String username;

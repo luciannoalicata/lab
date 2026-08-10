@@ -1,5 +1,7 @@
 package presentador;
 
+// @author lucianoalicata
+
 import dao.DeterminacionDAO;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,12 +13,12 @@ import vista.interfaces.IVistaDeterminaciones;
 public class DeterminacionesPresenter {
 
     private final IVistaDeterminaciones vd;
-    private final AppRouter router; 
+    private final AppRouter router;
     private final DeterminacionDAO determinacionDAO;
     private final Paciente pacienteActual;
-    
-    private List<Determinacion> determinacionesSeleccionadas = new ArrayList<>();
-    private List<Determinacion> listaVisualDeterminaciones = new ArrayList<>();
+
+    private final List<Determinacion> determinacionesSeleccionadas = new ArrayList<>();
+    private final List<Determinacion> listaVisualDeterminaciones = new ArrayList<>();
 
     public DeterminacionesPresenter(IVistaDeterminaciones vd, AppRouter router, DeterminacionDAO determinacionDAO, Paciente pacienteActual) {
         this.vd = vd;
@@ -26,18 +28,14 @@ public class DeterminacionesPresenter {
     }
 
     public void iniciar() {
-        vd.setPresenter(this); 
+        vd.setPresenter(this);
         determinacionesSeleccionadas.clear();
         listaVisualDeterminaciones.clear();
         vd.limpiarCampos();
         refrescarTablaSeleccion();
-        
-        vd.ejecutar(); 
-    }
 
-    // ════════════════════════════════════════════════════════════════
-    //  MÉTODOS EXPLÍCITOS LLAMADOS POR LA VISTA (MVP Puro)
-    // ════════════════════════════════════════════════════════════════
+        vd.ejecutar();
+    }
 
     public void onAgregarDeterminacion() {
         String codBusqueda = vd.getDeterminacion().trim();
@@ -64,7 +62,7 @@ public class DeterminacionesPresenter {
                     vd.mostrarMensaje("Todos los componentes de esta práctica ya fueron agregados.");
                     vd.limpiarCampos();
                 } else {
-                    refrescarTablaSeleccion(); 
+                    refrescarTablaSeleccion();
                 }
             } else {
                 boolean yaExiste = determinacionesSeleccionadas.stream().anyMatch(x -> x.getCodigo().equals(detExacta.getCodigo()));
@@ -72,7 +70,7 @@ public class DeterminacionesPresenter {
                     vd.mostrarMensaje("Esta determinación ya ha sido agregada.");
                 } else {
                     determinacionesSeleccionadas.add(detExacta);
-                    refrescarTablaSeleccion(); 
+                    refrescarTablaSeleccion();
                 }
             }
         } else {
@@ -95,7 +93,7 @@ public class DeterminacionesPresenter {
                     if (agregados == 0) {
                         vd.mostrarMensaje("Todos los componentes ya fueron agregados.");
                     } else {
-                        refrescarTablaSeleccion(); 
+                        refrescarTablaSeleccion();
                     }
                 } else {
                     boolean yaExiste = determinacionesSeleccionadas.stream().anyMatch(x -> x.getCodigo().equals(det.getCodigo()));
@@ -103,7 +101,7 @@ public class DeterminacionesPresenter {
                         vd.mostrarMensaje("Esta determinación ya ha sido agregada.");
                     } else {
                         determinacionesSeleccionadas.add(det);
-                        refrescarTablaSeleccion(); 
+                        refrescarTablaSeleccion();
                     }
                 }
             } else {
@@ -112,30 +110,21 @@ public class DeterminacionesPresenter {
         }
     }
 
-    /**
-     * CORRECCIÓN CRÍTICA APLICADA:
-     * Ahora lee la matriz de índices de la vista. Si se seleccionó un título padre,
-     * la vista expande los índices enviando también a todos sus hijos. El presentador
-     * simplemente recolecta los códigos reales y los elimina de la memoria.
-     */
     public void onEliminarDeterminacion() {
         int[] filasSeleccionadas = vd.getFilasSeleccionadas();
         if (filasSeleccionadas != null && filasSeleccionadas.length > 0) {
             List<String> codigosAEliminar = new ArrayList<>();
-            
-            // Recolectamos los códigos de todas las filas seleccionadas (individuales o en cascada)
+
             for (int fila : filasSeleccionadas) {
                 if (fila >= 0 && fila < listaVisualDeterminaciones.size()) {
                     Determinacion det = listaVisualDeterminaciones.get(fila);
-                    
-                    // Si tiene un código válido (es una determinación hija real y no un título virtual)
+
                     if (det.getCodigo() != null && !det.getCodigo().trim().isEmpty()) {
                         codigosAEliminar.add(det.getCodigo());
                     }
                 }
             }
 
-            // Si recolectamos elementos para borrar, procedemos de forma masiva
             if (!codigosAEliminar.isEmpty()) {
                 determinacionesSeleccionadas.removeIf(d -> codigosAEliminar.contains(d.getCodigo()));
                 refrescarTablaSeleccion();
@@ -148,7 +137,7 @@ public class DeterminacionesPresenter {
     public void onBuscarSugerencias() {
         String texto = vd.getDeterminacion();
         List<Determinacion> sugerencias;
-        
+
         if (texto.matches("\\d{3}")) {
             sugerencias = determinacionDAO.buscarPorSufijo(texto);
         } else {
@@ -163,18 +152,14 @@ public class DeterminacionesPresenter {
             vd.mostrarMensaje("Debe agregar al menos una determinación para continuar.");
             return;
         }
-        
+
         if (vd != null) {
             vd.cerrarPantalla();
         }
-        
+
         router.limpiarReferenciaDeterminaciones();
         router.abrirCargaResultados(pacienteActual, listaVisualDeterminaciones);
     }
-
-    // ════════════════════════════════════════════════════════════════
-    //  MÉTODOS PRIVADOS DE APOYO
-    // ════════════════════════════════════════════════════════════════
 
     private void refrescarTablaSeleccion() {
         determinacionesSeleccionadas.sort((d1, d2) -> {
@@ -187,7 +172,9 @@ public class DeterminacionesPresenter {
                 int prioGlobal1 = (padre1 != null) ? padre1.getPrioridad() : 999;
                 int prioGlobal2 = (padre2 != null) ? padre2.getPrioridad() : 999;
 
-                if (prioGlobal1 != prioGlobal2) return Integer.compare(prioGlobal1, prioGlobal2);
+                if (prioGlobal1 != prioGlobal2) {
+                    return Integer.compare(prioGlobal1, prioGlobal2);
+                }
                 return codPadre1.compareTo(codPadre2);
             }
             return Integer.compare(d1.getPrioridad(), d2.getPrioridad());

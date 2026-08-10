@@ -1,5 +1,7 @@
 package presentador;
 
+// @author lucianoalicata
+
 import dao.MedicoDAO;
 import modelo.Medico;
 import presentador.router.AppRouter;
@@ -12,8 +14,8 @@ public class MedicoPresenter {
     private final AppRouter router;
     private final MedicoDAO medicoDAO;
     private Medico medicoSeleccionado;
-    private boolean actualizandoVista = false; // ← NUEVO: evita ejecutar eventos durante actualizaciones
-
+    private boolean actualizandoVista = false; 
+    
     public MedicoPresenter(IVistaMedicos vista, AppRouter router, MedicoDAO medicoDAO) {
         this.vista = vista;
         this.router = router;
@@ -27,10 +29,10 @@ public class MedicoPresenter {
     }
 
     private void cargarTabla() {
-        actualizandoVista = true; // ← Desactivar temporalmente eventos
+        actualizandoVista = true; 
         ArrayList<Medico> lista = medicoDAO.listarMedicos();
         vista.cargarMedicosEnTabla(lista);
-        actualizandoVista = false; // ← Reactivar eventos
+        actualizandoVista = false; 
     }
     
     public void onGuardarMedico() {
@@ -60,7 +62,6 @@ public class MedicoPresenter {
             return;
         }
 
-        // MODO EDICIÓN
         if (medicoSeleccionado != null) {
             if (!medicoSeleccionado.getMatricula().equals(matricula)) {
                 if (medicoDAO.existeMatricula(matricula)) {
@@ -77,12 +78,11 @@ public class MedicoPresenter {
             
             if (medicoDAO.actualizarMedico(medicoSeleccionado)) {
                 vista.mostrarMensaje("Médico actualizado correctamente.");
-                limpiarYRecargar(); // ← Método unificado
+                limpiarYRecargar(); 
             } else {
                 vista.mostrarMensaje("Error: No se pudo actualizar el médico.");
             }
-        } 
-        // MODO CREACIÓN
+        }
         else {
             if (medicoDAO.existeMatricula(matricula)) {
                 vista.mostrarMensaje("Error: Ya existe un médico con la matrícula '" + matricula + "'.");
@@ -98,14 +98,13 @@ public class MedicoPresenter {
 
             if (medicoDAO.guardarMedico(m)) {
                 vista.mostrarMensaje("Médico guardado correctamente.");
-                limpiarYRecargar(); // ← Método unificado
+                limpiarYRecargar(); 
             } else {
                 vista.mostrarMensaje("Error: No se pudo guardar el médico.");
             }
         }
     }
     
-    // ← NUEVO: Método unificado para limpiar y recargar
     private void limpiarYRecargar() {
         actualizandoVista = true;
         medicoSeleccionado = null;
@@ -130,7 +129,7 @@ public class MedicoPresenter {
         if (respuesta == 0) {
             if (medicoDAO.eliminarMedico(seleccionado.getMatricula())) {
                 vista.mostrarMensaje("Médico eliminado con éxito.");
-                limpiarYRecargar(); // ← Usar método unificado
+                limpiarYRecargar(); 
             } else {
                 vista.mostrarMensaje("Error: No se pudo eliminar el médico seleccionado.");
             }
@@ -149,7 +148,6 @@ public class MedicoPresenter {
     }
 
     public void onSeleccionarMedico() {
-        // ← EVITAR ejecución durante actualizaciones de la vista
         if (actualizandoVista) {
             return;
         }
@@ -167,7 +165,7 @@ public class MedicoPresenter {
             medicoSeleccionado = null;
         }
     }
-
+    
     public void onVolver(){
         router.irAInicio();
     }

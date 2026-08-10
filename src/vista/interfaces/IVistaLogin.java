@@ -2,10 +2,8 @@ package vista.interfaces;
 
 import presentador.SesionPresenter;
 
-/**
- *
- * @author luciano
- */
+// @author lucianoalicata
+
 public interface IVistaLogin {
 
     String BTN_INGRESAR = "iniciar_sesion";

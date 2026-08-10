@@ -1,5 +1,7 @@
 package vista.swing;
 
+// @author lucianoalicata
+
 import vista.interfaces.IVistaMedicos;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -28,7 +30,6 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.MatteBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import modelo.Medico;
@@ -40,7 +41,6 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
     private boolean actualizandoVista = false;
     private boolean cargandoDatos = false;
     
-    // ── Paleta BIOTEC Profesional ────────────────────────────────────
     private final Color C_NAVY         = new Color(10, 25, 47);
     private final Color C_FONDO        = new Color(238, 242, 246);
     private final Color C_BLANCO       = Color.WHITE;
@@ -64,9 +64,6 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
         setMinimumSize(new Dimension(900, 600));
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  DESELECCIÓN DE FILA AL HACER CLIC FUERA DE LA TABLA
-    // ════════════════════════════════════════════════════════════════
     private void configurarDeseleccionPorClic() {
         JPanel[] paneles = {pnlCuerpo, pnlFormulario, pnlTablaWrapper, pnlFooter, pnlBotonesEdicion, pnlHeader};
         java.awt.event.MouseAdapter deseleccionador = new java.awt.event.MouseAdapter() {
@@ -88,14 +85,10 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
         this.addMouseListener(deseleccionador);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  ESTILO Y UX - Diseño Profesional y Responsive
-    // ════════════════════════════════════════════════════════════════
     private void aplicarEstiloProfesional() {
         setBackground(C_FONDO);
         setLayout(new BorderLayout());
 
-        // ── HEADER ──────────────────────────────────────────────────────
         pnlHeader.setBackground(C_NAVY);
         pnlHeader.setBorder(new EmptyBorder(10, 20, 10, 20));
         pnlHeader.setLayout(new BorderLayout());
@@ -121,7 +114,6 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
 
         add(pnlHeader, BorderLayout.NORTH);
 
-        // ── CONTENEDOR PRINCIPAL ──────────────────────────────────────
         pnlContenedorBlanco = new JPanel(new BorderLayout());
         pnlContenedorBlanco.setBackground(C_BLANCO);
         pnlContenedorBlanco.setBorder(BorderFactory.createCompoundBorder(
@@ -129,14 +121,12 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
             new EmptyBorder(10, 12, 10, 12)
         ));
 
-        // ── CUERPO ──────────────────────────────────────────────────────
         pnlCuerpo.setBackground(C_BLANCO);
         pnlCuerpo.setLayout(new GridBagLayout());
         GridBagConstraints gc = new GridBagConstraints();
         gc.fill = GridBagConstraints.BOTH;
         gc.weighty = 1.0;
 
-        // ── FORMULARIO ──────────────────────────────────────────────────
         pnlFormulario.setBackground(C_BLANCO);
         pnlFormulario.setBorder(BorderFactory.createCompoundBorder(
             new EmptyBorder(8, 10, 8, 10),
@@ -177,7 +167,6 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
         jScrollPane2.setBorder(BorderFactory.createEmptyBorder());
         jScrollPane2.setPreferredSize(new Dimension(0, 60));
 
-        // Layout del formulario
         pnlFormulario.setLayout(new GridBagLayout());
         GridBagConstraints gf = new GridBagConstraints();
         gf.fill = GridBagConstraints.HORIZONTAL;
@@ -212,7 +201,6 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
         gf.weighty = 0.6;
         pnlFormulario.add(jScrollPane2, gf);
 
-        // Botones
         pnlBotonesEdicion.setOpaque(false);
         pnlBotonesEdicion.setLayout(new GridLayout(1, 2, 10, 0));
         pnlBotonesEdicion.add(btnEliminarMedico);
@@ -228,7 +216,6 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
         gf.insets = new Insets(0, 0, 0, 0);
         pnlFormulario.add(new JPanel() {{ setOpaque(false); }}, gf);
 
-        // ── TABLA ──────────────────────────────────────────────────────
         pnlTablaWrapper.setBackground(C_BLANCO);
         pnlTablaWrapper.setBorder(BorderFactory.createCompoundBorder(
             new EmptyBorder(8, 0, 8, 8),
@@ -264,7 +251,6 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
         pnlTablaWrapper.add(lblTituloTabla, BorderLayout.NORTH);
         pnlTablaWrapper.add(jScrollPane1, BorderLayout.CENTER);
 
-        // ── DISTRIBUCIÓN ──────────────────────────────────────────────
         JScrollPane scrollFormulario = new JScrollPane(pnlFormulario);
         scrollFormulario.setBorder(BorderFactory.createEmptyBorder());
         scrollFormulario.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
@@ -285,13 +271,11 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
         pnlContenedorBlanco.add(pnlCuerpo, BorderLayout.CENTER);
         add(pnlContenedorBlanco, BorderLayout.CENTER);
 
-        // ── FOOTER ──────────────────────────────────────────────────────
         pnlFooter.setBackground(C_FONDO);
         pnlFooter.setBorder(new EmptyBorder(6, 12, 10, 12));
         pnlFooter.setLayout(new BorderLayout());
         add(pnlFooter, BorderLayout.SOUTH);
 
-        // ── CONFIGURAR BOTONES ────────────────────────────────────────
         configurarBoton(btnGuardarMedico, C_VERDE, "GUARDAR", 140, 36);
         configurarBoton(btnEliminarMedico, C_ROJO, "ELIMINAR", 140, 36);
         configurarBotonRetroceso(btnVolver);
@@ -386,9 +370,6 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
         return null;
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  LÓGICA
-    // ════════════════════════════════════════════════════════════════
     private void configurarNavegacionEnter() {
         KeyAdapter enterKeyAdapter = new KeyAdapter() {
             @Override
@@ -559,9 +540,6 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
         JOptionPane.showMessageDialog(this, mensaje);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  UI BUILDER
-    // ════════════════════════════════════════════════════════════════
     @SuppressWarnings("unchecked")
     private void initComponents() {
         pnlHeader = new JPanel();
@@ -616,7 +594,6 @@ public class VistaMedicos extends JPanel implements IVistaMedicos {
         jScrollPane1.setViewportView(grillaMedicos);
     }
 
-    // ── Variables ────────────────────────────────────────────────────
     private JButton btnGuardarMedico;
     private JButton btnEliminarMedico;
     private JButton btnVolver;

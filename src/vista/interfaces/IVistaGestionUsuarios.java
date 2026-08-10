@@ -1,8 +1,7 @@
 package vista.interfaces;
-/**
- *
- * @author luciano
- */
+
+// @author lucianoalicata
+
 import java.util.List;
 import modelo.Usuario;
 import presentador.UsuarioPresenter;
@@ -24,5 +23,4 @@ public interface IVistaGestionUsuarios {
     int getUsuarioSeleccionadoId();
     void mostrarMensaje(String mensaje);
     void ejecutar();
-
 }

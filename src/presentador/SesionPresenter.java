@@ -1,5 +1,7 @@
 package presentador;
 
+// @author lucianoalicata
+
 import dao.UsuarioDAO;
 import presentador.router.AppRouter;
 import vista.interfaces.IVistaLogin;
@@ -37,7 +39,6 @@ public class SesionPresenter {
                 return;
             }
 
-            // El sistema ahora valida estrictamente consultando al DAO de la Base de Datos
             modelo.Usuario u = usuarioDAO.login(username, password);
 
             if (u != null) {

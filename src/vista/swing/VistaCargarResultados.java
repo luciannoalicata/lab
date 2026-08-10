@@ -1,5 +1,7 @@
 package vista.swing;
 
+// @author lucianoalicata
+
 import vista.interfaces.IVistaCargarResultados;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -47,16 +49,13 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
     private ResultadoPresenter presenter;
     private boolean calculando = false;
     private boolean cargandoDatos = false;
-
     private JWindow ventanaSugerenciasOS;
     private JList<String> listaSugerenciasOS;
     private DefaultListModel<String> modeloSugerenciasOS;
-
     private JWindow ventanaSugerenciasMed;
     private JList<String> listaSugerenciasMed;
     private DefaultListModel<String> modeloSugerenciasMed;
 
-    // ── Paleta BIOTEC Profesional ────────────────────────────────────
     private final Color C_NAVY         = new Color(10, 25, 47);    
     private final Color C_FONDO        = new Color(238, 242, 246);
     private final Color C_BLANCO       = Color.WHITE;
@@ -78,7 +77,7 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         aplicarEsteticaProfesional();
         configurarBuscadoresDinamicos();
         configurarNavegacionEnter();
-        configurarDobleClicReferencia(); // ← Nuevo evento para expandir textos
+        configurarDobleClicReferencia(); 
         setMinimumSize(new Dimension(900, 600));
 
         java.awt.EventQueue.invokeLater(() -> {
@@ -91,14 +90,10 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         });
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  ESTÉTICA Y UX - Diseño Profesional
-    // ════════════════════════════════════════════════════════════════
     private void aplicarEsteticaProfesional() {
         setBackground(C_FONDO);
         setLayout(new BorderLayout());
 
-        // ── HEADER ──────────────────────────────────────────────────────
         jPanelHeader.setBackground(C_NAVY);
         jPanelHeader.setBorder(new EmptyBorder(10, 20, 10, 20));
         jPanelHeader.setLayout(new BorderLayout());
@@ -153,7 +148,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
 
         add(jPanelHeader, BorderLayout.NORTH);
 
-        // ── CONTENEDOR PRINCIPAL ──────────────────────────────────────
         pnlContenedorBlanco = new JPanel(new BorderLayout());
         pnlContenedorBlanco.setBackground(C_BLANCO);
         pnlContenedorBlanco.setBorder(BorderFactory.createCompoundBorder(
@@ -161,11 +155,9 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
             new EmptyBorder(10, 14, 10, 14)
         ));
 
-        // ── CUERPO ──────────────────────────────────────────────────────
         pnlCuerpo.setBackground(C_BLANCO);
         pnlCuerpo.setLayout(new BorderLayout());
 
-        // ── TABLA WRAPPER ──────────────────────────────────────────────
         pnlTablaWrapper.setBackground(C_BLANCO);
         pnlTablaWrapper.setBorder(BorderFactory.createCompoundBorder(
             new EmptyBorder(0, 0, 0, 0),
@@ -207,7 +199,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         pnlContenedorBlanco.add(pnlCuerpo, BorderLayout.CENTER);
         add(pnlContenedorBlanco, BorderLayout.CENTER);
 
-        // ── FOOTER ──────────────────────────────────────────────────────
         jPanelFooter.setBackground(C_BLANCO);
         jPanelFooter.setBorder(BorderFactory.createCompoundBorder(
             new MatteBorder(1, 0, 0, 0, C_BORDE),
@@ -239,7 +230,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
                 if (e.getClickCount() == 2) {
                     int col = grillaResultados.columnAtPoint(e.getPoint());
                     int row = grillaResultados.rowAtPoint(e.getPoint());
-                    // 5 es la columna de Valores de Referencia
                     if (col == 5 && row >= 0) {
                         Object val = grillaResultados.getModel().getValueAt(row, 5);
                         if (val != null && !val.toString().trim().isEmpty()) {
@@ -513,8 +503,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
                         }
                         sb.append("</html>");
                         setText(sb.toString());
-                        
-                        // Si es la columna de referencias, añadimos un tooltip indicando el doble clic
                         if (col == 5) setToolTipText("<html>" + textoOriginal.replace(";", "<br>") + "<br><br><i>(Doble clic para expandir)</i></html>");
                         else setToolTipText(null);
                         
@@ -524,10 +512,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
                         else setToolTipText(null);
                     }
                 }
-                
-                // NOTA: Eliminamos el setRowHeight de aquí porque causaba bucles en Swing. 
-                // Ahora se maneja limpiamente en ajustarAlturaFilas()
-
                 return this;
             }
         };
@@ -556,7 +540,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
             int maxLineas = Math.max(lineasRef, lineasNom);
             int alturaCalculada = Math.max(34, maxLineas * 18 + 8);
             
-            // Capped at 75px max to preserve visual harmony
             grillaResultados.setRowHeight(row, Math.min(alturaCalculada, 75));
         }
     }
@@ -678,9 +661,6 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         actualizarPopup(ventanaSugerenciasMed, modeloSugerenciasMed, listaSugerenciasMed, txtMedicoSolicitante, sugerencias);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  CARGAR DETERMINACIONES Y CÁLCULOS AUTOMÁTICOS
-    // ════════════════════════════════════════════════════════════════
     @Override
     public void cargarDeterminaciones(List<Determinacion> lista) {
         cargandoDatos = true;
@@ -740,7 +720,7 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         aplicarRenderer();
         aplicarColumnas();
         aplicarCellEditor();
-        ajustarAlturaFilas(); // ← Aplicamos la altura correcta y segura al final
+        ajustarAlturaFilas(); 
         
         cargandoDatos = false;
     }
@@ -760,18 +740,15 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
                 
                 String nombreStr = nombreOriginal.trim().toLowerCase();
 
-                if (nombreStr.equals("glob. rojos")) {
-                    rbc = parsearNumeroLab(res);
-                } else if (nombreStr.equals("hemoglobina")) {
-                    hb = parsearNumeroLab(res);
-                } else if (nombreStr.equals("hematocrito")) {
-                    hto = parsearNumeroLab(res);
-                } else if (nombreStr.equals("vcm")) {
-                    idxVCM = i;
-                } else if (nombreStr.equals("hcm")) {
-                    idxHCM = i;
-                } else if (nombreStr.equals("chcm")) {
-                    idxCHCM = i;
+                switch (nombreStr) {
+                    case "glob. rojos" -> rbc = parsearNumeroLab(res);
+                    case "hemoglobina" -> hb = parsearNumeroLab(res);
+                    case "hematocrito" -> hto = parsearNumeroLab(res);
+                    case "vcm" -> idxVCM = i;
+                    case "hcm" -> idxHCM = i;
+                    case "chcm" -> idxCHCM = i;
+                    default -> {
+                    }
                 }
             }
 
@@ -841,9 +818,14 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
         for (java.awt.event.ActionListener al : btnCerrar.getActionListeners()) {
             btnCerrar.removeActionListener(al);
         }
-        
-        btnGuardarResultados.addActionListener(e -> presenter.onGuardarResultados());
-        btnCerrar.addActionListener(e -> presenter.onVolver());
+        btnGuardarResultados.addActionListener(e -> {
+            ocultarSugerenciasFlotantes();
+            presenter.onGuardarResultados();
+        });
+        btnCerrar.addActionListener(e -> {
+            ocultarSugerenciasFlotantes();
+            presenter.onVolver();
+        });
     }
     
     @Override
@@ -853,17 +835,23 @@ public class VistaCargarResultados extends JPanel implements IVistaCargarResulta
 
     @Override
     public int confirmarAccion(String mensaje, String titulo) {
+        ocultarSugerenciasFlotantes();
         return JOptionPane.showConfirmDialog(this, mensaje, titulo, JOptionPane.YES_NO_CANCEL_OPTION);
     }
     
+    @Override
     public void ocultarSugerenciasFlotantes() {
         if (ventanaSugerenciasOS != null) ventanaSugerenciasOS.setVisible(false);
         if (ventanaSugerenciasMed != null) ventanaSugerenciasMed.setVisible(false);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  NAVEGACIÓN ENTER Y AUTO-FORMATEO
-    // ════════════════════════════════════════════════════════════════
+    @Override
+    public void setVisible(boolean visible) {
+        if (!visible) {
+            ocultarSugerenciasFlotantes();
+        }
+        super.setVisible(visible);
+    }
     private void configurarNavegacionEnter() {
         javax.swing.InputMap im = grillaResultados.getInputMap(JTable.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
         javax.swing.ActionMap am = grillaResultados.getActionMap();

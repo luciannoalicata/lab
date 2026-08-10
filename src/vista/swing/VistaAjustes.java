@@ -1,11 +1,10 @@
 package vista.swing;
 
+// @author lucianoalicata
+
 import vista.interfaces.IVistaAjustes;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
 import javax.swing.*;
 import javax.swing.border.*;
 import presentador.AjustesPresenter;
@@ -13,16 +12,12 @@ import presentador.AjustesPresenter;
 public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
 
     private AjustesPresenter presenter;
-
-    // ── Tipografía Compacta pero Legible ────────────────────────────
     private final Font F_SECTION = new Font("Segoe UI", Font.BOLD, 12);
     private final Font F_LABEL   = new Font("Segoe UI", Font.PLAIN, 11);
     private final Font F_CAMPO   = new Font("Segoe UI", Font.PLAIN, 12);
     private final Font F_BTN     = new Font("Segoe UI", Font.BOLD, 11);
     private final Font F_UB      = new Font("Segoe UI", Font.BOLD, 28);
     private final Font F_TAB     = new Font("Segoe UI", Font.BOLD, 12);
-
-    // ── Paleta BIOTEC ─────────────────────────────────────────────────
     private final Color C_NAVY      = new Color(0, 35, 75);
     private final Color C_AZUL      = new Color(0, 51, 102);
     private final Color C_AZUL_MED  = new Color(0, 102, 153);
@@ -35,7 +30,6 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
     private final Color C_CAMPO_RO = new Color(242, 245, 248);
     private final Color C_TEXTO = new Color(40, 60, 85);
     private final Color C_LABEL_HDR = new Color(160, 200, 230);
-
     private JFileChooser fileChooser;
 
     public VistaAjustes(Object parentView) {
@@ -50,7 +44,6 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
         setMinimumSize(new Dimension(700, 480));
         setPreferredSize(new Dimension(780, 540));
 
-        // ── ICONO ──
         try {
             java.net.URL url = getClass().getResource("/reportes/img/logo_sw.png");
             if (url != null) {
@@ -69,10 +62,7 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
             }
         });
     }
-
-    // ════════════════════════════════════════════════════════════════
-    //  INTERFAZ IVistaAjustes - MÉTODOS MVP
-    // ════════════════════════════════════════════════════════════════
+    
     @Override
     public void setPresenter(AjustesPresenter presenter) {
         this.presenter = presenter;
@@ -83,8 +73,6 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
         limpiarListeners(btnGuardarUB);
         limpiarListeners(btnBuscarLogo);
         limpiarListeners(btnBuscarFirma);
-        limpiarListeners(btnBuscarRutaPdf);
-        limpiarListeners(btnBuscarRutaBackup);
 
         btnActualizarClave.addActionListener(e -> presenter.onActualizarClave());
         btnActualizarDatos.addActionListener(e -> presenter.onActualizarDatos());
@@ -93,8 +81,6 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
 
         btnBuscarLogo.addActionListener(e -> seleccionarImagen(txtBuscarLogo, "Seleccionar Logo", false));
         btnBuscarFirma.addActionListener(e -> seleccionarImagen(txtFirma, "Seleccionar Firma", false));
-        btnBuscarRutaPdf.addActionListener(e -> seleccionarDirectorio(txtRutaPdf, "Carpeta Informes PDF"));
-        btnBuscarRutaBackup.addActionListener(e -> seleccionarDirectorio(txtRutaBackup, "Carpeta Backups"));
     }
     
     private void limpiarListeners(JButton btn) {
@@ -114,19 +100,6 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
             } else {
                 fileChooser.setFileFilter(null);
             }
-            
-            int resultado = fileChooser.showOpenDialog(this);
-            if (resultado == JFileChooser.APPROVE_OPTION) {
-                campo.setText(fileChooser.getSelectedFile().getAbsolutePath());
-            }
-        });
-    }
-    
-    private void seleccionarDirectorio(JTextField campo, String titulo) {
-        SwingUtilities.invokeLater(() -> {
-            fileChooser.setDialogTitle(titulo);
-            fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-            fileChooser.setFileFilter(null);
             
             int resultado = fileChooser.showOpenDialog(this);
             if (resultado == JFileChooser.APPROVE_OPTION) {
@@ -165,14 +138,16 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
     @Override public String getMatricula()     { return txtMatricula.getText().trim(); }
     @Override public String getLogo()          { return txtBuscarLogo.getText().trim(); }
     @Override public String getFirma()         { return txtFirma.getText().trim(); }
-    @Override public String getRutaPdf()       { return txtRutaPdf.getText().trim(); }
-    @Override public String getRutaBackup()    { return txtRutaBackup.getText().trim(); }
     @Override public String getTamanoHoja()    { return cbxTamanoHoja.getSelectedItem().toString(); }
     @Override public String getOrientacion()   { return cbxOrientacion.getSelectedItem().toString(); }
     @Override public boolean isIncluirLogo()   { return chkIncluirLogo.isSelected(); }
     @Override public boolean isAutoPrint()     { return chkImprimirAutom.isSelected(); }
     @Override public String getValorUB()       { return txtValorUB.getText().trim(); }
-    
+    @Override public String getRutaPdf()       { return ""; }
+    @Override public String getRutaBackup()    { return ""; }
+    @Override public void setRutaBackup(String r)  { }
+    @Override public void setRutaPdf(String p)     { }
+    @Override public void setBackup(String b)      { }
     @Override public void setUsuarioActual(String u)           { lblUsuarioActual.setText(u.toUpperCase()); }
     @Override public void setNombreLaboratorioACtual(String n) { txtNombreLaboratorio.setText(n); }
     @Override public void setDireccion(String d)   { txtDireccion.setText(d); }
@@ -182,14 +157,11 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
     @Override public void setMatricula(String m)   { txtMatricula.setText(m); }
     @Override public void setLogo(String l)        { txtBuscarLogo.setText(l); }
     @Override public void setFirma(String f)       { txtFirma.setText(f); }
-    @Override public void setRutaBackup(String r)  { txtRutaBackup.setText(r); }
-    @Override public void setRutaPdf(String p)     { txtRutaPdf.setText(p); }
     @Override public void setTamanoHoja(String t)  { cbxTamanoHoja.setSelectedItem(t); }
     @Override public void setOrientacion(String o) { cbxOrientacion.setSelectedItem(o); }
     @Override public void setIncluirLogo(boolean i){ chkIncluirLogo.setSelected(i); }
     @Override public void setAutoPrint(boolean a)  { chkImprimirAutom.setSelected(a); }
     @Override public void setValorUB(String v)     { txtValorUB.setText(v); }
-    @Override public void setBackup(String b)      { txtRutaBackup.setText(b); }
     @Override public String getMatriculaFirma()    { return ""; }
     @Override public String getAclaracionFirma()   { return ""; }
     @Override public void setMatriculaFirma(String m) {}
@@ -201,9 +173,6 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
         btnGuardarUB.setEnabled(h);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  ESTILO COMPACTO - Optimizado para 14"
-    // ════════════════════════════════════════════════════════════════
     private void aplicarEstiloCompacto() {
         setTitle("CONFIGURACIÓN DEL SISTEMA");
         setResizable(true);
@@ -213,8 +182,7 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
         jTabbedPane1.setBackground(C_FONDO);
         jTabbedPane1.setBorder(new EmptyBorder(0, 0, 0, 0));
 
-        // Campos de rutas
-        for (JTextField f : new JTextField[]{txtBuscarLogo, txtFirma, txtRutaPdf, txtRutaBackup}) {
+        for (JTextField f : new JTextField[]{txtBuscarLogo, txtFirma}) {
             f.setEditable(false);
             f.setFont(new Font("Segoe UI", Font.PLAIN, 11));
             f.setBackground(C_CAMPO_RO);
@@ -226,13 +194,11 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
             f.setPreferredSize(new Dimension(420, 30));
         }
 
-        // Campos de texto institucionales
         for (JTextField f : new JTextField[]{txtNombreLaboratorio, txtDireccion,
                 txtLocalidad, txtTelefono, txtBioquimico, txtMatricula}) {
             estilizarCampo(f, 280, 32);
         }
 
-        // Campos de contraseña
         for (JPasswordField f : new JPasswordField[]{txtClaveActual, txtNuevaClave, txtRepetirNuevaClave}) {
             f.setFont(F_CAMPO);
             f.setBackground(C_CAMPO);
@@ -268,7 +234,7 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
 
         ImageIcon iconCarpeta = icon("/reportes/img/carpeta_icon.png", 16, 16);
 
-        for (JButton b : new JButton[]{btnBuscarLogo, btnBuscarFirma, btnBuscarRutaPdf, btnBuscarRutaBackup}) {
+        for (JButton b : new JButton[]{btnBuscarLogo, btnBuscarFirma}) {
             if (iconCarpeta != null) {
                 b.setIcon(iconCarpeta);
                 b.setText("");
@@ -337,9 +303,6 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
         return null;
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  initComponents
-    // ════════════════════════════════════════════════════════════════
     @SuppressWarnings("unchecked")
     private void initComponents() {
         jTabbedPane1         = new JTabbedPane();
@@ -362,12 +325,8 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
         txtMatricula         = new JTextField();
         txtBuscarLogo        = new JTextField();
         txtFirma             = new JTextField();
-        txtRutaPdf           = new JTextField();
-        txtRutaBackup        = new JTextField();
         btnBuscarLogo        = new JButton("📁");
         btnBuscarFirma       = new JButton("📁");
-        btnBuscarRutaPdf     = new JButton("📁");
-        btnBuscarRutaBackup  = new JButton("📁");
         btnActualizarDatos   = new JButton();
 
         cbxTamanoHoja        = new JComboBox<>();
@@ -425,7 +384,6 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
             tab.setBackground(C_FONDO);
         }
 
-        // ── Seguridad ──────────────────────────────────────────────────
         JPanel cardClave = card("CAMBIO DE CONTRASEÑA");
         GridBagConstraints gf = new GridBagConstraints();
         gf.fill = GridBagConstraints.HORIZONTAL; gf.weightx = 1.0; gf.gridx = 0;
@@ -443,7 +401,6 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
 
         addCenteredCard(pnlSeguridad, cardClave, 16);
 
-        // ── Laboratorio ─────────────────────────────────────────────────
         JPanel cardDatos = card("DATOS INSTITUCIONALES");
         GridBagConstraints gd = new GridBagConstraints();
         gd.fill = GridBagConstraints.HORIZONTAL; gd.weightx = 1.0; gd.gridx = 0;
@@ -469,9 +426,10 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
         GridBagConstraints gr = new GridBagConstraints();
         gr.fill = GridBagConstraints.HORIZONTAL; gr.weightx = 1.0; gr.gridx = 0;
         int rr = 1;
-        String[] labelsRutas = {"Logotipo", "Firma", "Informes PDF", "Backups"};
-        JTextField[] camposRutas = {txtBuscarLogo, txtFirma, txtRutaPdf, txtRutaBackup};
-        JButton[] botonesRutas   = {btnBuscarLogo, btnBuscarFirma, btnBuscarRutaPdf, btnBuscarRutaBackup};
+        
+        String[] labelsRutas = {"Logotipo", "Firma"};
+        JTextField[] camposRutas = {txtBuscarLogo, txtFirma};
+        JButton[] botonesRutas   = {btnBuscarLogo, btnBuscarFirma};
 
         for (int i = 0; i < labelsRutas.length; i++) {
             gr.gridy = rr++; gr.gridwidth = 2; gr.insets = new Insets(0,0,1,0);
@@ -486,8 +444,22 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
             cardRutas.add(filaRuta, gr);
         }
 
+        JLabel lblInfoPdf = new JLabel("<html>📍 <b>Los informes PDF</b> se guardan automáticamente en el <b>Escritorio</b> de esta computadora.</html>");
+        lblInfoPdf.setFont(F_LABEL);
+        lblInfoPdf.setForeground(C_AZUL_MED);
+
+        JLabel lblInfoBackup = new JLabel("<html>📍 <b>Las copias de seguridad</b> se guardan automáticamente en la carpeta <b>Documentos</b>.</html>");
+        lblInfoBackup.setFont(F_LABEL);
+        lblInfoBackup.setForeground(C_AZUL_MED);
+
+        gr.gridy = rr++; gr.gridwidth = 2; gr.insets = new Insets(12, 0, 8, 0);
+        cardRutas.add(lblInfoPdf, gr);
+        
+        gr.gridy = rr++; gr.gridwidth = 2; gr.insets = new Insets(0, 0, 15, 0);
+        cardRutas.add(lblInfoBackup, gr);
+
         GridBagConstraints gbs = new GridBagConstraints();
-        gbs.gridx = 2; gbs.gridy = rr; gbs.gridwidth = 1;
+        gbs.gridx = 1; gbs.gridy = rr; gbs.gridwidth = 1;
         gbs.fill = GridBagConstraints.NONE; gbs.anchor = GridBagConstraints.SOUTHEAST;
         gbs.insets = new Insets(6, 0, 0, 0);
         cardRutas.add(btnActualizarDatos, gbs);
@@ -501,7 +473,6 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
         gcL.gridx = 1; gcL.weightx = 0.50; gcL.insets = new Insets(8, 6, 8, 10);
         pnlLaboratorio.add(cardRutas, gcL);
 
-        // ── Impresión ──────────────────────────────────────────────────
         JPanel cardFormato = card("CONFIGURACIÓN DE PÁGINA");
 
         JPanel filaCombos = new JPanel(new GridLayout(1, 2, 16, 0));
@@ -536,7 +507,6 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
         
         addCenteredCard(pnlImpresion, colImp, 16);
 
-        // ── Aranceles ──────────────────────────────────────────────────
         JPanel cardAran = card("UNIDAD BIOQUÍMICA (UB)");
 
         JLabel lblDesc = new JLabel("Valor base para el cálculo automático del precio de los análisis.");
@@ -579,9 +549,6 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
         add(jTabbedPane1, BorderLayout.CENTER);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  HELPERS
-    // ════════════════════════════════════════════════════════════════
     private JPanel card(String titulo) {
         JPanel p = new JPanel(new GridBagLayout());
         p.setBackground(C_BLANCO);
@@ -644,19 +611,16 @@ public class VistaAjustes extends javax.swing.JDialog implements IVistaAjustes {
         tab.add(card, g);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  VARIABLES
-    // ════════════════════════════════════════════════════════════════
     private JTabbedPane jTabbedPane1;
     private JPanel pnlSeguridad, pnlLaboratorio, pnlImpresion, pnlAranceles;
     private JLabel lblUsuarioActual;
     private JPasswordField txtClaveActual, txtNuevaClave, txtRepetirNuevaClave;
     private JTextField txtNombreLaboratorio, txtDireccion, txtLocalidad;
     private JTextField txtTelefono, txtBioquimico, txtMatricula;
-    private JTextField txtBuscarLogo, txtFirma, txtRutaPdf, txtRutaBackup, txtValorUB;
+    private JTextField txtBuscarLogo, txtFirma, txtValorUB;
     private JComboBox<String> cbxTamanoHoja, cbxOrientacion;
     private JCheckBox chkIncluirLogo, chkImprimirAutom;
     private JButton btnActualizarClave, btnActualizarDatos;
     private JButton btnGuardarConfiguracion, btnGuardarUB;
-    private JButton btnBuscarLogo, btnBuscarFirma, btnBuscarRutaPdf, btnBuscarRutaBackup;
+    private JButton btnBuscarLogo, btnBuscarFirma;
 }

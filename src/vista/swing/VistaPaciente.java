@@ -1,5 +1,7 @@
 package vista.swing;
 
+// @author lucianoalicata
+
 import vista.interfaces.IVistaPaciente;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -47,7 +49,6 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
     private boolean ignorarBusquedaOS = false;
     private boolean cargandoDatos = false;
 
-    // ── Paleta Profesional ──────────────────────────────────────────
     private final Color C_NAVY         = new Color(10, 25, 47);
     private final Color C_FONDO        = new Color(238, 242, 246);
     private final Color C_BLANCO       = Color.WHITE;
@@ -82,9 +83,6 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         });
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  VALIDACIONES EN TIEMPO REAL
-    // ════════════════════════════════════════════════════════════════
     private void configurarValidacionesCampos() {
         txtNombre.addKeyListener(new KeyAdapter() {
             @Override
@@ -133,9 +131,6 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         });
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  DESELECCIÓN DE FILA
-    // ════════════════════════════════════════════════════════════════
     private void configurarDeseleccionPorClic() {
         JPanel[] paneles = {pnlCuerpo, pnlFormulario, pnlTablaWrapper, pnlFooter, pnlBotonesEdicion, pnlHeader};
         MouseAdapter deseleccionador = new MouseAdapter() {
@@ -156,9 +151,6 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         this.addMouseListener(deseleccionador);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  MVP
-    // ════════════════════════════════════════════════════════════════
     @Override
     public void setPresenter(PacientePresenter presenter) {
         this.presenter = presenter;
@@ -200,9 +192,6 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         return JOptionPane.showConfirmDialog(this, mensaje, titulo, JOptionPane.YES_NO_OPTION);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  GETTERS
-    // ════════════════════════════════════════════════════════════════
     @Override public String getApellido()      { return txtApellido.getText().trim(); }
     @Override public String getNombre()        { return txtNombre.getText().trim(); }
     @Override public String getDni()           { return txtDni.getText().trim(); }
@@ -220,9 +209,6 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
     @Override public void habilitarBotonCargarResultados(boolean b) { btnCargarResultados.setEnabled(b); }
     @Override public void habilitarBotonNuevoAnalisis(boolean b)    { btnCargarResultados.setEnabled(b); }
 
-    // ════════════════════════════════════════════════════════════════
-    //  TABLA
-    // ════════════════════════════════════════════════════════════════
     @Override
     public void cargarPacientesEnTabla(ArrayList<Paciente> pacientes) {
         cargandoDatos = true;
@@ -341,9 +327,6 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
 
     @Override public void mostrarMensaje(String msg) { JOptionPane.showMessageDialog(this, msg); }
 
-    // ════════════════════════════════════════════════════════════════
-    //  AUTOCOMPLETADO OBRA SOCIAL
-    // ════════════════════════════════════════════════════════════════
     private void configurarBuscadorOS() {
         modeloSugerencias = new DefaultListModel<>();
         listaSugerencias = new JList<>(modeloSugerencias);
@@ -365,20 +348,22 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
                 int index = listaSugerencias.getSelectedIndex();
                 int size = modeloSugerencias.getSize();
                 switch (e.getKeyCode()) {
-                    case KeyEvent.VK_DOWN:
+                    case KeyEvent.VK_DOWN -> {
                         index = Math.min(index + 1, size - 1);
                         listaSugerencias.setSelectedIndex(index);
                         listaSugerencias.ensureIndexIsVisible(index);
-                        e.consume(); break;
-                    case KeyEvent.VK_UP:
+                        e.consume();
+                    }
+                    case KeyEvent.VK_UP -> {
                         index = Math.max(index - 1, 0);
                         listaSugerencias.setSelectedIndex(index);
                         listaSugerencias.ensureIndexIsVisible(index);
-                        e.consume(); break;
-                    case KeyEvent.VK_ENTER:
-                        if (index != -1) { seleccionarSugerencia(); e.consume(); } break;
-                    case KeyEvent.VK_ESCAPE:
-                        popupSugerencias.setVisible(false); break;
+                        e.consume();
+                    }
+                    case KeyEvent.VK_ENTER -> {
+                        if (index != -1) { seleccionarSugerencia(); e.consume(); }
+                    }
+                    case KeyEvent.VK_ESCAPE -> popupSugerencias.setVisible(false);
                 }
             }
         });
@@ -433,9 +418,6 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  NAVEGACIÓN ENTER
-    // ════════════════════════════════════════════════════════════════
     private void configurarNavegacionEnter() {
         KeyAdapter nav = new KeyAdapter() {
             @Override
@@ -462,14 +444,10 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         cbxSexo.addKeyListener(nav);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  ESTILO PROFESIONAL - Diseño Moderno y Responsive
-    // ════════════════════════════════════════════════════════════════
     private void aplicarEstiloProfesional() {
         setBackground(C_FONDO);
         setLayout(new BorderLayout());
 
-        // ── HEADER ──────────────────────────────────────────────────────
         pnlHeader.setBackground(C_NAVY);
         pnlHeader.setBorder(new EmptyBorder(10, 20, 10, 20));
         pnlHeader.setLayout(new BorderLayout());
@@ -495,7 +473,6 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
 
         add(pnlHeader, BorderLayout.NORTH);
 
-        // ── CUERPO ──────────────────────────────────────────────────────
         pnlCuerpo.setBackground(C_FONDO);
         pnlCuerpo.setLayout(new GridBagLayout());
         GridBagConstraints gc = new GridBagConstraints();
@@ -503,7 +480,6 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         gc.weighty = 1.0;
         gc.insets = new Insets(8, 0, 0, 0);
 
-        // ── FORMULARIO ──────────────────────────────────────────────────
         pnlFormulario.setBackground(C_BLANCO);
         pnlFormulario.setBorder(BorderFactory.createCompoundBorder(
             new EmptyBorder(10, 12, 10, 12),
@@ -540,7 +516,6 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         configurarBoton(btnCargarResultados, C_AZUL_MEDIO, "NUEVO ANÁLISIS");
         configurarBoton(btnVerHistorial, new Color(70, 130, 180), "HISTORIAL");
 
-        // Layout del formulario
         pnlFormulario.setLayout(new GridBagLayout());
         GridBagConstraints gf = new GridBagConstraints();
         gf.fill = GridBagConstraints.HORIZONTAL;
@@ -612,7 +587,6 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         gf.insets = new Insets(0, 0, 0, 0);
         pnlFormulario.add(new JPanel() {{ setOpaque(false); }}, gf);
 
-        // ── TABLA ──────────────────────────────────────────────────────
         pnlTablaWrapper.setBackground(C_BLANCO);
         pnlTablaWrapper.setBorder(BorderFactory.createCompoundBorder(
             new EmptyBorder(10, 0, 10, 10),
@@ -648,8 +622,6 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         pnlTablaWrapper.add(lblTituloTabla, BorderLayout.NORTH);
         pnlTablaWrapper.add(jScrollPane1, BorderLayout.CENTER);
 
-        // ── DISTRIBUCIÓN ──────────────────────────────────────────────
-        // Scroll del formulario para pantallas pequeñas
         JScrollPane scrollFormulario = new JScrollPane(pnlFormulario);
         scrollFormulario.setBorder(BorderFactory.createEmptyBorder());
         scrollFormulario.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
@@ -669,7 +641,6 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
 
         add(pnlCuerpo, BorderLayout.CENTER);
 
-        // ── FOOTER ──────────────────────────────────────────────────────
         pnlFooter.setBackground(C_FONDO);
         pnlFooter.setBorder(new EmptyBorder(6, 12, 10, 12));
         pnlFooter.setLayout(new BorderLayout());
@@ -680,7 +651,6 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         pnlFooter.add(pnlAcciones, BorderLayout.EAST);
         add(pnlFooter, BorderLayout.SOUTH);
 
-        // ── ESTILIZAR CAMPOS ──────────────────────────────────────────
         estilizarCampoBuscador(txtBuscar);
     }
 
@@ -763,9 +733,6 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         return null;
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  initComponents
-    // ════════════════════════════════════════════════════════════════
     @SuppressWarnings("unchecked")
     private void initComponents() {
         pnlHeader = new JPanel();
@@ -819,7 +786,6 @@ public class VistaPaciente extends JPanel implements IVistaPaciente {
         pnlTablaWrapper.add(jScrollPane1, BorderLayout.CENTER);
     }
 
-    // ── Variables ────────────────────────────────────────────────────
     private javax.swing.JButton btnCargarResultados;
     private javax.swing.JButton btnEditarPaciente;
     private javax.swing.JButton btnGuardarPaciente;

@@ -43,9 +43,8 @@ public class PacientePresenter {
     }
 
     public void onGuardarPaciente() {
-        // 1. Ejecuta la validación ordenada
         if (!validarCampos()) {
-            return; // Si devuelve false, se detiene aquí y ya mostró el mensaje
+            return;
         }
 
         String dni = vista.getDni();
@@ -78,33 +77,28 @@ public class PacientePresenter {
         cargarTabla();
     }
 
-    // ── MÉTODO DE VALIDACIÓN CORREGIDO ──
     private boolean validarCampos() {
         String apellido = vista.getApellido().trim();
         String nombre = vista.getNombre().trim();
         String dni = vista.getDni().trim();
 
-        // 1ra Barrera: Verificar que los campos obligatorios NO estén vacíos
         if (apellido.isEmpty() || nombre.isEmpty() || dni.isEmpty()) {
             vista.mostrarMensaje("Los campos Apellido, Nombre y DNI son obligatorios.");
             return false;
         }
 
-        // 2da Barrera: Verificar que el DNI tenga el formato correcto (solo números, 7 u 8 dígitos)
-        // Se ejecuta SOLO si el DNI ya tiene algo escrito
         if (!dni.matches("\\d{7,8}")) { 
             vista.mostrarMensaje("El DNI es inválido. Debe contener entre 7 y 8 dígitos numéricos.");
             return false;
         }
 
-        // Si quieres agregar validación de edad (opcional, por si escriben letras)
         String edad = vista.getEdad().trim();
         if (!edad.isEmpty() && !edad.matches("\\d+")) {
             vista.mostrarMensaje("La edad debe ser un número válido.");
             return false;
         }
 
-        return true; // Todo está perfecto
+        return true;
     }
 
     public void onEditarPaciente() {
@@ -114,14 +108,12 @@ public class PacientePresenter {
             return;
         }
 
-        // --- NUEVA VALIDACIÓN: SEXO ---
         String sexoSeleccionado = vista.getSexo();
         if (sexoSeleccionado == null || sexoSeleccionado.trim().isEmpty() || sexoSeleccionado.equals("Seleccione...")) {
             vista.mostrarMensaje("Por favor, seleccione el sexo del paciente (M, F o X).");
             return;
         }
         
-        // Blindaje adicional: Asegurar que solo sea 1 carácter para evitar el Data Truncated
         if (sexoSeleccionado.length() > 1) {
             sexoSeleccionado = sexoSeleccionado.substring(0, 1).toUpperCase();
         }
@@ -153,10 +145,9 @@ public class PacientePresenter {
         pViejo.setLocalidad(vista.getLocalidad());
         pViejo.setNroAfiliado(vista.getNumAfiliado());
         pViejo.setObraSocial(vista.getObraSocial());
-        pViejo.setSexo(sexoSeleccionado); // <- Usamos la variable ya blindada
+        pViejo.setSexo(sexoSeleccionado); 
         pViejo.setCelular(vista.getCelular());
 
-        // Manejo de concurrencia y actualización
         if (pacienteDAO.actualizar(pViejo)) {  
             if (cambiosViejos.length() > 0) {
                 auditoriaDAO.registrar(usuarioLogueado, "EDITAR", "paciente",
@@ -187,7 +178,6 @@ public class PacientePresenter {
         router.irAHistorial(pacienteSeleccionadoCompleto);
     }
 
-    // ── LÓGICA DE AUTOCOMPLETADO CORREGIDA ──
     public void onBuscarSugerenciaOS() {
         String texto = vista.getObraSocial();
         
@@ -196,13 +186,11 @@ public class PacientePresenter {
             return;
         }
         
-        // Usamos tu método existente que devuelve objetos ObraSocial
         ArrayList<ObraSocial> resultados = obraSocialDAO.buscarPorCodigoONombre(texto);
         
-        // Convertimos esos objetos a una lista de Strings con el nombre para que la vista los muestre
         List<String> sugerencias = new ArrayList<>();
         for (ObraSocial os : resultados) {
-            sugerencias.add(os.getNombre()); // Puedes usar os.getCodigo() + " - " + os.getNombre() si prefieres
+            sugerencias.add(os.getNombre()); 
         }
         
         vista.mostrarSugerenciasOS(sugerencias);
@@ -235,5 +223,4 @@ public class PacientePresenter {
     public Paciente getPacienteSeleccionadoCompleto() {
         return pacienteSeleccionadoCompleto;
     }
-
 }

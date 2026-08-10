@@ -1,5 +1,7 @@
 package presentador;
 
+// @author lucianoalicata
+
 import dao.AnalisisDAO;
 import dao.AuditoriaDAO;
 import dao.ConfiguracionDAO;
@@ -8,11 +10,9 @@ import dao.MedicoDAO;
 import dao.ObraSocialDAO;
 import dao.ResultadoAnalisisDAO;
 import java.util.List;
-import modelo.Analisis;
 import modelo.Determinacion;
 import modelo.ObraSocial;
 import modelo.Paciente;
-import modelo.ResultadoAnalisis;
 import modelo.Usuario;
 import presentador.router.AppRouter;
 import vista.interfaces.IVistaCargarResultados;
@@ -21,13 +21,9 @@ public class ResultadoPresenter {
 
     private final IVistaCargarResultados vcr;
     private final AppRouter router;
-
-    // El contexto operativo
     private final Paciente pacienteActual;
     private final List<Determinacion> determinacionesAProcesar;
     private final Usuario usuarioLogueado;
-
-    // El ejército de DAOs
     private final AnalisisDAO analisisDAO;
     private final ResultadoAnalisisDAO resultadoDAO;
     private final ObraSocialDAO obraSocialDAO;
@@ -62,22 +58,26 @@ public class ResultadoPresenter {
         vcr.cargarDeterminaciones(this.determinacionesAProcesar);
     }
 
-    // ════════════════════════════════════════════════════════════════
-    //  MÉTODOS EXPLÍCITOS LLAMADOS POR LA VISTA (MVP Puro)
-    // ════════════════════════════════════════════════════════════════
     public void onGuardarResultados() {
         vcr.detenerEdicionTabla();
 
         String seleccionOS = vcr.getObraSocial().trim();
         if (seleccionOS.isEmpty()) {
-            vcr.mostrarMensaje("Debe ingresar una Obra Social (o PARTICULAR).");
+            vcr.mostrarMensaje("Debe ingresar una Obra Social (o PARTICULAR) para poder guardar el análisis.");
             return;
         }
 
         String medicoRaw = vcr.getMedicoSolicitante().trim();
         String medico = extraerMatricula(medicoRaw);
+        
         if (medico.isEmpty()) {
             medico = "-";
+        } else {
+            modelo.Medico medicoBD = medicoDAO.buscarPorMatricula(medico);
+            if (medicoBD == null) {
+                vcr.mostrarMensaje("El médico ingresado no se encuentra registrado en el sistema.\nPor favor, seleccione un profesional válido de la lista sugerida o deje el campo vacío.");
+                return;
+            }
         }
 
         int filas = vcr.getCantidadFilas();
@@ -86,7 +86,6 @@ public class ResultadoPresenter {
             return;
         }
 
-        // ── VALIDACIÓN DE FÓRMULA LEUCOCITARIA (SUMA = 100%) ──
         double sumaLeucos = 0;
         boolean tieneFormula = false;
 
@@ -102,33 +101,31 @@ public class ResultadoPresenter {
                 if (res != null && !res.trim().isEmpty()) {
                     tieneFormula = true;
                     try {
-                        String clean = res.replace(",", "."); // Homogeneizar decimales
+                        String clean = res.replace(",", ".");
                         sumaLeucos += Double.parseDouble(clean.replaceAll("[^0-9.]", ""));
                     } catch (Exception e) {
                     }
                 }
             }
         }
-
-        // Damos un pequeño margen (99 a 101) por si el bioquímico usó decimales que no cierran exacto en 100.
+        
         if (tieneFormula && (sumaLeucos < 99.0 || sumaLeucos > 101.0)) {
             vcr.mostrarMensaje("ERROR EN EL HEMOGRAMA: La suma de la fórmula leucocitaria da " + sumaLeucos + "%.\nDebe ser exactamente 100%. Por favor, revise y corrija los valores.");
             return;
         }
-        // ──────────────────────────────────────────────────────
 
         try {
-            // 1. Extraer Código y Arancel de la Obra Social
             String codigoOS = seleccionOS.contains(" - ") ? seleccionOS.split(" - ")[0] : seleccionOS;
             modelo.ObraSocial osSeleccionada = obraSocialDAO.buscarPorCodigoONombre(codigoOS).stream()
                     .filter(o -> o.getCodigo().equals(codigoOS)).findFirst().orElse(null);
 
             if (osSeleccionada == null) {
-                vcr.mostrarMensaje("La Obra Social ingresada no es válida.");
+                vcr.mostrarMensaje("""
+                                   La Obra Social ingresada no es v\u00e1lida. 
+                                   Puede registrarla en la secci\u00f3n de 'Obras Sociales'.""");
                 return;
             }
 
-            // 2. NUEVA LÓGICA DE PRECIO (Solo se calcula si es PARTICULAR)
             double precioFinal = 0.0;
 
             if (codigoOS.equals("60001") || osSeleccionada.getNombre().toUpperCase().contains("PARTICULAR")) {
@@ -155,7 +152,6 @@ public class ResultadoPresenter {
                 precioFinal = sumaTotalUB * valorUBActual;
             }
 
-            // 3. Configurar el Análisis
             modelo.Analisis a = new modelo.Analisis();
             a.setIdPaciente(pacienteActual.getIdPaciente());
             a.setObraSocial(codigoOS);
@@ -166,11 +162,10 @@ public class ResultadoPresenter {
             int idAnalisis = analisisDAO.crear(a);
 
             if (idAnalisis > 0) {
-                // 4. Guardar resultados
                 for (int i = 0; i < filas; i++) {
                     String cod = vcr.getCodigo(i);
                     if (cod == null || cod.trim().isEmpty()) {
-                        continue; // Salta títulos
+                        continue; 
                     }
                     modelo.ResultadoAnalisis r = new modelo.ResultadoAnalisis();
                     r.setIdAnalisis(idAnalisis);
@@ -196,7 +191,6 @@ public class ResultadoPresenter {
                     resultadoDAO.guardar(r);
                 }
 
-                // 5. Auditoría y UX
                 auditoriaDAO.registrar(usuarioLogueado, "CREAR", "analisis", idAnalisis, null,
                         "Precio: $" + precioFinal + " (OS: " + codigoOS + ")",
                         "Análisis creado para: " + pacienteActual.getApellido());
@@ -209,7 +203,6 @@ public class ResultadoPresenter {
                 }
                 vcr.mostrarMensaje(msgExito);
 
-                // 6. ENRUTAMOS A LA PANTALLA FINAL
                 router.irAPacientes();
             }
         } catch (Exception ex) {
@@ -228,7 +221,6 @@ public class ResultadoPresenter {
             try {
                 limpio = limpio.substring(limpio.indexOf("(mp.") + 4, limpio.indexOf(")")).trim();
             } catch (Exception e) {
-                // Si el formato falla, lo ignoramos
             }
         }
         return limpio;
@@ -256,7 +248,6 @@ public class ResultadoPresenter {
     public void onVolver() {
         vcr.detenerEdicionTabla();
 
-        // Verificamos si el usuario ya escribió resultados en alguna fila
         boolean hayDatosCargados = false;
         for (int i = 0; i < vcr.getCantidadFilas(); i++) {
             String res = vcr.getResultado(i);
@@ -272,17 +263,20 @@ public class ResultadoPresenter {
                     "Confirmar Salida"
             );
 
-            if (respuesta == 0) { // SI -> Guardar (esto mismo lo enruta a pacientes si es exitoso)
-                onGuardarResultados();
-                return;
-            } else if (respuesta == 1) { // NO -> Descartar y salir
-                router.irAPacientes();
-                return;
-            } else { // X o Esc -> Cancelar la navegación
-                return;
+            switch (respuesta) {
+                case 0 -> {
+                    onGuardarResultados();
+                    return;
+                }
+                case 1 -> {
+                    router.irAPacientes();
+                    return;
+                }
+                default -> {
+                    return;
+                }
             }
         }
-
         router.irAPacientes();
     }
 }

@@ -1,10 +1,9 @@
 package vista.interfaces;
 
+// @author lucianoalicata
+
 import presentador.PrincipalPresenter;
 
-/**
- * @author luciano
- */
 public interface IVistaPrincipal {
     
     String BTN_PACIENTES = "seccion_pacientes";

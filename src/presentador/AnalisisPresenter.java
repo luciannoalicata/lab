@@ -1,8 +1,9 @@
 package presentador;
 
+// @author lucianoalicata
+
 import dao.AnalisisDAO;
 import dao.AuditoriaDAO;
-import dao.UsuarioDAO;
 import java.util.ArrayList;
 import modelo.Analisis;
 import modelo.Usuario;
@@ -10,17 +11,15 @@ import presentador.router.AppRouter;
 import servicio.ReporteService;
 import vista.interfaces.IVistaAnalisis;
 
-// 1. Adiós al implements ActionListener
 public class AnalisisPresenter {
     
     private final IVistaAnalisis vla;
-    private final AppRouter router; // 2. El router maneja la navegación
+    private final AppRouter router; 
     private final AnalisisDAO analisisDAO;
-    private Usuario usuarioLogueado;
-    private AuditoriaDAO auditoriaDAO;
-    private final ReporteService reporteService; // 3. El servicio para imprimir PDFs
+    private final Usuario usuarioLogueado;
+    private final AuditoriaDAO auditoriaDAO;
+    private final ReporteService reporteService; 
 
-    // Constructor actualizado
     public AnalisisPresenter(IVistaAnalisis vla, AppRouter router, AnalisisDAO analisisDAO, ReporteService reporteService,AuditoriaDAO auditoriaDAO, Usuario usuarioLogueado) {
         this.vla = vla;
         this.router = router;
@@ -31,19 +30,14 @@ public class AnalisisPresenter {
     }
 
     public void iniciar() {
-        vla.setPresenter(this); // Conectamos la vista
+        vla.setPresenter(this);
         refrescarTabla("");
-        // El AppRouter se encarga de mostrar la sección en la pantalla principal
     }
 
     public void refrescarTabla(String filtro) {
         ArrayList<Analisis> lista = analisisDAO.buscarAnalisisGlobal(filtro);
         vla.cargarAnalisisEnTabla(lista);
     }
-
-    // ════════════════════════════════════════════════════════════════
-    //  MÉTODOS EXPLÍCITOS LLAMADOS POR LA VISTA (MVP Puro)
-    // ════════════════════════════════════════════════════════════════
 
     public void onVerDetalles() {
         Analisis sel = vla.getAnalisisSeleccionado();
@@ -57,31 +51,27 @@ public class AnalisisPresenter {
     public void onImprimirAnalisis() {
         modelo.Analisis sel = vla.getAnalisisSeleccionado();
         if (sel != null) {
-            // 1. Bloqueamos el botón inmediatamente para evitar clics dobles accidentales
             vla.habilitarBotonImprimir(false);
 
-            // 2. Enviamos la carga pesada a un hilo secundario para no congelar la pantalla
             new Thread(() -> {
                 try {
-                    // El Presentador imprime usando el servicio limpio (usando la fecha actual)
-                    reporteService.generarInforme(sel.getIdAnalisis(), new java.util.Date());
+                    modelo.Analisis analisisCompleto = analisisDAO.buscarPorId(sel.getIdAnalisis());
+                    java.util.Date fechaReal = analisisCompleto.getFecha();
+
+                    reporteService.generarInforme(sel.getIdAnalisis(), fechaReal);
                     
-                    // -- NUEVA LÓGICA: ACTUALIZAR ESTADO EN BD Y REPINTAR TABLA --
                     if (analisisDAO.cambiarEstadoGenerado(sel.getIdAnalisis())) {
                         auditoriaDAO.registrar(this.usuarioLogueado, "IMPRIMIR", "analisis", sel.getIdAnalisis(), 
                                 null, "Informe generado", "Impresión desde Lista Principal");
                         
-                        // Volvemos al hilo de la interfaz para pedirle a la vista que refresque la tabla
                         javax.swing.SwingUtilities.invokeLater(() -> {
-                            onBuscarAnalisis(); // Recarga la tabla para que se pinte de verde
+                            onBuscarAnalisis(); 
                         });
                     }
-                    // ------------------------------------------------------------
                     
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
-                    // 3. Reactivamos el botón volviendo al hilo de la interfaz visual
                     javax.swing.SwingUtilities.invokeLater(() -> {
                         vla.habilitarBotonImprimir(true);
                     });
