@@ -1,0 +1,20 @@
+ACUERDO DE LICENCIA DE USUARIO FINAL PARA BIOTEC
+
+LEA ATENTAMENTE ESTE ACUERDO ANTES DE INSTALAR EL SOFTWARE.
+
+1. PROPIEDAD INTELECTUAL
+El software BIOTEC, incluyendo su código fuente, diseño, base de datos y documentación, es propiedad exclusiva de su autor. La instalación del programa no transfiere la propiedad del mismo, sino una licencia de uso.
+
+2. LICENCIA DE USO
+Se concede al usuario una licencia limitada, no exclusiva e intransferible para instalar y utilizar BIOTEC en el entorno de laboratorio correspondiente. 
+
+3. RESTRICCIONES
+Queda prohibida la reproducción, descompilación, modificación o distribución no autorizada del software a terceros. Asimismo, queda prohibido el uso del sistema con fines distintos a la gestión de laboratorio clínico para el cual fue diseñado.
+
+4. LIMITACIÓN DE RESPONSABILIDAD
+BIOTEC es proporcionado "tal cual", sin garantías de ningún tipo. El autor no se hace responsable por pérdidas de datos, interrupciones de servicio o daños derivados del uso indebido del software o fallos en el hardware del laboratorio.
+
+5. ACEPTACIÓN
+Al hacer clic en "Siguiente" o "Instalar" en este asistente, usted acepta todos los términos y condiciones de esta licencia.
+
+Para consultas o soporte, contacte con el administrador del sistema.

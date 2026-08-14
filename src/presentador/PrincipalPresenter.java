@@ -117,14 +117,14 @@ public class PrincipalPresenter {
         }
 
         new Thread(() -> {
-            boolean backupExitoso = servicio.BackupService.crearBackup(rutaDirectorio);
+            //boolean backupExitoso = servicio.BackupService.crearBackup(rutaDirectorio);
 
             SwingUtilities.invokeLater(() -> {
                 vp.mostrarAvisoBackup(false); 
 
-                if (!backupExitoso) {
-                    vp.mostrarMensaje("Atención: Ocurrió un error al generar la copia de seguridad automática.");
-                }
+//                if (!backupExitoso) {
+//                    vp.mostrarMensaje("Atención: Ocurrió un error al generar la copia de seguridad automática.");
+//                }
 
                 if (salirCompletamente) {
                     System.exit(0); 

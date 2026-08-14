@@ -32,7 +32,13 @@ public class PacienteDAO {
             ps.setString(6, convertirNombrePropio(p.getLocalidad()));
             ps.setString(7, p.getNroAfiliado().toUpperCase());
             ps.setString(8, p.getObraSocial());
-            ps.setString(9, p.getSexo());
+            
+            if (p.getSexo() == null || p.getSexo().trim().isEmpty()) {
+                ps.setNull(9, java.sql.Types.VARCHAR);
+            } else {
+                ps.setString(9, p.getSexo());
+            }
+            
             ps.setString(10, p.getCelular());
 
             return ps.executeUpdate() > 0;
@@ -40,6 +46,42 @@ public class PacienteDAO {
         } catch (java.sql.SQLIntegrityConstraintViolationException e) {
             System.out.println("Intento de registro duplicado: DNI " + p.getDni());
             return false;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean actualizar(Paciente p) {
+        String sql = """
+            UPDATE paciente SET 
+            dni=?, nombre=?, apellido=?, edad=?, direccion=?, 
+            localidad=?, nro_afiliado=?, obra_social=?, sexo=?, celular=?,
+            version = version + 1
+            WHERE id_paciente=? AND version=?
+        """;
+
+        try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
+            ps.setString(1, p.getDni());
+            ps.setString(2, convertirNombrePropio(p.getNombre()));
+            ps.setString(3, convertirNombrePropio(p.getApellido()));
+            ps.setString(4, p.getEdad());
+            ps.setString(5, convertirNombrePropio(p.getDireccion()));
+            ps.setString(6, convertirNombrePropio(p.getLocalidad()));
+            ps.setString(7, p.getNroAfiliado().toUpperCase());
+            ps.setString(8, p.getObraSocial());
+            
+            if (p.getSexo() == null || p.getSexo().trim().isEmpty()) {
+                ps.setNull(9, java.sql.Types.VARCHAR);
+            } else {
+                ps.setString(9, p.getSexo());
+            }
+            
+            ps.setString(10, p.getCelular());
+            ps.setInt(11, p.getIdPaciente());
+            ps.setInt(12, p.getVersion()); 
+
+            return ps.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();
             return false;
@@ -88,36 +130,6 @@ public class PacienteDAO {
             System.out.println("Error en listarPacientes: " + ex);
         }
         return lista;
-    }
-    
-    public boolean actualizar(Paciente p) {
-        String sql = """
-            UPDATE paciente SET 
-            dni=?, nombre=?, apellido=?, edad=?, direccion=?, 
-            localidad=?, nro_afiliado=?, obra_social=?, sexo=?, celular=?,
-            version = version + 1
-            WHERE id_paciente=? AND version=?
-        """;
-
-        try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
-            ps.setString(1, p.getDni());
-            ps.setString(2, convertirNombrePropio(p.getNombre()));
-            ps.setString(3, convertirNombrePropio(p.getApellido()));
-            ps.setString(4, p.getEdad());
-            ps.setString(5, convertirNombrePropio(p.getDireccion()));
-            ps.setString(6, convertirNombrePropio(p.getLocalidad()));
-            ps.setString(7, p.getNroAfiliado().toUpperCase());
-            ps.setString(8, p.getObraSocial());
-            ps.setString(9, p.getSexo());
-            ps.setString(10, p.getCelular());
-            ps.setInt(11, p.getIdPaciente());
-            ps.setInt(12, p.getVersion()); 
-
-            return ps.executeUpdate() > 0;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
     }
 
     public ArrayList<Paciente> buscarPorDniOApellidoONombre(String texto) {

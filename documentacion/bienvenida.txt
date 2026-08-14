@@ -1,0 +1,15 @@
+¡BIENVENIDO A BIOTEC!
+
+La instalación de BIOTEC ha finalizado correctamente. Usted cuenta ahora con una herramienta profesional para la gestión de su laboratorio clínico.
+
+PASOS SIGUIENTES:
+1. ACCESO: Puede encontrar el acceso directo a BIOTEC en su escritorio o en el menú de Inicio.
+2. MANUAL: Si tiene dudas, consulte el "Manual de Usuario - Biotec" que se ha instalado junto con el sistema.
+3. CONEXIÓN: Al abrir el sistema por primera vez, asegúrese de que el archivo 'config.properties' esté configurado correctamente con la dirección IP de su servidor de base de datos.
+
+SOPORTE TÉCNICO:
+En caso de presentar errores durante el primer inicio, consulte a su administrador de sistemas o revise el archivo de registro (log) de errores.
+
+¡Muchas gracias por confiar en BIOTEC para la gestión de su laboratorio!
+
+Puede hacer clic en "Finalizar" para salir de este asistente e iniciar el sistema.

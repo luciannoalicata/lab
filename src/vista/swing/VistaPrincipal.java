@@ -95,7 +95,6 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
             if (url != null) {
                 java.awt.image.BufferedImage imgFrame = javax.imageio.ImageIO.read(url);
                 setIconImage(imgFrame);
-                System.out.println("Icono cargado correctamente.");
             } else {
                 System.out.println("No se encontró el icono en: /reportes/img/logo_sw.png");
             }
@@ -512,23 +511,23 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
 
     @Override
     public void mostrarAvisoBackup(boolean mostrar) {
-        if (mostrar) {
-            Object[] options = {};
-            JOptionPane pane = new JOptionPane(
-                    "Generando copia de seguridad...\nPor favor, no cierre el programa.",
-                    JOptionPane.INFORMATION_MESSAGE,
-                    JOptionPane.DEFAULT_OPTION, null, options, null);
-
-            dialogoEspera = pane.createDialog(this, "Copia de Seguridad en curso");
-            dialogoEspera.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-
-            new Thread(() -> dialogoEspera.setVisible(true)).start();
-        } else {
-            if (dialogoEspera != null) {
-                dialogoEspera.dispose();
-                dialogoEspera = null;
-            }
-        }
+//        if (mostrar) {
+//            Object[] options = {};
+//            JOptionPane pane = new JOptionPane(
+//                    "Generando copia de seguridad...\nPor favor, no cierre el programa.",
+//                    JOptionPane.INFORMATION_MESSAGE,
+//                    JOptionPane.DEFAULT_OPTION, null, options, null);
+//
+//            dialogoEspera = pane.createDialog(this, "Copia de Seguridad en curso");
+//            dialogoEspera.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+//
+//            new Thread(() -> dialogoEspera.setVisible(true)).start();
+//        } else {
+//            if (dialogoEspera != null) {
+//                dialogoEspera.dispose();
+//                dialogoEspera = null;
+//            }
+//        }
     }
 
     @Override

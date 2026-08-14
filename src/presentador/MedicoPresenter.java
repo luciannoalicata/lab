@@ -23,6 +23,7 @@ public class MedicoPresenter {
     }
 
     public void iniciar() {
+        vista.limpiarCampos();
         vista.setPresenter(this); 
         cargarTabla();
         medicoSeleccionado = null;

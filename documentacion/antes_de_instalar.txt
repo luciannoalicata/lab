@@ -1,0 +1,17 @@
+INFORMACIÓN PREVIA A LA INSTALACIÓN
+
+Antes de continuar con la instalación de BIOTEC, por favor asegúrese de cumplir con los siguientes requisitos:
+
+1. REQUISITOS DEL SISTEMA
+   - Sistema operativo Windows 7 (SP1) o superior.
+   - Java Runtime Environment (JRE) 17 instalado en el equipo.
+   - Acceso a la red local configurado para la conexión con el servidor MySQL.
+
+2. CONFIGURACIÓN DE RED
+   - Asegúrese de que la PC servidor de base de datos esté encendida y el servicio MySQL en ejecución.
+   - Verifique que el firewall de Windows permita las conexiones entrantes y salientes en el puerto 3306 (o el puerto configurado en el sistema).
+
+3. ARCHIVO DE CONFIGURACIÓN
+   - Tenga a mano los datos de conexión (Host, Usuario y Contraseña) para verificar el archivo 'config.properties' después de la instalación.
+
+Si algún punto no está claro, le recomendamos contactar al departamento técnico antes de proceder.

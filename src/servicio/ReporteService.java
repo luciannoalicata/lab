@@ -254,7 +254,7 @@ public class ReporteService {
             }
 
             final JDialog dialogFinal = new JDialog((java.awt.Frame) null, "Visor de Informe - BIOTEC", true);
-            dialogFinal.setSize(1024, 800);
+            dialogFinal.setSize(800, 600);
             dialogFinal.setLocationRelativeTo(null);
 
             net.sf.jasperreports.swing.JRViewer viewer = new net.sf.jasperreports.swing.JRViewer(jasperPrint);
@@ -365,8 +365,8 @@ public class ReporteService {
     }
     
     private void enviarEmailConAdjunto(String destinatario, String rutaPdf, String nombrePaciente) {
-        final String remitente = "lucianoaalicata@gmail.com";
-        final String password = "lugn vfjq yirp llrh";
+        final String remitente = "bioteclaboratoriobq@gmail.com";
+        final String password = "zdzt wlcd oxsr ylsk";
 
         java.util.Properties props = new java.util.Properties();
         props.put("mail.smtp.auth", "true");
