@@ -1,8 +1,7 @@
 package modelo;
-/**
- *
- * @author luciano
- */
+
+// @author lucianoalicata
+
 public class ObraSocial {
     
     private String codigo;

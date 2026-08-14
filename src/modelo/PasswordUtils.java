@@ -1,9 +1,7 @@
 package modelo;
 
-/**
- *
- * @author luciano
- */
+// @author lucianoalicata
+
 import java.security.MessageDigest;
 
 public class PasswordUtils {

@@ -1,8 +1,6 @@
 package modelo;
-/**
- *
- * @author luciano
- */
+
+// @author lucianoalicata
 
 import java.sql.Timestamp;
 

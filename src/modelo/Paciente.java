@@ -1,10 +1,7 @@
 package modelo;
 
-/*@author luciano*/
+// @author lucianoalicata
 
-import java.time.LocalDate;
-import java.time.Period;
-import java.time.ZoneId;
 import java.util.Date;
 
 public class Paciente {
@@ -46,7 +43,6 @@ public class Paciente {
     public void setFechaUltimoAnalisis(Date fechaUltimoAnalisis) {
         this.fechaUltimoAnalisis = fechaUltimoAnalisis;
     }
-
     
     public int getVersion() {
         return version;
@@ -56,7 +52,6 @@ public class Paciente {
         this.version = version;
     }
 
-    
     public Paciente() {
     }
 
@@ -148,4 +143,3 @@ public class Paciente {
         this.celular = celular;
     }
 }
-

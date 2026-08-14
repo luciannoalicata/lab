@@ -15,14 +15,14 @@ public class DeterminacionDAO {
         this.con = con;
     }
 
-    // Buscar una determinación por código exacto
     public Determinacion buscarPorCodigo(String codigo) {
-        String sql = "SELECT * FROM determinacion WHERE TRIM(codigo) = ? AND activo = TRUE";
+        String sql = "SELECT * FROM determinacion WHERE codigo = ? AND activo = TRUE";
         try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
             ps.setString(1, codigo.trim());
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                return mapear(rs);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapear(rs);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -30,7 +30,6 @@ public class DeterminacionDAO {
         return null;
     }
 
-    // Buscar sugerencias por código parcial (para futuro autocompletar)
     public List<Determinacion> buscarPorCodigoParcial(String parcial) {
         List<Determinacion> lista = new ArrayList<>();
         String sql = """
@@ -40,10 +39,11 @@ public class DeterminacionDAO {
             LIMIT 10
         """;
         try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
-            ps.setString(1, parcial + "%");
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                lista.add(mapear(rs));
+            ps.setString(1, parcial.trim() + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    lista.add(mapear(rs));
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -65,20 +65,20 @@ public class DeterminacionDAO {
         return d;
     }
 
-    // Trae los hijos de una práctica ordenados por su orden local (1, 2, 3...)
     public List<Determinacion> obtenerComponentes(String codigoPadre) {
         List<Determinacion> lista = new ArrayList<>();
         String sql = """
             SELECT d.* FROM determinacion d
             JOIN determinacion_componentes dc ON d.codigo = dc.codigo_hijo
-            WHERE dc.codigo_padre = ?
+            WHERE dc.codigo_padre = ? AND d.activo = TRUE
             ORDER BY d.prioridad ASC
         """;
         try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
             ps.setString(1, codigoPadre.trim());
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                lista.add(mapear(rs));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    lista.add(mapear(rs));
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -92,7 +92,7 @@ public class DeterminacionDAO {
             SELECT d.*, 
                    CASE WHEN EXISTS (SELECT 1 FROM determinacion_componentes WHERE codigo_padre = d.codigo) THEN 1 ELSE 0 END as tiene_hijos_real
             FROM determinacion d 
-            WHERE d.activo = 1 
+            WHERE d.activo = TRUE 
             AND d.codigo NOT LIKE '%.%' 
             AND d.codigo NOT IN (SELECT codigo_hijo FROM determinacion_componentes)
             ORDER BY tiene_hijos_real DESC, 
@@ -128,27 +128,42 @@ public class DeterminacionDAO {
 
     public List<Determinacion> buscar(String filtro) {
         List<Determinacion> lista = new ArrayList<>();
-        String sql = """
-            SELECT d.*, 
-                   CASE WHEN EXISTS (SELECT 1 FROM determinacion_componentes WHERE codigo_padre = d.codigo) THEN 1 ELSE 0 END as tiene_hijos_real
-            FROM determinacion d 
-            WHERE d.activo = 1 
-            AND d.codigo NOT LIKE '%.%' 
-            AND d.codigo NOT IN (SELECT codigo_hijo FROM determinacion_componentes) 
-            AND (d.codigo LIKE ? OR d.nombre LIKE ? OR RIGHT(d.codigo, 3) = ?) 
-            ORDER BY tiene_hijos_real DESC, 
-                     CASE WHEN EXISTS (SELECT 1 FROM determinacion_componentes WHERE codigo_padre = d.codigo) THEN d.prioridad ELSE 9999 END ASC,
-                     TRIM(d.nombre) ASC
-            LIMIT 25
-        """; 
-        try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
-            String f = "%" + filtro + "%";
-            ps.setString(1, f);
-            ps.setString(2, f);
-            ps.setString(3, filtro);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                lista.add(mapear(rs));
+        String texto = filtro.trim();
+        
+        boolean esNumero = texto.matches("\\d+");
+        
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT d.*, ");
+        sql.append("CASE WHEN EXISTS (SELECT 1 FROM determinacion_componentes WHERE codigo_padre = d.codigo) THEN 1 ELSE 0 END as tiene_hijos_real ");
+        sql.append("FROM determinacion d ");
+        sql.append("WHERE d.activo = TRUE ");
+        sql.append("AND d.codigo NOT LIKE '%.%' ");
+        sql.append("AND d.codigo NOT IN (SELECT codigo_hijo FROM determinacion_componentes) ");
+        
+        if (esNumero) {
+            sql.append("AND (d.codigo LIKE ? OR d.codigo LIKE ?) ");
+        } else{
+            sql.append("AND d.nombre LIKE ? ");
+        }
+        
+        sql.append("ORDER BY tiene_hijos_real DESC, ");
+        sql.append("CASE WHEN EXISTS (SELECT 1 FROM determinacion_componentes WHERE codigo_padre = d.codigo) THEN d.prioridad ELSE 9999 END ASC, ");
+        sql.append("TRIM(d.nombre) ASC ");
+        sql.append("LIMIT 25");
+
+        try (PreparedStatement ps = con.getConnection().prepareStatement(sql.toString())) {
+            
+            if (esNumero) {
+                ps.setString(1, texto);            
+                ps.setString(2, texto + "%");      
+            } else {
+                ps.setString(1, "%" + texto + "%");
+            }
+            
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    lista.add(mapear(rs));
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -162,7 +177,7 @@ public class DeterminacionDAO {
             SET unidad = ?, referencia = ?
             WHERE codigo = ?
         """;
-        try (java.sql.PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
+        try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
             ps.setString(1, unidad);
             ps.setString(2, referencia);
             ps.setString(3, codigo.trim());
@@ -177,16 +192,18 @@ public class DeterminacionDAO {
         List<Determinacion> lista = new ArrayList<>();
         String sql = """
             SELECT * FROM determinacion
-            WHERE activo = 1
-            AND RIGHT(TRIM(codigo), 3) = ?
+            WHERE activo = TRUE
+            AND RIGHT(TRIM(codigo), LENGTH(?)) = ?
             ORDER BY nombre ASC
             LIMIT 15
         """;
         try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
-            ps.setString(1, sufijo);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                lista.add(mapear(rs));
+            ps.setString(1, sufijo.trim());
+            ps.setString(2, sufijo.trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    lista.add(mapear(rs));
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -194,10 +211,6 @@ public class DeterminacionDAO {
         return lista;
     }
     
-    // =========================================================================
-    //  MÉTODOS PARA GESTIÓN DE COMPONENTES (PADRE - HIJO) Y ORDENAMIENTO
-    // =========================================================================
-
     public boolean vincularHijo(String codigoPadre, String codigoHijo) {
         String sql = "INSERT IGNORE INTO determinacion_componentes (codigo_padre, codigo_hijo) VALUES (?, ?)";
         try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
@@ -205,7 +218,7 @@ public class DeterminacionDAO {
             ps.setString(2, codigoHijo.trim());
             ps.executeUpdate();
             
-            String sqlUpdate = "UPDATE determinacion SET es_compuesta = 1 WHERE codigo = ?";
+            String sqlUpdate = "UPDATE determinacion SET es_compuesta = TRUE WHERE codigo = ?";
             try (PreparedStatement ps2 = con.getConnection().prepareStatement(sqlUpdate)) {
                 ps2.setString(1, codigoPadre.trim());
                 ps2.executeUpdate();
@@ -220,7 +233,6 @@ public class DeterminacionDAO {
     public boolean actualizarNombre(String codigo, String nuevoNombre) {
         String sql = "UPDATE determinacion SET nombre = ? WHERE codigo = ?";
         try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
-            // Quitamos el .toUpperCase()
             ps.setString(1, nuevoNombre.trim());
             ps.setString(2, codigo.trim());
             return ps.executeUpdate() > 0;
@@ -231,10 +243,9 @@ public class DeterminacionDAO {
     }
 
     public boolean insertarNuevaDeterminacion(String codigo, String nombre) {
-        String sql = "INSERT INTO determinacion (codigo, nombre, ub, activo, es_compuesta, prioridad) VALUES (?, ?, 0.0, 1, 0, 999)";
+        String sql = "INSERT INTO determinacion (codigo, nombre, ub, activo, es_compuesta, prioridad) VALUES (?, ?, 0.0, TRUE, FALSE, 999)";
         try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
             ps.setString(1, codigo.trim());
-            // Quitamos el .toUpperCase()
             ps.setString(2, nombre.trim()); 
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
@@ -250,17 +261,16 @@ public class DeterminacionDAO {
             ps.setString(2, codigoHijo.trim());
             int filasAfectadas = ps.executeUpdate();
             
-            // ── BLINDAJE: Verificamos si el padre se quedó sin hijos ──
             String sqlCheck = "SELECT COUNT(*) FROM determinacion_componentes WHERE codigo_padre = ?";
             try (PreparedStatement psCheck = con.getConnection().prepareStatement(sqlCheck)) {
                 psCheck.setString(1, codigoPadre.trim());
-                ResultSet rs = psCheck.executeQuery();
-                if (rs.next() && rs.getInt(1) == 0) {
-                    // Ya no tiene hijos, lo volvemos a la normalidad y le quitamos la prioridad
-                    String sqlUpdate = "UPDATE determinacion SET es_compuesta = 0, prioridad = 999 WHERE codigo = ?";
-                    try (PreparedStatement psUpdate = con.getConnection().prepareStatement(sqlUpdate)) {
-                        psUpdate.setString(1, codigoPadre.trim());
-                        psUpdate.executeUpdate();
+                try (ResultSet rs = psCheck.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) == 0) {
+                        String sqlUpdate = "UPDATE determinacion SET es_compuesta = FALSE, prioridad = 999 WHERE codigo = ?";
+                        try (PreparedStatement psUpdate = con.getConnection().prepareStatement(sqlUpdate)) {
+                            psUpdate.setString(1, codigoPadre.trim());
+                            psUpdate.executeUpdate();
+                        }
                     }
                 }
             }
@@ -282,5 +292,4 @@ public class DeterminacionDAO {
             return false;
         }
     }
-    
 }

@@ -1,8 +1,7 @@
 package modelo;
-/**
- *
- * @author luciano
- */
+
+// @author lucianoalicata
+
 public class Medico {
     
     private String apellidoMedico;
@@ -61,5 +60,4 @@ public class Medico {
         this.especialidad = especialidad;
         this.observaciones = observaciones;
     }
-    
 }

@@ -1,8 +1,7 @@
 package modelo;
-/**
- *
- * @author luciano
- */
+
+// @author lucianoalicata
+
 public class ResultadoAnalisis {
     
     private int idResultado;
@@ -102,7 +101,4 @@ public class ResultadoAnalisis {
     public void setImprimir(boolean imprimir) {
         this.imprimir = imprimir;
     }
-    
-    
-    
 }
