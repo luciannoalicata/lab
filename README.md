@@ -36,7 +36,7 @@
 
 ## 📌 Descripción
 
-**BIOTEC LIS** es un sistema de información de laboratorio clínico desarrollado como proyecto de escritorio en Java. Cubre el ciclo operativo completo de un laboratorio de análisis clínicos: desde el registro del paciente hasta la generación y entrega del informe médico en PDF con firma bioquímica y valores de referencia.
+**BIOTEC** es un sistema de información de laboratorio clínico desarrollado como proyecto de escritorio en Java. Cubre el ciclo operativo completo de un laboratorio de análisis clínicos: desde el registro del paciente hasta la generación y entrega del informe médico en PDF con firma bioquímica y valores de referencia.
 
 > ⚠️ **v1.0 Release Candidate** — Sistema funcional y estable, actualmente en fase de validación clínica.
 
