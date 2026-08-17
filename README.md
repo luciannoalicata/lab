@@ -1,12 +1,6 @@
 <div align="center">
 
 <img src="src/reportes/img/biotec_logo.png" alt="BIOTEC Logo" width="180"/>
-
----
-## 👨‍💻 Autor
-
-**Luciano Alicata**
-Estudiante de Ingeniería en Sistemas de Información 
 ---
 ### Laboratory Information System
 
@@ -21,7 +15,10 @@ Estudiante de Ingeniería en Sistemas de Información
 </div>
 
 ---
+## 👨‍💻 Autor
 
+**Luciano Alicata**
+Estudiante de Ingeniería en Sistemas de Información 
 ## 📋 Tabla de Contenidos
 
 - [Descripción](#-descripción)
