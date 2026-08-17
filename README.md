@@ -2,7 +2,12 @@
 
 <img src="src/reportes/img/biotec_logo.png" alt="BIOTEC Logo" width="180"/>
 
-# BIOTEC
+---
+## 👨‍💻 Autor
+
+**Luciano Alicata**
+Estudiante de Ingeniería en Sistemas de Información 
+---
 ### Laboratory Information System
 
 **Sistema de Gestión Integral para Laboratorios de Análisis Clínicos**
@@ -35,8 +40,6 @@
 
 **BIOTEC LIS** es un sistema de información de laboratorio clínico desarrollado como proyecto de escritorio en Java. Cubre el ciclo operativo completo de un laboratorio de análisis clínicos: desde el registro del paciente hasta la generación y entrega del informe médico en PDF con firma bioquímica y valores de referencia.
 
-El sistema fue diseñado pensando en la usabilidad para profesionales de salud mayores de 40 años: botones grandes, texto legible, navegación intuitiva por teclado y una interfaz limpia sin distractores.
-
 > ⚠️ **v1.0 Release Candidate** — Sistema funcional y estable, actualmente en fase de validación clínica.
 
 ---
@@ -45,34 +48,22 @@ El sistema fue diseñado pensando en la usabilidad para profesionales de salud m
 
 ### 👥 Gestión de Pacientes
 - CRUD completo con búsqueda en tiempo real (por apellido, nombre o DNI)
-- Autocompletado de obra social con sugerencias dinámicas
-- Visualización de fecha del último análisis en la grilla
+- Visualización de estudios realizados
 - Validación de campos con restricciones por tipo de dato
 
 ### 🔬 Gestión de Análisis
-- Flujo guiado de 3 pasos: selección de prácticas → carga de resultados → historial
+- Flujo guiado de 3 pasos: selección de prácticas → carga de resultados → impresión
 - Cálculo automático de precio según UB × arancel de obra social
-- Precio manual para pacientes particulares
-- Navegación por teclado (Enter) entre campos de resultados
 
 ### 📋 Nomenclador Bioquímico Único (NBU)
 - Catálogo de prácticas con estructura padre-hijo (determinaciones compuestas)
 - Prioridades absolutas para ordenamiento en el informe PDF
 - Separadores visuales por sección (Hemograma, Eritrosedimentación, etc.)
 - Reordenamiento con botones ▲/▼ persistido en base de datos
-- Editor de valores de referencia con soporte multilinea (separador `;`)
 
 ### 📄 Generación de Informes PDF
-- Motor JasperReports con 4 formatos: A4/A5 × Vertical/Horizontal
-- Logo institucional y firma bioquímica configurables
-- Subtítulos de sección dinámicos (solo aparecen si hay determinaciones en ese rango)
-- Médico solicitante editable antes de imprimir
-
-### 📊 Dashboard Estadístico
-- Filtros por período, obra social, médico y práctica
-- Gráficos de distribución por obra social y evolución mensual
-- Tabla de facturación detallada con exportación
-- Doble clic en análisis para ver las prácticas incluidas
+- JasperReports con 4 formatos: A4/A5 × Vertical/Horizontal
+- Logo institucional y firma bioquímica configurables desde el software
 
 ### 🏥 Módulos Adicionales
 - **Gestión de Médicos** — CRUD con especialidades y matrícula
