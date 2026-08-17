@@ -18,7 +18,7 @@
 ## 👨‍💻 Autor
 
 **Luciano Alicata**
- ,estudiante de Ingeniería en Sistemas de Información 
+, estudiante de Ingeniería en Sistemas de Información 
 ## 📋 Tabla de Contenidos
 
 - [Descripción](#-descripción)
