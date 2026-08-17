@@ -1,7 +1,7 @@
 <div align="center">
 
 <img src="src/reportes/img/biotec_logo.png" alt="BIOTEC Logo" width="180"/>
----
+
 ### Laboratory Information System
 
 **Sistema de Gestión Integral para Laboratorios de Análisis Clínicos**
@@ -13,6 +13,8 @@
 [![Version](https://img.shields.io/badge/Version-1.0.0_RC-brightgreen?style=for-the-badge)](CHANGELOG.md)
 
 </div>
+
+---
 
 ---
 ## 👨‍💻 Autor
