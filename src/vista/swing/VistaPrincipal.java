@@ -646,13 +646,15 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
     }
 
     @Override
-    public void mostrarSeccion(String nombre) {
-        if (cardLayout != null && pnlContenido != null) {
-            cardLayout.show(pnlContenido, nombre);
-            pnlContenido.revalidate();
-            pnlContenido.repaint();
-        }
+public void mostrarSeccion(String nombre) {
+    if (cardLayout != null && pnlContenido != null) {
+        // Limpiar el foco antes de cambiar de sección
+        this.limpiarFocos();
+        cardLayout.show(pnlContenido, nombre);
+        pnlContenido.revalidate();
+        pnlContenido.repaint();
     }
+}
 
     @Override
     public void volverInicio() {

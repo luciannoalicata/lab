@@ -54,9 +54,18 @@ public class EstadisticasPresenter {
     }
 
     public void onVolver() {
-        vista.limpiarFocos();
-        router.irAInicio();
-    }
+    // 1. Primero limpiar la vista completamente
+    vista.limpiarFocos();
+    
+    // 2. Luego navegar
+    router.irAInicio();
+}
+    /**
+ * Método auxiliar para limpiar la vista desde el Router
+ */
+public void limpiarVista() {
+    vista.limpiarFocos();
+}
 
     public void iniciar() {
         vista.setPresenter(this);
