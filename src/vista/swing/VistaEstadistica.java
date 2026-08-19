@@ -2,957 +2,519 @@ package vista.swing;
 
 import com.toedter.calendar.JDateChooser;
 import java.awt.*;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
-import java.util.Calendar;
-import java.util.Date;
+import java.util.*;
 import java.util.List;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.*;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
+import javax.swing.table.*;
 import presentador.EstadisticasPresenter;
 import vista.interfaces.IVistaEstadistica;
 
 public class VistaEstadistica extends JPanel implements IVistaEstadistica {
 
     private EstadisticasPresenter presenter;
-    private boolean cargandoDatos = false;
+    private boolean ignorarBusqueda = false;
 
-    // ── Popups sugerencias ────────────────────────────────────────────
-    private JWindow ventanaSugerenciasOS;
-    private JWindow ventanaSugerenciasMed;
-    private JWindow ventanaSugerenciasPracticas;
-    private JList<String> listaSugerenciasOS;
-    private JList<String> listaSugerenciasMed;
-    private JList<String> listaSugerenciasPracticas;
-    private DefaultListModel<String> modeloSugerenciasOS;
-    private DefaultListModel<String> modeloSugerenciasMed;
-    private DefaultListModel<String> modeloSugerenciasPracticas;
+    private JPopupMenu popupOS, popupMed, popupDet;
+    private JList<String> listaOS, listaMed, listaDet;
+    private DefaultListModel<String> modeloOS, modeloMed, modeloDet;
 
-    // ── Paleta BIOTEC ─────────────────────────────────────────────────
-    private final Color C_NAVY = new Color(10, 25, 47);
-    private final Color C_FONDO = new Color(238, 242, 246);
-    private final Color C_BLANCO = Color.WHITE;
+    private final Color C_NAVY         = new Color(10, 25, 47);
+    private final Color C_FONDO        = new Color(238, 242, 246);
+    private final Color C_BLANCO       = Color.WHITE;
     private final Color C_TEXTO_FUERTE = new Color(40, 50, 60);
-    private final Color C_TEXTO_SUAVE = new Color(100, 115, 130);
-    private final Color C_BORDE = new Color(215, 225, 235);
-    private final Color C_AZUL_MEDIO = new Color(30, 110, 180);
-    private final Color C_VERDE = new Color(35, 160, 115);
-    private final Color C_CAMPO = new Color(250, 252, 254);
+    private final Color C_TEXTO_SUAVE  = new Color(100, 115, 130);
+    private final Color C_BORDE        = new Color(215, 225, 235);
+    private final Color C_AZUL_MEDIO   = new Color(30, 110, 180);
+    private final Color C_VERDE        = new Color(35, 160, 115);
+    private final Color C_CAMPO        = new Color(250, 252, 254);
     private final Color C_CABECERA_TBL = new Color(245, 248, 252);
-    private final Color C_FILA_PAR = new Color(252, 254, 255);
-    private final Color C_HEADER_TEXT = new Color(175, 205, 235);
-    private final Color C_SELECCION = new Color(220, 235, 250);
+    private final Color C_FILA_PAR     = new Color(252, 254, 255);
+    private final Color C_HEADER_TEXT  = new Color(175, 205, 235);
+    private final Color C_SELECCION    = new Color(220, 235, 250);
 
-    private final Font F_TBL_HEADER = new Font("Segoe UI", Font.BOLD, 11);
-    private final Font F_TBL_CELL = new Font("Segoe UI", Font.PLAIN, 12);
-
-    // ── Componentes ───────────────────────────────────────────────────
-    private JDateChooser jdDesde, jdHasta;
-    private JTextField txtObraSocial, txtMedico, txtPractica;
-    private JButton btnFiltrar, btnExportar, btnVolver, btnLimpiarFiltros;
-    private JLabel lblTotalAnalisis, lblTotalFacturado;
-    private JPanel pnlGraficoTorta, pnlGraficoEvolucion, pnlGraficoPracticas;
-    private JTable grillaFacturacion;
-    private DefaultTableModel modeloTabla;
     private JPanel pnlHeader;
-    private JLabel lblTituloHeader;
-    private JScrollPane jScrollPane1;
+    private JLabel lblTitulo;
+    private JButton btnVolver, btnFiltrar, btnLimpiar, btnExportar;
+
+    private JDateChooser jdDesde, jdHasta;
+    private JTextField txtOS, txtMedico, txtDeterminacion;
+
+    private JLabel lblTotalAnalisis, lblTotalFacturado;
+
+    private JTable grillaResultados;
+    private DefaultTableModel modeloTabla;
+    private JScrollPane scrollGrilla;
+
+    private PanelGrafico pnlGraficoOS;
+    private PanelGrafico pnlGraficoPracticas;
 
     public VistaEstadistica() {
+        this.setOpaque(true);
+        this.setBackground(C_FONDO);
         initComponents();
-        aplicarEstilo();
-        configurarBuscadores();
-        configurarDobleClickTabla();
+        construirLayout();
+        configurarAutocompletados();
+        configurarDobleClickGrilla();
         setFechasPorDefecto();
-        setPlaceholders();
-        setMinimumSize(new Dimension(1024, 680));
     }
 
-    // ═════════════════════════════════════════════════════════════════
-    //  INTERFAZ
-    // ═════════════════════════════════════════════════════════════════
     @Override
     public void setPresenter(EstadisticasPresenter presenter) {
-        // Limpiar estado anterior ANTES de reasignar
-        limpiarFocos();
+        limpiarFocos(); 
         this.presenter = presenter;
+
         limpiarListeners(btnFiltrar);
+        limpiarListeners(btnLimpiar);
         limpiarListeners(btnExportar);
         limpiarListeners(btnVolver);
-        limpiarListeners(btnLimpiarFiltros);
+
         btnFiltrar.addActionListener(e -> presenter.onFiltrar());
-        btnExportar.addActionListener(e -> presenter.onExportarPlanilla());
+        btnLimpiar.addActionListener(e -> onLimpiarFiltros());
+        btnExportar.addActionListener(e -> presenter.onExportar());
         btnVolver.addActionListener(e -> presenter.onVolver());
-        btnLimpiarFiltros.addActionListener(e -> limpiarFiltros());
     }
 
+    // ── MÉTODOS SOLICITADOS ──────────────────────────────────────────
     private void limpiarListeners(JButton btn) {
         for (ActionListener al : btn.getActionListeners()) {
             btn.removeActionListener(al);
         }
     }
 
+    private void setFechasPorDefecto() {
+        Calendar cal = Calendar.getInstance();
+        jdHasta.setDate(cal.getTime());
+        cal.add(Calendar.DAY_OF_MONTH, -10);
+        jdDesde.setDate(cal.getTime());
+    }
+    // ─────────────────────────────────────────────────────────────────
+
+    @Override public void ejecutar() { setVisible(true); }
+
     @Override
-    public Date getFechaDesde() {
-        return jdDesde.getDate();
+    public void limpiarFocos() {
+        if (popupOS != null) popupOS.setVisible(false);
+        if (popupMed != null) popupMed.setVisible(false);
+        if (popupDet != null) popupDet.setVisible(false);
+        
+        if (modeloTabla != null) modeloTabla.setRowCount(0);
+        if (pnlGraficoOS != null) pnlGraficoOS.limpiar();
+        if (pnlGraficoPracticas != null) pnlGraficoPracticas.limpiar();
+        if (lblTotalAnalisis != null) lblTotalAnalisis.setText("0");
+        if (lblTotalFacturado != null) lblTotalFacturado.setText("$ 0,00");
+        
+        requestFocusInWindow();
     }
 
-    @Override
-    public Date getFechaHasta() {
-        return jdHasta.getDate();
-    }
+    @Override public void mostrarMensaje(String m) { JOptionPane.showMessageDialog(this, m, "Estadísticas", JOptionPane.INFORMATION_MESSAGE); }
+    @Override public int confirmarAccion(String m, String t) { return JOptionPane.showConfirmDialog(this, m, t, JOptionPane.YES_NO_OPTION); }
+
+    @Override public Date getFechaDesde() { return jdDesde.getDate(); }
+    @Override public Date getFechaHasta() { return jdHasta.getDate(); }
+    @Override public String getObraSocialFiltro() { return (txtOS.getText().trim().equalsIgnoreCase("TODAS")) ? "" : txtOS.getText().trim(); }
+    @Override public String getMedicoFiltro() { return (txtMedico.getText().trim().equalsIgnoreCase("TODOS")) ? "" : txtMedico.getText().trim(); }
+    @Override public String getDeterminacionFiltro() { return (txtDeterminacion.getText().trim().equalsIgnoreCase("TODAS")) ? "" : txtDeterminacion.getText().trim(); }
+
+    @Override public void mostrarSugerenciasOS(List<String> s) { mostrarPopup(popupOS, listaOS, modeloOS, txtOS, s); }
+    @Override public void mostrarSugerenciasMedicos(List<String> s) { mostrarPopup(popupMed, listaMed, modeloMed, txtMedico, s); }
+    @Override public void mostrarSugerenciasDeterminaciones(List<String> s) { mostrarPopup(popupDet, listaDet, modeloDet, txtDeterminacion, s); }
 
     @Override
-    public String getObraSocialFiltro() {
-        String t = txtObraSocial.getText().trim();
-        return (t.isEmpty() || t.equals("TODAS")) ? "TODAS" : t;
-    }
-
-    @Override
-    public String getMedicoFiltro() {
-        String t = txtMedico.getText().trim();
-        return (t.isEmpty() || t.equals("TODOS")) ? "TODOS" : t;
-    }
-
-    @Override
-    public String getPracticaFiltro() {
-        String t = txtPractica.getText().trim();
-        return (t.isEmpty() || t.equals("TODAS")) ? "TODAS" : t;
-    }
-
-    @Override
-    public void cargarComboObrasSociales(List<String> obras) {
-        /* no usado */ }
-
-    @Override
-    public void setTotalAnalisis(String t) {
-        lblTotalAnalisis.setText(t);
-    }
-
-    @Override
-    public void setTotalFacturado(String t) {
-        lblTotalFacturado.setText(t);
-    }
-
-    @Override
-    public void mostrarGraficoObrasSociales(JPanel p) {
-        pnlGraficoTorta.removeAll();
-        if (p != null) {
-            pnlGraficoTorta.add(p, BorderLayout.CENTER);
-        }
-        pnlGraficoTorta.revalidate();
-        pnlGraficoTorta.repaint();
-    }
-
-    @Override
-    public void mostrarGraficoEvolucion(JPanel p) {
-        pnlGraficoEvolucion.removeAll();
-        if (p != null) {
-            pnlGraficoEvolucion.add(p, BorderLayout.CENTER);
-        }
-        pnlGraficoEvolucion.revalidate();
-        pnlGraficoEvolucion.repaint();
-    }
-
-    @Override
-    public void mostrarGraficoPracticas(JPanel p) {
-        pnlGraficoPracticas.removeAll();
-        if (p != null) {
-            pnlGraficoPracticas.add(p, BorderLayout.CENTER);
-        }
-        pnlGraficoPracticas.revalidate();
-        pnlGraficoPracticas.repaint();
-    }
-
-    @Override
-    public void mostrarDatosTabla(Object[][] datos) {
-        cargandoDatos = true;
+    public void mostrarResultados(Object[][] datos) {
         modeloTabla.setRowCount(0);
-        for (Object[] fila : datos) {
-            modeloTabla.addRow(fila);
-        }
-        cargandoDatos = false;
+        for (Object[] fila : datos) modeloTabla.addRow(fila);
+        grillaResultados.clearSelection();
+    }
+
+    @Override
+    public void setResumen(String totalAnalisis, String totalFacturado) {
+        lblTotalAnalisis.setText(totalAnalisis);
+        lblTotalFacturado.setText(totalFacturado);
+    }
+
+    @Override
+    public void actualizarGraficoOS(Map<String, Integer> datos) {
+        pnlGraficoOS.setDatos(datos, TipoGrafico.TORTA, "Distribución por Obra Social");
+    }
+
+    @Override
+    public void actualizarGraficoPracticas(Map<String, Integer> datos) {
+        pnlGraficoPracticas.setDatos(datos, TipoGrafico.BARRAS, "Prácticas más realizadas");
     }
 
     @Override
     public void mostrarDetallePracticas(String titulo, String detalle) {
-        javax.swing.JTextArea txtArea = new javax.swing.JTextArea(detalle);
-        txtArea.setEditable(false);
-        txtArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtArea.setBackground(C_CAMPO);
-        txtArea.setForeground(C_TEXTO_FUERTE);
-        txtArea.setBorder(new EmptyBorder(14, 14, 14, 14));
-        JScrollPane scroll = new JScrollPane(txtArea);
-        scroll.setPreferredSize(new Dimension(460, 320));
-        scroll.setBorder(new LineBorder(C_AZUL_MEDIO, 1));
+        JTextArea area = new JTextArea(detalle);
+        area.setEditable(false); 
+        area.setFont(new Font("Segoe UI", Font.PLAIN, 13)); 
+        area.setBackground(C_CAMPO); 
+        area.setForeground(C_TEXTO_FUERTE); 
+        area.setBorder(new EmptyBorder(12, 12, 12, 12));
+        JScrollPane scroll = new JScrollPane(area); 
+        scroll.setPreferredSize(new Dimension(460, 300)); 
+        scroll.setBorder(BorderFactory.createLineBorder(C_BORDE));
         JOptionPane.showMessageDialog(this, scroll, titulo, JOptionPane.INFORMATION_MESSAGE);
     }
 
-    @Override
-    public void mostrarMensaje(String m) {
-        JOptionPane.showMessageDialog(this, m, "Estadísticas", JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    @Override
-    public void ejecutar() {
-        setVisible(true);
-    }
-
-    /**
-     * Limpia TODO el estado de la vista. Se llama automáticamente en
-     * setPresenter() y cuando el AppRouter navega a otra sección — evita que
-     * gráficos y datos "contaminen" otras vistas al volver.
-     */
-    @Override
-public void limpiarFocos() {
-    // 1. Ocultar TODOS los popups de sugerencias
-    ocultarTodosLosPopups();
-    
-    // 2. Limpiar la tabla
-    if (modeloTabla != null) {
-        modeloTabla.setRowCount(0);
-    }
-    if (grillaFacturacion != null) {
-        grillaFacturacion.clearSelection();
-        grillaFacturacion.repaint();
-    }
-    
-    // 3. Limpiar TODOS los gráficos (FORZADO)
-    for (JPanel pnl : new JPanel[]{pnlGraficoTorta, pnlGraficoEvolucion, pnlGraficoPracticas}) {
-        if (pnl != null) {
-            pnl.removeAll();
-            pnl.revalidate();
-            pnl.repaint();
-            // Forzar que el panel se limpie visualmente
-            pnl.setBackground(C_BLANCO);
-        }
-    }
-    
-    // 4. Resetear las tarjetas de totales
-    if (lblTotalAnalisis != null) {
-        lblTotalAnalisis.setText("0");
-    }
-    if (lblTotalFacturado != null) {
-        lblTotalFacturado.setText("$ 0.00");
-    }
-    
-    // 5. Limpiar campos de texto (sin disparar eventos)
-    for (JTextField tf : new JTextField[]{txtObraSocial, txtMedico, txtPractica}) {
-        if (tf != null) {
-            String placeholder = tf == txtObraSocial ? "TODAS" : 
-                                (tf == txtMedico ? "TODOS" : "TODAS");
-            tf.setText(placeholder);
-        }
-    }
-    
-    // 6. Forzar redibujado completo del panel
-    this.revalidate();
-    this.repaint();
-    
-    // 7. Liberar el foco para que no quede en ningún componente
-    this.requestFocusInWindow();
-}
-
-private void ocultarTodosLosPopups() {
-    if (ventanaSugerenciasOS != null) {
-        ventanaSugerenciasOS.setVisible(false);
-        ventanaSugerenciasOS.dispose(); // ← IMPORTANTE: liberar recursos
-        ventanaSugerenciasOS = null;
-    }
-    if (ventanaSugerenciasMed != null) {
-        ventanaSugerenciasMed.setVisible(false);
-        ventanaSugerenciasMed.dispose();
-        ventanaSugerenciasMed = null;
-    }
-    if (ventanaSugerenciasPracticas != null) {
-        ventanaSugerenciasPracticas.setVisible(false);
-        ventanaSugerenciasPracticas.dispose();
-        ventanaSugerenciasPracticas = null;
-    }
-}
-
-
-    @Override
-    public int confirmarAccion(String m, String t) {
-        return JOptionPane.showConfirmDialog(this, m, t, JOptionPane.YES_NO_OPTION);
-    }
-
-    // ═════════════════════════════════════════════════════════════════
-    //  PLACEHOLDERS
-    // ═════════════════════════════════════════════════════════════════
-    private void setPlaceholders() {
-        txtObraSocial.setText("TODAS");
-        txtMedico.setText("TODOS");
-        txtPractica.setText("TODAS");
-
-        addPlaceholder(txtObraSocial, "TODAS");
-        addPlaceholder(txtMedico, "TODOS");
-        addPlaceholder(txtPractica, "TODAS");
-    }
-
-    private void addPlaceholder(JTextField tf, String placeholder) {
-        tf.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override
-            public void focusGained(java.awt.event.FocusEvent e) {
-                if (tf.getText().equals(placeholder)) {
-                    tf.setText("");
-                }
-            }
-
-            @Override
-            public void focusLost(java.awt.event.FocusEvent e) {
-                if (tf.getText().trim().isEmpty()) {
-                    tf.setText(placeholder);
-                }
-            }
-        });
-    }
-
-    private void limpiarFiltros() {
-        setFechasPorDefecto();
-        txtObraSocial.setText("TODAS");
-        txtMedico.setText("TODOS");
-        txtPractica.setText("TODAS");
-        ocultarTodosLosPopups();
-        if (presenter != null) {
-            presenter.onFiltrar();
-        }
-    }
-
-    // ═════════════════════════════════════════════════════════════════
-    //  DOBLE CLIC EN TABLA
-    // ═════════════════════════════════════════════════════════════════
-    private void configurarDobleClickTabla() {
-        grillaFacturacion.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2 && presenter != null) {
-                    int row = grillaFacturacion.rowAtPoint(e.getPoint());
-                    if (row < 0) {
-                        return;
-                    }
-                    // Convertir índice de vista a modelo (por si hay sorting)
-                    int modelRow = grillaFacturacion.convertRowIndexToModel(row);
-                    Object idObj = modeloTabla.getValueAt(modelRow, 0);
-                    if (idObj == null) {
-                        return;
-                    }
-                    try {
-                        presenter.onVerDetallePracticas(Integer.parseInt(idObj.toString()));
-                    } catch (NumberFormatException ex) {
-                        /* ignorar */ }
-                }
-            }
-        });
-    }
-
-    // ═════════════════════════════════════════════════════════════════
-    //  BUSCADORES CON AUTOCOMPLETADO
-    // ═════════════════════════════════════════════════════════════════
-    private void configurarBuscadores() {
-        modeloSugerenciasOS = new DefaultListModel<>();
-        modeloSugerenciasMed = new DefaultListModel<>();
-        modeloSugerenciasPracticas = new DefaultListModel<>();
-
-        listaSugerenciasOS = crearListaSugerencias();
-        listaSugerenciasMed = crearListaSugerencias();
-        listaSugerenciasPracticas = crearListaSugerencias();
-
-        listaSugerenciasOS.setModel(modeloSugerenciasOS);
-        listaSugerenciasMed.setModel(modeloSugerenciasMed);
-        listaSugerenciasPracticas.setModel(modeloSugerenciasPracticas);
-
-        // Crear popups DESPUÉS de que el componente esté en la jerarquía
-        SwingUtilities.invokeLater(() -> {
-            ventanaSugerenciasOS = crearPopup(listaSugerenciasOS);
-            ventanaSugerenciasMed = crearPopup(listaSugerenciasMed);
-            ventanaSugerenciasPracticas = crearPopup(listaSugerenciasPracticas);
-        });
-
-        // Click en sugerencia OS
-        listaSugerenciasOS.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                elegirSugerencia(listaSugerenciasOS, txtObraSocial, ventanaSugerenciasOS);
-            }
-        });
-        listaSugerenciasMed.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                elegirSugerencia(listaSugerenciasMed, txtMedico, ventanaSugerenciasMed);
-            }
-        });
-        listaSugerenciasPracticas.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                elegirSugerencia(listaSugerenciasPracticas, txtPractica, ventanaSugerenciasPracticas);
-            }
-        });
-
-        // KeyListeners
-        txtObraSocial.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                gestionarTeclas(e, ventanaSugerenciasOS, listaSugerenciasOS, txtObraSocial);
-            }
-
-            @Override
-            public void keyReleased(KeyEvent e) {
-                if (esTeclaNav(e)) {
-                    return;
-                }
-                String t = txtObraSocial.getText().trim();
-                if (t.length() >= 1 && !t.equals("TODAS") && presenter != null) {
-                    presenter.onBuscarSugerenciasOS();
-                } else if (ventanaSugerenciasOS != null) {
-                    ventanaSugerenciasOS.setVisible(false);
-                }
-            }
-        });
-        txtMedico.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                gestionarTeclas(e, ventanaSugerenciasMed, listaSugerenciasMed, txtMedico);
-            }
-
-            @Override
-            public void keyReleased(KeyEvent e) {
-                if (esTeclaNav(e)) {
-                    return;
-                }
-                String t = txtMedico.getText().trim();
-                if (t.length() >= 1 && !t.equals("TODOS") && presenter != null) {
-                    presenter.onBuscarSugerenciasMedicos();
-                } else if (ventanaSugerenciasMed != null) {
-                    ventanaSugerenciasMed.setVisible(false);
-                }
-            }
-        });
-        txtPractica.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                gestionarTeclas(e, ventanaSugerenciasPracticas, listaSugerenciasPracticas, txtPractica);
-            }
-
-            @Override
-            public void keyReleased(KeyEvent e) {
-                if (esTeclaNav(e)) {
-                    return;
-                }
-                String t = txtPractica.getText().trim();
-                if (t.length() >= 1 && !t.equals("TODAS") && presenter != null) {
-                    presenter.onBuscarSugerenciasPracticas();
-                } else if (ventanaSugerenciasPracticas != null) {
-                    ventanaSugerenciasPracticas.setVisible(false);
-                }
-            }
-        });
-        
-        // Crear popups DESPUÉS de que el componente esté en la jerarquía
-    SwingUtilities.invokeLater(() -> {
-        recrearPopups();
-    });
-    }
-
-    private JList<String> crearListaSugerencias() {
-        JList<String> lista = new JList<>();
-        lista.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lista.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        lista.setFixedCellHeight(28);
-        lista.setBackground(C_BLANCO);
-        lista.setSelectionBackground(C_SELECCION);
-        lista.setSelectionForeground(C_NAVY);
-        return lista;
-    }
-
-    private void elegirSugerencia(JList<String> lista, JTextField txt, JWindow win) {
-        String sel = lista.getSelectedValue();
-        if (sel != null) {
-            txt.setText(sel);
-            if (win != null) {
-                win.setVisible(false);
-            }
-            if (presenter != null) {
-                presenter.onFiltrar();
-            }
-        }
-    }
-    private void recrearPopups() {
-    // Si los popups fueron destruidos, recrearlos cuando sea necesario
-    if (ventanaSugerenciasOS == null && listaSugerenciasOS != null) {
-        ventanaSugerenciasOS = crearPopup(listaSugerenciasOS);
-    }
-    if (ventanaSugerenciasMed == null && listaSugerenciasMed != null) {
-        ventanaSugerenciasMed = crearPopup(listaSugerenciasMed);
-    }
-    if (ventanaSugerenciasPracticas == null && listaSugerenciasPracticas != null) {
-        ventanaSugerenciasPracticas = crearPopup(listaSugerenciasPracticas);
-    }
-}
-
-    private void gestionarTeclas(KeyEvent e, JWindow win, JList<String> lista, JTextField txt) {
-        if (win == null || !win.isVisible()) {
-            return;
-        }
-        DefaultListModel<String> mod = (DefaultListModel<String>) lista.getModel();
-        if (mod.isEmpty()) {
-            return;
-        }
-        int idx = lista.getSelectedIndex();
-        int sz = mod.getSize();
-        switch (e.getKeyCode()) {
-            case KeyEvent.VK_DOWN:
-                lista.setSelectedIndex(Math.min(idx + 1, sz - 1));
-                lista.ensureIndexIsVisible(lista.getSelectedIndex());
-                e.consume();
-                break;
-            case KeyEvent.VK_UP:
-                lista.setSelectedIndex(Math.max(idx - 1, 0));
-                lista.ensureIndexIsVisible(lista.getSelectedIndex());
-                e.consume();
-                break;
-            case KeyEvent.VK_ENTER:
-                if (idx != -1) {
-                    elegirSugerencia(lista, txt, win);
-                    e.consume();
-                }
-                break;
-            case KeyEvent.VK_ESCAPE:
-                win.setVisible(false);
-                break;
-        }
-    }
-
-    private boolean esTeclaNav(KeyEvent e) {
-        int k = e.getKeyCode();
-        return k == KeyEvent.VK_DOWN || k == KeyEvent.VK_UP
-                || k == KeyEvent.VK_ENTER || k == KeyEvent.VK_ESCAPE;
-    }
-
-    private JWindow crearPopup(JList<String> lista) {
-        Window pw = SwingUtilities.getWindowAncestor(this);
-        JWindow win = new JWindow(pw != null ? pw : new JFrame());
-        win.setAlwaysOnTop(true);
-        win.setFocusableWindowState(false);
-        JScrollPane sc = new JScrollPane(lista);
-        sc.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(C_AZUL_MEDIO, 1),
-                new EmptyBorder(2, 0, 2, 0)));
-        win.getContentPane().add(sc);
-        return win;
-    }
-
-    @Override
-    public void mostrarSugerenciasOS(List<String> s) {
-        actualizarPopup(ventanaSugerenciasOS, modeloSugerenciasOS, listaSugerenciasOS, txtObraSocial, s);
-    }
-
-    @Override
-    public void mostrarSugerenciasMedicos(List<String> s) {
-        actualizarPopup(ventanaSugerenciasMed, modeloSugerenciasMed, listaSugerenciasMed, txtMedico, s);
-    }
-
-    @Override
-    public void mostrarSugerenciasPracticas(List<String> s) {
-        actualizarPopup(ventanaSugerenciasPracticas, modeloSugerenciasPracticas, listaSugerenciasPracticas, txtPractica, s);
-    }
-
-    private void actualizarPopup(JWindow win, DefaultListModel<String> mod,
-            JList<String> lista, JTextField txt, List<String> sugs) {
-        if (win == null) {
-            return;
-        }
-        mod.clear();
-        sugs.forEach(mod::addElement);
-        if (sugs.isEmpty()) {
-            win.setVisible(false);
-            return;
-        }
-        try {
-            java.awt.Point p = txt.getLocationOnScreen();
-            win.setBounds(p.x, p.y + txt.getHeight(),
-                    txt.getWidth(), Math.min(168, mod.size() * 28 + 6));
-            win.setVisible(true);
-            lista.setSelectedIndex(0);
-        } catch (Exception ex) {
-            /* componente no visible aún */ }
-    }
-
-    // ═════════════════════════════════════════════════════════════════
-    //  INIT COMPONENTS
-    // ═════════════════════════════════════════════════════════════════
     private void initComponents() {
-        pnlHeader = new JPanel();
-        lblTituloHeader = new JLabel("DASHBOARD ESTADÍSTICO");
-        btnVolver = new JButton();
-        btnFiltrar = new JButton();
-        btnExportar = new JButton();
-        btnLimpiarFiltros = new JButton();
+        pnlHeader = new JPanel(); lblTitulo = new JLabel("ESTADÍSTICAS Y FACTURACIÓN"); btnVolver = new JButton();
+        jdDesde = new JDateChooser(); jdHasta = new JDateChooser();
+        txtOS = new JTextField(); txtMedico = new JTextField(); txtDeterminacion = new JTextField();
+        btnFiltrar = new JButton("FILTRAR"); btnLimpiar = new JButton("LIMPIAR"); btnExportar = new JButton("EXPORTAR");
+        lblTotalAnalisis = new JLabel("0"); lblTotalFacturado = new JLabel("$ 0,00");
+        
+        String[] cols = {"ID","FECHA","DNI","PACIENTE","MÉDICO","OBRA SOCIAL","PRÁCTICAS"};
+        modeloTabla = new DefaultTableModel(cols, 0) { @Override public boolean isCellEditable(int r, int c) { return false; } };
+        grillaResultados = new JTable(modeloTabla); scrollGrilla = new JScrollPane(grillaResultados);
 
-        jdDesde = new JDateChooser();
-        jdHasta = new JDateChooser();
-        txtObraSocial = new JTextField();
-        txtMedico = new JTextField();
-        txtPractica = new JTextField();
+        pnlGraficoOS = new PanelGrafico(); pnlGraficoPracticas = new PanelGrafico();
 
-        lblTotalAnalisis = new JLabel("0");
-        lblTotalFacturado = new JLabel("$ 0.00");
-
-        pnlGraficoTorta = new JPanel(new BorderLayout());
-        pnlGraficoEvolucion = new JPanel(new BorderLayout());
-        pnlGraficoPracticas = new JPanel(new BorderLayout());
-
-        String[] cols = {"ID", "FECHA", "PACIENTE", "OBRA SOCIAL", "MÉDICO", "TOTAL ($)"};
-        modeloTabla = new DefaultTableModel(cols, 0) {
-            @Override
-            public boolean isCellEditable(int r, int c) {
-                return false;
-            }
-        };
-        grillaFacturacion = new JTable(modeloTabla);
-        jScrollPane1 = new JScrollPane(grillaFacturacion);
+        modeloOS = new DefaultListModel<>(); listaOS = new JList<>(modeloOS);
+        modeloMed = new DefaultListModel<>(); listaMed = new JList<>(modeloMed);
+        modeloDet = new DefaultListModel<>(); listaDet = new JList<>(modeloDet);
+        popupOS = crearPopup(listaOS); popupMed = crearPopup(listaMed); popupDet = crearPopup(listaDet);
     }
 
-    private void setFechasPorDefecto() {
-        Calendar cal = Calendar.getInstance();
-        jdHasta.setDate(cal.getTime());
-        cal.set(Calendar.DAY_OF_MONTH, 1);
-        jdDesde.setDate(cal.getTime());
-    }
-
-    // ═════════════════════════════════════════════════════════════════
-    //  LAYOUT — todo cabe en pantalla completa sin scrollbar
-    // ═════════════════════════════════════════════════════════════════
-    private void aplicarEstilo() {
-        setBackground(C_FONDO);
+    private void construirLayout() {
         setLayout(new BorderLayout());
 
-        // ── HEADER ──────────────────────────────────────────────────
         pnlHeader.setBackground(C_NAVY);
-        pnlHeader.setBorder(new EmptyBorder(0, 16, 0, 16));
-        pnlHeader.setPreferredSize(new Dimension(0, 56));
+        pnlHeader.setBorder(new EmptyBorder(10, 20, 10, 20)); 
         pnlHeader.setLayout(new BorderLayout());
-
-        JPanel pnlIzq = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        pnlIzq.setOpaque(false);
+        
         configurarBotonRetroceso(btnVolver);
-        pnlIzq.add(btnVolver);
-        lblTituloHeader.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        lblTituloHeader.setForeground(C_BLANCO);
-        lblTituloHeader.setBorder(new EmptyBorder(0, 6, 0, 0));
-        pnlIzq.add(lblTituloHeader);
-        pnlHeader.add(pnlIzq, BorderLayout.WEST);
+        JPanel izq = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        izq.setOpaque(false);
+        izq.add(btnVolver);
+        
+        lblTitulo.setForeground(C_BLANCO);
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblTitulo.setBorder(new EmptyBorder(0, 8, 0, 0));
+        izq.add(lblTitulo);
+        
+        pnlHeader.add(izq, BorderLayout.WEST);
         add(pnlHeader, BorderLayout.NORTH);
 
-        // ── CUERPO — GridBagLayout para distribución proporcional ────
-        JPanel pnlCuerpo = new JPanel(new GridBagLayout());
-        pnlCuerpo.setBackground(C_FONDO);
-        pnlCuerpo.setBorder(new EmptyBorder(8, 10, 8, 10));
+        // CONTENEDOR SCROLL Y ALINEADO
+        JPanel pnlCuerpoScroll = new JPanel();
+        pnlCuerpoScroll.setLayout(new BoxLayout(pnlCuerpoScroll, BoxLayout.Y_AXIS));
+        pnlCuerpoScroll.setBackground(C_FONDO);
+        pnlCuerpoScroll.setBorder(new EmptyBorder(15, 15, 15, 15));
 
-        GridBagConstraints gc = new GridBagConstraints();
-        gc.fill = GridBagConstraints.BOTH;
-        gc.weightx = 1.0;
-        gc.insets = new Insets(0, 0, 6, 0);
+        // 1. FILTROS Y TARJETAS
+        JPanel pnlTop = new JPanel(new BorderLayout(14, 0));
+        pnlTop.setOpaque(false);
+        pnlTop.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
+        pnlTop.add(construirPanelFiltros(), BorderLayout.CENTER);
+        pnlTop.add(construirTarjetas(), BorderLayout.EAST);
+        pnlCuerpoScroll.add(pnlTop);
+        pnlCuerpoScroll.add(Box.createVerticalStrut(15));
 
-        // ── Fila 0: FILTROS ──────────────────────────────────────────
-        JPanel pnlFiltros = construirFilaFiltros();
+        // 2. GRÁFICOS
+        JPanel pnlGraficosContainer = construirPanelGraficos();
+        pnlGraficosContainer.setPreferredSize(new Dimension(0, 300));
+        pnlGraficosContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 300));
+        pnlCuerpoScroll.add(pnlGraficosContainer);
+        pnlCuerpoScroll.add(Box.createVerticalStrut(15));
+
+        // 3. TABLA
+        JPanel pnlTablaContainer = construirPanelGrilla();
+        pnlTablaContainer.setPreferredSize(new Dimension(0, 450));
+        pnlCuerpoScroll.add(pnlTablaContainer);
+
+        // WRAPPER ALINEAR ARRIBA Y SCROLL
+        JPanel wrapperAlignTop = new JPanel(new BorderLayout());
+        wrapperAlignTop.setBackground(C_FONDO);
+        wrapperAlignTop.add(pnlCuerpoScroll, BorderLayout.NORTH);
+
+        JScrollPane scrollRaiz = new JScrollPane(wrapperAlignTop);
+        scrollRaiz.setBorder(null);
+        scrollRaiz.getVerticalScrollBar().setUnitIncrement(20);
+        add(scrollRaiz, BorderLayout.CENTER);
+    }
+
+    private JPanel construirPanelFiltros() {
+        JPanel pnl = new JPanel(new GridBagLayout()); pnl.setBackground(C_BLANCO);
+        pnl.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(C_BORDE, 1, true), new EmptyBorder(10, 14, 10, 14)));
+        GridBagConstraints gc = new GridBagConstraints(); gc.fill = GridBagConstraints.HORIZONTAL; gc.anchor = GridBagConstraints.WEST; gc.insets = new Insets(3, 4, 3, 4);
+
         gc.gridy = 0;
-        gc.weighty = 0;
-        pnlCuerpo.add(pnlFiltros, gc);
+        gc.gridx = 0; gc.weightx = 0; pnl.add(lbl("DESDE"), gc);
+        gc.gridx = 1; gc.weightx = 1; estilizarDateChooser(jdDesde,120); pnl.add(jdDesde, gc);
+        gc.gridx = 2; gc.weightx = 0; pnl.add(lbl("HASTA"), gc);
+        gc.gridx = 3; gc.weightx = 1; estilizarDateChooser(jdHasta,120); pnl.add(jdHasta, gc);
 
-        // ── Fila 1: TARJETAS ─────────────────────────────────────────
-        JPanel pnlTarjetas = new JPanel(new GridLayout(1, 2, 10, 0));
-        pnlTarjetas.setOpaque(false);
-        pnlTarjetas.add(crearTarjeta("TOTAL ANÁLISIS", lblTotalAnalisis, C_AZUL_MEDIO));
-        pnlTarjetas.add(crearTarjeta("TOTAL FACTURADO", lblTotalFacturado, C_VERDE));
         gc.gridy = 1;
-        gc.weighty = 0;
-        pnlCuerpo.add(pnlTarjetas, gc);
+        gc.gridx = 0; gc.weightx = 0; pnl.add(lbl("OBRA SOCIAL"), gc);
+        gc.gridx = 1; gc.weightx = 1; estilizarCampo(txtOS,160); pnl.add(txtOS, gc);
+        gc.gridx = 2; gc.weightx = 0; pnl.add(lbl("MÉDICO"), gc);
+        gc.gridx = 3; gc.weightx = 1; estilizarCampo(txtMedico,160); pnl.add(txtMedico, gc);
 
-        // ── Fila 2: GRÁFICOS — altura fija proporcional ──────────────
-        JPanel pnlGraficos = new JPanel(new GridLayout(1, 3, 8, 0));
-        pnlGraficos.setOpaque(false);
-        pnlGraficos.add(crearWrapperGrafico("Distribución OS", pnlGraficoTorta));
-        pnlGraficos.add(crearWrapperGrafico("Evolución Mensual", pnlGraficoEvolucion));
-        pnlGraficos.add(crearWrapperGrafico("Top Prácticas", pnlGraficoPracticas));
         gc.gridy = 2;
-        gc.weighty = 0.30;   // 30% del espacio vertical disponible
-        pnlCuerpo.add(pnlGraficos, gc);
+        gc.gridx = 0; gc.weightx = 0; pnl.add(lbl("DETERMINACIÓN"), gc);
+        gc.gridx = 1; gc.weightx = 1; estilizarCampo(txtDeterminacion,160); pnl.add(txtDeterminacion, gc);
 
-        // ── Fila 3: TABLA — expande el resto del espacio ─────────────
-        JPanel pnlTablaContenedor = construirPanelTabla();
-        gc.gridy = 3;
-        gc.weighty = 0.70;   // 70% del espacio vertical disponible
-        gc.insets = new Insets(0, 0, 0, 0);
-        pnlCuerpo.add(pnlTablaContenedor, gc);
-
-        add(pnlCuerpo, BorderLayout.CENTER);
-    }
-
-    private JPanel construirFilaFiltros() {
-        JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
-        pnl.setBackground(C_BLANCO);
-        pnl.setBorder(BorderFactory.createCompoundBorder(
-                new LineBorder(C_BORDE, 1, true),
-                new EmptyBorder(3, 8, 3, 8)
-        ));
-
-        estilizarDateChooser(jdDesde, 115);
-        estilizarDateChooser(jdHasta, 115);
-        estilizarCampoBusqueda(txtObraSocial, 130);
-        estilizarCampoBusqueda(txtMedico, 130);
-        estilizarCampoBusqueda(txtPractica, 130);
-        configurarBoton(btnFiltrar, C_AZUL_MEDIO, "FILTRAR", 100, 26);
-        configurarBoton(btnLimpiarFiltros, C_TEXTO_SUAVE, "LIMPIAR", 80, 26);
-        configurarBoton(btnExportar, C_VERDE, "EXPORTAR", 100, 26);
-
-        pnl.add(lbl("DESDE:"));
-        pnl.add(jdDesde);
-        pnl.add(lbl("HASTA:"));
-        pnl.add(jdHasta);
-        pnl.add(lbl("OS:"));
-        pnl.add(txtObraSocial);
-        pnl.add(lbl("MÉDICO:"));
-        pnl.add(txtMedico);
-        pnl.add(lbl("PRÁCTICA:"));
-        pnl.add(txtPractica);
-        pnl.add(btnFiltrar);
-        pnl.add(btnLimpiarFiltros);
-        pnl.add(btnExportar);
+        JPanel pnlBtns = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0)); pnlBtns.setOpaque(false);
+        configurarBoton(btnFiltrar, C_AZUL_MEDIO, 110, 30); configurarBoton(btnLimpiar, C_TEXTO_SUAVE, 90, 30); configurarBoton(btnExportar, C_VERDE, 120, 30);
+        pnlBtns.add(btnFiltrar); pnlBtns.add(btnLimpiar); pnlBtns.add(btnExportar);
+        gc.gridx = 2; gc.gridwidth = 2; gc.weightx = 2; pnl.add(pnlBtns, gc);
         return pnl;
     }
 
-    private JPanel construirPanelTabla() {
-        JPanel pnl = new JPanel(new BorderLayout(0, 4));
-        pnl.setBackground(C_BLANCO);
-        pnl.setBorder(BorderFactory.createCompoundBorder(
-                new LineBorder(C_BORDE, 1, true),
-                new EmptyBorder(6, 10, 8, 10)
-        ));
-
-        JLabel lblTit = new JLabel("Detalle de Facturación   (doble clic → ver prácticas del análisis)");
-        lblTit.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        lblTit.setForeground(C_TEXTO_FUERTE);
-        pnl.add(lblTit, BorderLayout.NORTH);
-
-        configurarEstiloTabla();
-        jScrollPane1.setBorder(BorderFactory.createEmptyBorder());
-        jScrollPane1.getViewport().setBackground(C_BLANCO);
-        pnl.add(jScrollPane1, BorderLayout.CENTER);
+    private JPanel construirTarjetas() {
+        JPanel pnl = new JPanel(new GridLayout(2, 1, 0, 8)); pnl.setOpaque(false); pnl.setPreferredSize(new Dimension(200, 0));
+        pnl.add(crearTarjeta("TOTAL ANÁLISIS", lblTotalAnalisis, C_AZUL_MEDIO)); pnl.add(crearTarjeta("FACTURADO", lblTotalFacturado, C_VERDE));
         return pnl;
     }
 
-    // ═════════════════════════════════════════════════════════════════
-    //  HELPERS VISUALES
-    // ═════════════════════════════════════════════════════════════════
     private JPanel crearTarjeta(String titulo, JLabel lblNum, Color color) {
-        JPanel t = new JPanel(new GridLayout(2, 1, 0, 1));
-        t.setBackground(C_BLANCO);
-        t.setBorder(BorderFactory.createCompoundBorder(
-                new LineBorder(C_BORDE, 1, true),
-                new EmptyBorder(5, 12, 5, 12)
-        ));
-        JLabel tit = new JLabel(titulo);
-        tit.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        tit.setForeground(C_TEXTO_SUAVE);
-        lblNum.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        lblNum.setForeground(color);
-        t.add(tit);
-        t.add(lblNum);
-        return t;
+        JPanel t = new JPanel(new BorderLayout(0, 2)); t.setBackground(C_BLANCO);
+        t.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(C_BORDE, 1, true), new EmptyBorder(6, 12, 6, 12)));
+        JLabel tit = new JLabel(titulo); tit.setFont(new Font("Segoe UI", Font.BOLD, 10)); tit.setForeground(C_TEXTO_SUAVE);
+        lblNum.setFont(new Font("Segoe UI", Font.BOLD, 20)); lblNum.setForeground(color);
+        t.add(tit, BorderLayout.NORTH); t.add(lblNum, BorderLayout.CENTER); return t;
     }
 
-    private JPanel crearWrapperGrafico(String titulo, JPanel inner) {
-        JPanel w = new JPanel(new BorderLayout());
-        w.setBackground(C_BLANCO);
-        w.setBorder(BorderFactory.createCompoundBorder(
-                new LineBorder(C_BORDE, 1, true),
-                new EmptyBorder(4, 4, 4, 4)
-        ));
-        JLabel lbl = new JLabel(titulo, SwingConstants.CENTER);
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        lbl.setForeground(C_TEXTO_FUERTE);
-        lbl.setBorder(new EmptyBorder(0, 0, 2, 0));
-        inner.setBackground(C_BLANCO);
-        w.add(lbl, BorderLayout.NORTH);
-        w.add(inner, BorderLayout.CENTER);
-        return w;
+    private JPanel construirPanelGrilla() {
+        JPanel pnl = new JPanel(new BorderLayout(0, 6)); pnl.setBackground(C_BLANCO);
+        pnl.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(C_BORDE, 1, true), new EmptyBorder(8, 10, 8, 10)));
+        JLabel lbl = new JLabel("Resultados filtrados   (doble clic → ver prácticas del análisis)"); lbl.setFont(new Font("Segoe UI", Font.BOLD, 11)); lbl.setForeground(C_TEXTO_FUERTE);
+        pnl.add(lbl, BorderLayout.NORTH);
+        configurarEstiloGrilla(); scrollGrilla.setBorder(BorderFactory.createEmptyBorder()); scrollGrilla.getViewport().setBackground(C_BLANCO);
+        pnl.add(scrollGrilla, BorderLayout.CENTER); return pnl;
     }
 
-    private void configurarBoton(JButton btn, Color bg, String texto, int w, int h) {
-        btn.setText(texto);
-        btn.setBackground(bg);
-        btn.setForeground(C_BLANCO);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setOpaque(true);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(w, h));
+    private void configurarEstiloGrilla() {
+        grillaResultados.setRowHeight(30); grillaResultados.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        grillaResultados.setGridColor(new Color(235, 240, 245)); grillaResultados.setShowHorizontalLines(true); grillaResultados.setShowVerticalLines(false);
+        grillaResultados.setSelectionBackground(C_SELECCION); grillaResultados.setSelectionForeground(C_TEXTO_FUERTE);
+        grillaResultados.setIntercellSpacing(new Dimension(0, 0)); grillaResultados.setFillsViewportHeight(true); grillaResultados.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        grillaResultados.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 11)); grillaResultados.getTableHeader().setBackground(C_CABECERA_TBL);
+        grillaResultados.getTableHeader().setForeground(C_TEXTO_SUAVE); grillaResultados.getTableHeader().setPreferredSize(new Dimension(0, 30));
+        grillaResultados.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE)); grillaResultados.getTableHeader().setReorderingAllowed(false);
+
+        DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
+            @Override public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int row, int col) {
+                super.getTableCellRendererComponent(t, v, sel, foc, row, col);
+                setHorizontalAlignment(col == 0 ? CENTER : LEFT); setBorder(new EmptyBorder(0, 8, 0, 8));
+                if (sel) { setBackground(C_SELECCION); setForeground(C_TEXTO_FUERTE); } else { setBackground(row%2==0?C_BLANCO:C_FILA_PAR); setForeground(C_TEXTO_FUERTE); }
+                return this;
+            }
+        };
+        for (int i = 0; i < grillaResultados.getColumnCount(); i++) grillaResultados.getColumnModel().getColumn(i).setCellRenderer(renderer);
+
+        int[] w = {45, 80, 130, 120, 130, 150, 100};
+        for (int i = 0; i < w.length && i < grillaResultados.getColumnCount(); i++) grillaResultados.getColumnModel().getColumn(i).setPreferredWidth(w[i]);
+        grillaResultados.getColumnModel().getColumn(0).setMaxWidth(55);
+    }
+
+    private JPanel construirPanelGraficos() {
+        JPanel pnl = new JPanel(new GridLayout(1, 2, 12, 0)); pnl.setBackground(C_FONDO); pnl.setBorder(new EmptyBorder(6, 12, 12, 12));
+        pnl.add(envolverGrafico(pnlGraficoOS, "Obra Social más utilizada")); pnl.add(envolverGrafico(pnlGraficoPracticas, "Prácticas más realizadas"));
+        return pnl;
+    }
+
+    private JPanel envolverGrafico(JPanel grafico, String titulo) {
+        JPanel w = new JPanel(new BorderLayout(0, 4)); w.setBackground(C_BLANCO);
+        w.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(C_BORDE, 1, true), new EmptyBorder(8, 10, 8, 10)));
+        JLabel lbl = new JLabel(titulo, SwingConstants.CENTER); lbl.setFont(new Font("Segoe UI", Font.BOLD, 12)); lbl.setForeground(C_TEXTO_FUERTE);
+        w.add(lbl, BorderLayout.NORTH); w.add(grafico, BorderLayout.CENTER); return w;
+    }
+
+    private void configurarDobleClickGrilla() {
+        grillaResultados.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2 && presenter != null) {
+                    int row = grillaResultados.rowAtPoint(e.getPoint());
+                    if (row < 0) return;
+                    int mRow = grillaResultados.convertRowIndexToModel(row);
+                    Object id = modeloTabla.getValueAt(mRow, 0);
+                    if (id != null) {
+                        try { presenter.onVerDetallePracticas(Integer.parseInt(id.toString())); } catch (NumberFormatException ex) {}
+                    }
+                }
+            }
+        });
+    }
+
+    private void configurarAutocompletados() {
+        configurarCampoAutocompletado(txtOS, popupOS, listaOS, modeloOS, () -> { if (presenter!=null && !ignorarBusqueda) presenter.onBuscarSugerenciasOS(); }, () -> seleccionar(listaOS, txtOS, popupOS));
+        configurarCampoAutocompletado(txtMedico, popupMed, listaMed, modeloMed, () -> { if (presenter!=null && !ignorarBusqueda) presenter.onBuscarSugerenciasMedicos(); }, () -> seleccionar(listaMed, txtMedico, popupMed));
+        configurarCampoAutocompletado(txtDeterminacion, popupDet, listaDet, modeloDet, () -> { if (presenter!=null && !ignorarBusqueda) presenter.onBuscarSugerenciasDeterminaciones(); }, () -> seleccionar(listaDet, txtDeterminacion, popupDet));
+    }
+
+    private void configurarCampoAutocompletado(JTextField tf, JPopupMenu popup, JList<String> lista, DefaultListModel<String> modelo, Runnable onBuscar, Runnable onSeleccionar) {
+        lista.addMouseListener(new MouseAdapter() { @Override public void mouseClicked(MouseEvent e) { onSeleccionar.run(); } });
+        tf.addKeyListener(new KeyAdapter() {
+            @Override public void keyPressed(KeyEvent e) {
+                if (popup == null || !popup.isVisible() || modelo.isEmpty()) return;
+                int idx = lista.getSelectedIndex(); int sz = modelo.getSize();
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_DOWN   -> { lista.setSelectedIndex(Math.min(idx+1,sz-1)); lista.ensureIndexIsVisible(lista.getSelectedIndex()); e.consume(); }
+                    case KeyEvent.VK_UP     -> { lista.setSelectedIndex(Math.max(idx-1,0));    lista.ensureIndexIsVisible(lista.getSelectedIndex()); e.consume(); }
+                    case KeyEvent.VK_ENTER  -> { if (idx!=-1) { onSeleccionar.run(); e.consume(); } }
+                    case KeyEvent.VK_ESCAPE -> popup.setVisible(false);
+                }
+            }
+        });
+        tf.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override public void insertUpdate (javax.swing.event.DocumentEvent e) { disparar(); }
+            @Override public void removeUpdate (javax.swing.event.DocumentEvent e) { disparar(); }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { disparar(); }
+            private void disparar() { String t = tf.getText().trim(); if (t.length() >= 1) onBuscar.run(); else popup.setVisible(false); }
+        });
+    }
+
+    private void mostrarPopup(JPopupMenu popup, JList<String> lista, DefaultListModel<String> modelo, JTextField tf, List<String> sugerencias) {
+        modelo.clear(); sugerencias.forEach(modelo::addElement);
+        if (sugerencias.isEmpty()) { popup.setVisible(false); return; }
+        int alto = Math.min(180, sugerencias.size() * 28 + 6);
+        popup.setPopupSize(tf.getWidth(), alto); popup.show(tf, 0, tf.getHeight()); tf.requestFocusInWindow(); lista.setSelectedIndex(0);
+    }
+
+    private void seleccionar(JList<String> lista, JTextField tf, JPopupMenu popup) {
+        String sel = lista.getSelectedValue();
+        if (sel != null) { ignorarBusqueda = true; tf.setText(sel); ignorarBusqueda = false; popup.setVisible(false); if (presenter != null) presenter.onFiltrar(); }
+    }
+
+    private JPopupMenu crearPopup(JList<String> lista) {
+        JPopupMenu popup = new JPopupMenu(); popup.setFocusable(false); popup.setBorder(BorderFactory.createEmptyBorder());
+        lista.setFont(new Font("Segoe UI", Font.PLAIN, 12)); lista.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); lista.setFixedCellHeight(28);
+        lista.setBackground(C_BLANCO); lista.setSelectionBackground(C_SELECCION); lista.setSelectionForeground(C_TEXTO_FUERTE);
+        JScrollPane sc = new JScrollPane(lista); sc.setBorder(BorderFactory.createLineBorder(C_BORDE, 1)); popup.add(sc); return popup;
+    }
+
+    private void ocultarPopups() { if (popupOS != null) popupOS.setVisible(false); if (popupMed != null) popupMed.setVisible(false); if (popupDet != null) popupDet.setVisible(false); }
+    
+    private void onLimpiarFiltros() { 
+        ignorarBusqueda=true; 
+        setFechasPorDefecto(); 
+        txtOS.setText(""); 
+        txtMedico.setText(""); 
+        txtDeterminacion.setText(""); 
+        ignorarBusqueda=false; 
+        limpiarFocos(); 
+        if (presenter != null) presenter.onFiltrar(); 
     }
 
     private void configurarBotonRetroceso(JButton btn) {
-        btn.setText("←");
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        btn.setBackground(C_NAVY);
-        btn.setForeground(C_HEADER_TEXT);
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setContentAreaFilled(false);
-        btn.setOpaque(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(0, 0, 0, 6));
-        ImageIcon ico = icon("/reportes/img/flecha_icon.png", 28, 28);
-        if (ico != null) {
-            btn.setIcon(ico);
-            btn.setText("");
-        }
-        btn.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                btn.setForeground(C_BLANCO);
-            }
+        btn.setText("←"); btn.setFont(new Font("Segoe UI", Font.BOLD, 16)); btn.setBackground(C_NAVY); btn.setForeground(C_HEADER_TEXT);
+        btn.setFocusPainted(false); btn.setBorderPainted(false); btn.setContentAreaFilled(false); btn.setOpaque(false); btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)); btn.setBorder(new EmptyBorder(0, 0, 0, 6));
+        try { java.net.URL url = getClass().getResource("/reportes/img/flecha_icon.png"); if (url != null) { btn.setIcon(new ImageIcon(ImageIO.read(url).getScaledInstance(30, 30, Image.SCALE_SMOOTH))); btn.setText(""); } } catch (Exception e) {}
+        btn.addMouseListener(new MouseAdapter() { @Override public void mouseEntered(MouseEvent e) { btn.setForeground(C_BLANCO); } @Override public void mouseExited(MouseEvent e) { btn.setForeground(C_HEADER_TEXT); } });
+    }
 
-            @Override
-            public void mouseExited(MouseEvent e) {
-                btn.setForeground(C_HEADER_TEXT);
-            }
-        });
+    private void configurarBoton(JButton btn, Color bg, int w, int h) {
+        btn.setBackground(bg); btn.setForeground(C_BLANCO); btn.setFont(new Font("Segoe UI", Font.BOLD, 12)); btn.setFocusPainted(false); btn.setBorderPainted(false); btn.setOpaque(true); btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)); btn.setPreferredSize(new Dimension(w, h));
+    }
+
+    private void estilizarCampo(JTextField tf, int w) {
+        tf.setFont(new Font("Segoe UI", Font.PLAIN, 12)); tf.setBackground(C_CAMPO); tf.setForeground(C_TEXTO_FUERTE); tf.setCaretColor(C_AZUL_MEDIO); tf.setPreferredSize(new Dimension(w, 28));
+        tf.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE), new EmptyBorder(3, 8, 3, 8)));
+        tf.addFocusListener(new FocusAdapter() { @Override public void focusGained(FocusEvent e) { tf.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0,0,2,0,C_AZUL_MEDIO), new EmptyBorder(3,8,3,8))); } @Override public void focusLost(FocusEvent e) { tf.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0,0,2,0,C_BORDE), new EmptyBorder(3,8,3,8))); } });
     }
 
     private void estilizarDateChooser(JDateChooser dc, int w) {
-        dc.setPreferredSize(new Dimension(w, 26));
-        dc.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        if (dc.getDateEditor() instanceof com.toedter.calendar.JTextFieldDateEditor) {
-            com.toedter.calendar.JTextFieldDateEditor ed
-                    = (com.toedter.calendar.JTextFieldDateEditor) dc.getDateEditor();
-            ed.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-            ed.setBackground(C_CAMPO);
-            ed.setForeground(C_TEXTO_FUERTE);
-            ed.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
-                    new EmptyBorder(2, 4, 2, 4)));
-        }
+        dc.setPreferredSize(new Dimension(w, 28)); dc.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        if (dc.getDateEditor() instanceof com.toedter.calendar.JTextFieldDateEditor ed) { ed.setFont(new Font("Segoe UI", Font.PLAIN, 12)); ed.setBackground(C_CAMPO); ed.setForeground(C_TEXTO_FUERTE); ed.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0,0,2,0,C_BORDE), new EmptyBorder(3,6,3,6))); }
     }
 
-    private void estilizarCampoBusqueda(JTextField tf, int w) {
-        tf.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        tf.setBackground(C_CAMPO);
-        tf.setForeground(C_TEXTO_FUERTE);
-        tf.setCaretColor(C_AZUL_MEDIO);
-        tf.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE),
-                new EmptyBorder(2, 5, 2, 5)));
-        tf.setPreferredSize(new Dimension(w, 26));
-    }
+    private JLabel lbl(String t) { JLabel l = new JLabel(t); l.setFont(new Font("Segoe UI", Font.BOLD, 10)); l.setForeground(C_TEXTO_SUAVE); return l; }
 
-    private void configurarEstiloTabla() {
-        grillaFacturacion.setRowHeight(26);
-        grillaFacturacion.setFont(F_TBL_CELL);
-        grillaFacturacion.setGridColor(new Color(235, 240, 245));
-        grillaFacturacion.setShowHorizontalLines(true);
-        grillaFacturacion.setShowVerticalLines(false);
-        grillaFacturacion.setSelectionBackground(C_SELECCION);
-        grillaFacturacion.setSelectionForeground(C_NAVY);
-        grillaFacturacion.setIntercellSpacing(new Dimension(0, 0));
-        grillaFacturacion.setBorder(BorderFactory.createEmptyBorder());
-        grillaFacturacion.setFillsViewportHeight(true);
+    // --- GRÁFICOS NATIVOS ----------------------------------------------------
+    private enum TipoGrafico { TORTA, BARRAS }
 
-        grillaFacturacion.getTableHeader().setFont(F_TBL_HEADER);
-        grillaFacturacion.getTableHeader().setBackground(C_CABECERA_TBL);
-        grillaFacturacion.getTableHeader().setForeground(C_TEXTO_SUAVE);
-        grillaFacturacion.getTableHeader().setPreferredSize(new Dimension(0, 26));
-        grillaFacturacion.getTableHeader().setBorder(
-                BorderFactory.createMatteBorder(0, 0, 2, 0, C_BORDE));
-        grillaFacturacion.getTableHeader().setReorderingAllowed(false);
+    private class PanelGrafico extends JPanel {
+        private Map<String, Integer> datos; private TipoGrafico tipo = TipoGrafico.TORTA; private String titulo = "";
+        private final Color[] COLORES = { new Color(30, 110, 180), new Color(35, 160, 115), new Color(220, 140, 40), new Color(180, 50, 50), new Color(130, 80, 180), new Color(40, 160, 200), new Color(200, 180, 40) };
 
-        DefaultTableCellRenderer center = new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(
-                    JTable t, Object v, boolean sel, boolean foc, int row, int col) {
-                super.getTableCellRendererComponent(t, v, sel, foc, row, col);
-                setHorizontalAlignment(SwingConstants.CENTER);
-                setBorder(new EmptyBorder(0, 4, 0, 4));
-                if (sel) {
-                    setBackground(C_SELECCION);
-                    setForeground(C_NAVY);
-                } else {
-                    setBackground(row % 2 == 0 ? C_BLANCO : C_FILA_PAR);
-                    setForeground(C_TEXTO_FUERTE);
-                }
-                return this;
+        PanelGrafico() { setBackground(C_BLANCO); setOpaque(true); }
+
+        void setDatos(Map<String, Integer> datos, TipoGrafico tipo, String titulo) { this.datos = datos; this.tipo = tipo; this.titulo = titulo; repaint(); }
+        void limpiar() { this.datos = null; repaint(); }
+
+        @Override protected void paintComponent(Graphics g) {
+            super.paintComponent(g); Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON); g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            int W = getWidth(), H = getHeight();
+            if (datos == null || datos.isEmpty()) {
+                g2.setColor(C_TEXTO_SUAVE); g2.setFont(new Font("Segoe UI", Font.PLAIN, 12)); String msg = "Sin datos para el período seleccionado"; FontMetrics fm = g2.getFontMetrics(); g2.drawString(msg, (W - fm.stringWidth(msg)) / 2, H / 2); g2.dispose(); return;
             }
-        };
-
-        DefaultTableCellRenderer right = new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(
-                    JTable t, Object v, boolean sel, boolean foc, int row, int col) {
-                super.getTableCellRendererComponent(t, v, sel, foc, row, col);
-                setHorizontalAlignment(SwingConstants.RIGHT);
-                setBorder(new EmptyBorder(0, 4, 0, 10));
-                if (sel) {
-                    setBackground(C_SELECCION);
-                    setForeground(C_NAVY);
-                } else {
-                    setBackground(row % 2 == 0 ? C_BLANCO : C_FILA_PAR);
-                    setForeground(new Color(0, 110, 60));
-                }
-                return this;
-            }
-        };
-
-        for (int i = 0; i < grillaFacturacion.getColumnCount(); i++) {
-            grillaFacturacion.getColumnModel().getColumn(i)
-                    .setCellRenderer(i == 5 ? right : center);
+            if (tipo == TipoGrafico.TORTA) pintarTorta(g2, W, H); else pintarBarras(g2, W, H);
+            g2.dispose();
         }
 
-        grillaFacturacion.getColumnModel().getColumn(0).setMaxWidth(50);
-        grillaFacturacion.getColumnModel().getColumn(1).setPreferredWidth(95);
-        grillaFacturacion.getColumnModel().getColumn(2).setPreferredWidth(180);
-        grillaFacturacion.getColumnModel().getColumn(3).setPreferredWidth(130);
-        grillaFacturacion.getColumnModel().getColumn(4).setPreferredWidth(160);
-        grillaFacturacion.getColumnModel().getColumn(5).setPreferredWidth(85);
-    }
-
-    private JLabel lbl(String texto) {
-        JLabel l = new JLabel(texto);
-        l.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        l.setForeground(C_TEXTO_SUAVE);
-        return l;
-    }
-
-    // ── Método icon() con BICUBIC ─────────────────────────────────────
-    private ImageIcon icon(String ruta, int w, int h) {
-        try {
-            java.net.URL url = getClass().getResource(ruta);
-            if (url == null) {
-                return null;
+        private void pintarTorta(Graphics2D g2, int W, int H) {
+            Map<String, Integer> top = top5(datos); 
+            int total = top.values().stream().mapToInt(Integer::intValue).sum(); 
+            if (total == 0) return;
+            
+            // CORRECCIÓN 1: 'leyenda' pasa de 160 a 240. 
+            // Esto mueve la torta a la izquierda y da muchísimo más espacio al texto.
+            int margen = 12, leyenda = 240, cx = (W - leyenda) / 2 + margen, cy = H / 2;
+            int radio = Math.min((W - leyenda - margen * 2) / 2, (H - margen * 2) / 2) - 10; 
+            if (radio < 20) return;
+            
+            int startAngle = 0, idx = 0, lyY = margen + 14;
+            for (Map.Entry<String, Integer> e : top.entrySet()) {
+                int angle = (int) Math.round(360.0 * e.getValue() / total); 
+                Color col = COLORES[idx % COLORES.length];
+                
+                g2.setColor(col); g2.fillArc(cx - radio, cy - radio, radio * 2, radio * 2, startAngle, angle);
+                g2.setColor(C_BLANCO); g2.setStroke(new BasicStroke(1.5f)); g2.drawArc(cx - radio, cy - radio, radio * 2, radio * 2, startAngle, angle);
+                
+                g2.setColor(col); g2.fillRoundRect(W - leyenda + 4, lyY - 10, 12, 12, 3, 3); 
+                g2.setColor(C_TEXTO_FUERTE); g2.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+                
+                // CORRECCIÓN 2: Truncamos a 35 letras en lugar de 24 para aprovechar el nuevo espacio
+                g2.drawString(truncar(e.getKey(), 35) + " (" + e.getValue() + ")", W - leyenda + 20, lyY);
+                startAngle += angle; lyY += 20; idx++;
             }
-            BufferedImage original = ImageIO.read(url);
-            if (original == null) {
-                return null;
-            }
-            BufferedImage escalada = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g2d = escalada.createGraphics();
-            g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                    RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-            g2d.setRenderingHint(RenderingHints.KEY_RENDERING,
-                    RenderingHints.VALUE_RENDER_QUALITY);
-            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    RenderingHints.VALUE_ANTIALIAS_ON);
-            g2d.drawImage(original, 0, 0, w, h, null);
-            g2d.dispose();
-            return new ImageIcon(escalada);
-        } catch (Exception e) {
-            return null;
         }
+
+        private void pintarBarras(Graphics2D g2, int W, int H) {
+            Map<String, Integer> top = top6(datos); 
+            int total = top.size(); 
+            if (total == 0) return;
+            
+            // CORRECCIÓN 3: 'margenIzq' pasa de 140 a 180. 
+            // Empuja las barras a la derecha para que los textos largos no choquen con la pared izquierda.
+            int margenIzq = 180; 
+            int margenDer = 30, margenTop = 20, margenBot = 20; 
+            int areaW = W - margenIzq - margenDer, areaH = H - margenTop - margenBot;
+            int maxVal = top.values().stream().mapToInt(Integer::intValue).max().orElse(1); 
+            if (maxVal == 0) return;
+            
+            int barH = Math.max(12, areaH / total - 8), gapY = (areaH - barH * total) / (total + 1), idx = 0;
+            
+            for (Map.Entry<String, Integer> e : top.entrySet()) {
+                int barW = (int) ((double) e.getValue() / maxVal * areaW);
+                int x = margenIzq;
+                int y = margenTop + gapY + idx * (barH + gapY);
+                
+                g2.setColor(C_TEXTO_FUERTE); g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
+                
+                // CORRECCIÓN 4: Truncamos a 28 letras en lugar de 22 para aprovechar el nuevo margen
+                String label = truncar(e.getKey(), 28); FontMetrics fm = g2.getFontMetrics();
+                g2.drawString(label, x - fm.stringWidth(label) - 8, y + barH / 2 + 4);
+                
+                g2.setColor(COLORES[idx % COLORES.length]); g2.fillRoundRect(x, y, barW, barH, 4, 4);
+                
+                g2.setColor(C_TEXTO_SUAVE); g2.setFont(new Font("Segoe UI", Font.BOLD, 11));
+                g2.drawString(String.valueOf(e.getValue()), x + barW + 5, y + barH / 2 + 4);
+                
+                idx++;
+            }
+            
+            g2.setColor(C_BORDE); g2.setStroke(new BasicStroke(1f)); g2.drawLine(margenIzq, margenTop, margenIzq, H - margenBot);
+        }
+
+        private Map<String, Integer> top5(Map<String, Integer> m) { return m.entrySet().stream().filter(e -> e.getValue() > 0).sorted(Map.Entry.<String,Integer>comparingByValue().reversed()).limit(5).collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a,b)->a, java.util.LinkedHashMap::new)); }
+        private Map<String, Integer> top6(Map<String, Integer> m) { return m.entrySet().stream().filter(e -> e.getValue() > 0).sorted(Map.Entry.<String,Integer>comparingByValue().reversed()).limit(6).collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a,b)->a, java.util.LinkedHashMap::new)); }
+        private String truncar(String s, int max) { return s.length() <= max ? s : s.substring(0, max - 1) + "…"; }
     }
 }

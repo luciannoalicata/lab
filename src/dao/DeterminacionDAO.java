@@ -330,4 +330,26 @@ public class DeterminacionDAO {
         return null;
     }
 
+    // En DeterminacionDAO.java — agregar este método
+    public List<String> obtenerSugerenciasPadresPorNombreOCodigo(String busqueda) {
+        List<String> lista = new ArrayList<>();
+        // Solo prácticas que NO tienen punto en el código = son padres
+        String sql = "SELECT codigo, nombre FROM determinacion "
+                + "WHERE activo = 1 AND codigo NOT LIKE '%.%' "
+                + "AND (nombre LIKE ? OR codigo LIKE ?) "
+                + "ORDER BY nombre ASC LIMIT 10";
+        try (PreparedStatement ps = con.getConnection().prepareStatement(sql)) {
+            String like = "%" + busqueda + "%";
+            ps.setString(1, like);
+            ps.setString(2, like);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                lista.add(rs.getString("codigo") + " — " + rs.getString("nombre"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return lista;
+    }
+
 }

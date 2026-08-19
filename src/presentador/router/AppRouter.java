@@ -157,32 +157,30 @@ public class AppRouter {
         vp.limpiarFocos();
     }
 
-public void irAEstadisticas() {
-    // Si ya existe un presenter, limpiarlo ANTES de recrear
-    if (this.estadisticasPresenter != null) {
-        // Forzar limpieza de la vista antes de destruir el presenter
-        this.estadisticasPresenter.limpiarVista();
-        this.estadisticasPresenter = null;
+    public void irAEstadisticas() {
+        // Instanciar la vista y el presenter UNA SOLA VEZ.
+        // Esto evita que el CardLayout apile paneles infinitamente y rompa los gráficos.
+        if (this.estadisticasPresenter == null) {
+            IVistaEstadistica vistaEstadistica = vistaFactory.getVistaEstadistica();
+            vp.registrarPanel((JPanel) vistaEstadistica, "estadisticas");
+
+            this.estadisticasPresenter = new EstadisticasPresenter(
+                    vistaEstadistica,
+                    daoFactory.getEstadisticaDAO(),
+                    daoFactory.getObraSocialDAO(),
+                    daoFactory.getMedicoDAO(),
+                    daoFactory.getDeterminacionDAO(),
+                    daoFactory.getResultadoDAO(),
+                    this
+            );
+        }
+
+        // Reutilizamos la instancia que ya está limpia en memoria y en el CardLayout
+        this.estadisticasPresenter.iniciar();
+        vp.activarModoInmersion();
+        vp.mostrarSeccion("estadisticas");
+        vp.limpiarFocos();
     }
-    
-    IVistaEstadistica vistaEstadistica = vistaFactory.getVistaEstadistica();
-    vp.registrarPanel((JPanel) vistaEstadistica, "estadisticas");
-    
-    this.estadisticasPresenter = new EstadisticasPresenter(
-            vistaEstadistica,
-            daoFactory.getEstadisticaDAO(),
-            daoFactory.getObraSocialDAO(),
-            daoFactory.getMedicoDAO(),
-            daoFactory.getDeterminacionDAO(),
-            daoFactory.getResultadoDAO(),
-            this
-    );
-    
-    this.estadisticasPresenter.iniciar();
-    vp.activarModoInmersion();
-    vp.mostrarSeccion("estadisticas");
-    vp.limpiarFocos();
-}
 
     public void abrirDetalleAnalisis(int idAnalisis, String origen) {
         if (this.detallePresenter == null) {
@@ -480,4 +478,10 @@ public void irAEstadisticas() {
         this.vistaDeterminacionesActual = null;
         this.determinacionesPresenterActual = null;
     }
+    // En AppRouter.java — agregar este método
+public void volverAPacientesDesdeEstadisticas() {
+    vp.desactivarModoInmersion();
+    vp.mostrarSeccion("pacientes");
+    vp.limpiarFocos();
+}
 }
