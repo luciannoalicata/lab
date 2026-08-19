@@ -236,8 +236,15 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         panel.setBackground(C_BLANCO);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
-        panel.setPreferredSize(new Dimension(280, 0));
-        panel.setMinimumSize(new Dimension(220, 0));
+        // MAGIA RESPONSIVA: Calculamos el ancho basado en la pantalla actual
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        // Hacemos que cada menú ocupe exactamente el 17% del ancho total de la pantalla
+        int anchoCalculado = (int) (screenSize.width * 0.17);
+        // Ponemos límites de seguridad (mínimo 240px, máximo 400px) para que no se deforme en pantallas extremas
+        int anchoFinal = Math.max(240, Math.min(anchoCalculado, 400));
+
+        panel.setPreferredSize(new Dimension(anchoFinal, 0));
+        panel.setMinimumSize(new Dimension(240, 0));
 
         if (esIzquierdo) {
             panel.setBorder(BorderFactory.createCompoundBorder(
@@ -254,21 +261,21 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         panel.add(Box.createVerticalStrut(20));
 
         if (esIzquierdo) {
-            panel.add(crearBotonMenu(btnPacientes, "PACIENTES", "Gestión de pacientes", "paciente_icon.png"));
+            panel.add(crearBotonMenu(btnPacientes, "PACIENTES", "Gestión y Análisis", "paciente_icon.png"));
             panel.add(Box.createVerticalStrut(10));
             panel.add(crearBotonMenu(btnAnalisis, "LISTA ANÁLISIS", "Resultados cargados", "analisis_icon.png"));
             panel.add(Box.createVerticalStrut(10));
-            panel.add(crearBotonMenu(btnMedicos, "PROFESIONALES", "Médicos solicitantes", "medico_icon.png"));
+            panel.add(crearBotonMenu(btnMedicos, "PROFESIONALES", "Médicos inscriptos", "medico_icon.png"));
             panel.add(Box.createVerticalStrut(10));
-            panel.add(crearBotonMenu(btnObrasSociales, "OBRAS SOCIALES", "Coberturas y aranceles", "obs_icon.png"));
+            panel.add(crearBotonMenu(btnObrasSociales, "OBRAS SOCIALES", "Coberturas", "obs_icon.png"));
         } else {
-            panel.add(crearBotonMenu(btnEstadisticas, "ESTADÍSTICAS", "Dashboard y reportes", "estadisticas_icon.png"));
+            panel.add(crearBotonMenu(btnEstadisticas, "ESTADÍSTICAS", "Reportes", "estadisticas_icon.png"));
             panel.add(Box.createVerticalStrut(10));
             panel.add(crearBotonMenu(btnNBU, "NBU", "Prácticas", "nbu_icon.png"));
             panel.add(Box.createVerticalStrut(10));
             panel.add(crearBotonMenu(btnAuditoria, "AUDITORÍA", "Seguridad y eventos", "auditoria_icon.png"));
             panel.add(Box.createVerticalStrut(10));
-            panel.add(crearBotonMenu(btnGestionUsuarios, "USUARIOS", "Permisos y accesos", "usuarios_icon.png"));
+            panel.add(crearBotonMenu(btnGestionUsuarios, "USUARIOS", "Perfiles y accesos", "usuarios_icon.png"));
             panel.add(Box.createVerticalStrut(10));
             panel.add(crearBotonMenu(btnAjustes, "CONFIGURACIÓN", "Ajustes del sistema", "ajustes_icon.png"));
         }
@@ -288,8 +295,8 @@ public class VistaPrincipal extends javax.swing.JFrame implements IVistaPrincipa
         btn.setOpaque(true);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        btn.setPreferredSize(new Dimension(260, 80));
-        btn.setMinimumSize(new Dimension(190, 75));
+        btn.setPreferredSize(new Dimension(200, 85)); 
+        btn.setMinimumSize(new Dimension(190, 85));
         btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 85));
 
         btn.setBorder(BorderFactory.createCompoundBorder(
