@@ -51,7 +51,10 @@ public class ExportadorExcelService {
             for (Object[] fila : datos) {
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < fila.length; i++) {
-                    String valor = (fila[i] != null) ? fila[i].toString() : "";
+                    // ¡AQUÍ ESTÁ LA MAGIA!: Se le agrega .toUpperCase() a la extracción del valor.
+                    // (A los números y fechas no les afecta, pero a los textos los deja impecables)
+                    String valor = (fila[i] != null) ? fila[i].toString().toUpperCase() : "";
+                    
                     // Escapar textos que tengan punto y coma (para que no rompan las columnas)
                     if (valor.contains(";") || valor.contains("\"") || valor.contains("\n")) {
                         valor = "\"" + valor.replace("\"", "\"\"") + "\"";

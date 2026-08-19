@@ -55,10 +55,12 @@ public class EstadisticasPresenter {
         Date hasta = vista.getFechaHasta();
 
         if (desde == null || hasta == null) {
-            vista.mostrarMensaje("Seleccione un período válido."); return;
+            vista.mostrarMensaje("Seleccione un período válido.");
+            return;
         }
         if (desde.after(hasta)) {
-            vista.mostrarMensaje("La fecha DESDE no puede ser posterior a HASTA."); return;
+            vista.mostrarMensaje("La fecha DESDE no puede ser posterior a HASTA.");
+            return;
         }
 
         String filtroOS = extraerValor(vista.getObraSocialFiltro(), "(", ")");
@@ -73,7 +75,7 @@ public class EstadisticasPresenter {
             Map<String, Integer> datosPracticas;
 
             @Override
-            protected Void doInBackground() {
+            protected Void doInBackground() throws Exception {
                 filas = estadisticaDAO.buscarAnalisisFiltrado(desde, hasta, filtroOS, filtroMed, filtroDet);
                 datosOS = estadisticaDAO.contarPorObraSocial(desde, hasta, filtroOS);
                 datosPracticas = estadisticaDAO.contarPorPractica(desde, hasta, filtroDet);
@@ -84,25 +86,44 @@ public class EstadisticasPresenter {
             protected void done() {
                 if (isCancelled()) return;
                 try {
-                    // Preparamos los datos para la GRILLA (7 columnas: se unen Apellido y Nombre)
                     Object[][] datosUI = new Object[filas.size()][7];
                     double facturado = 0;
                     
                     for (int i = 0; i < filas.size(); i++) {
                         Object[] f = filas.get(i);
-                        // f = [0]id, [1]fecha, [2]dni, [3]apellido, [4]nombre, [5]medico, [6]os, [7]practicas, [8]precio
-                        String pacienteCompleto = f[3].toString() + " " + f[4].toString();
                         
-                        datosUI[i] = new Object[]{f[0], f[1], f[2], pacienteCompleto.trim(), f[5], f[6], f[7]};
+                        // Extraemos y unimos con coma: APELLIDO, NOMBRE
+                        String apellido = f[3] != null ? f[3].toString().trim() : "";
+                        String nombre = f[4] != null ? f[4].toString().trim() : "";
+                        
+                        String paciente = apellido;
+                        if (!apellido.isEmpty() && !nombre.isEmpty()) {
+                            paciente += ", " + nombre;
+                        } else {
+                            paciente += nombre; // Por si algún paciente solo tiene un nombre guardado
+                        }
+                        paciente = paciente.toUpperCase();
+                        
+                        String medico = f[5] != null ? f[5].toString().toUpperCase() : "NINGUNO";
+                        String obraSocial = f[6] != null ? f[6].toString().toUpperCase() : "PARTICULAR";
+                        String practicas = f[7] != null ? f[7].toString().toUpperCase() : "SIN PRÁCTICAS";
+                        
+                        datosUI[i] = new Object[]{f[0], f[1], f[2], paciente, medico, obraSocial, practicas};
+                        
                         if (f[8] != null) facturado += Double.parseDouble(f[8].toString());
                     }
                     
                     vista.mostrarResultados(datosUI);
-                    vista.setResumen(String.valueOf(filas.size()), String.format("$ %,.2f", facturado).replace(",", "."));
+                    vista.setResumen(
+                        String.valueOf(filas.size()), 
+                        String.format("$ %,.2f", facturado).replace(",", ".")
+                    );
                     vista.actualizarGraficoOS(datosOS);
                     vista.actualizarGraficoPracticas(datosPracticas);
                     
-                } catch (Exception e) { e.printStackTrace(); }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         };
         currentWorker.execute();
