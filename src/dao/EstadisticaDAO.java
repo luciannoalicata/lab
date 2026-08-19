@@ -17,8 +17,9 @@ public class EstadisticaDAO {
         List<Object[]> lista = new ArrayList<>();
         StringBuilder sql = new StringBuilder("""
             SELECT a.id_analisis, a.fecha, p.dni, 
-                   CONCAT(p.apellido, ' ', p.nombre) AS paciente,
-                   COALESCE(CONCAT(m.nombre, ' ', m.apellido), 'Ninguno') AS medico, -- ¡CORREGIDO AQUÍ!
+                   COALESCE(p.apellido, '') AS apellido_pac, 
+                   COALESCE(p.nombre, '') AS nombre_pac,
+                   COALESCE(CONCAT(m.apellido, ', ', m.nombre, ' - MP: ', m.matricula), 'Ninguno') AS medico,
                    COALESCE(os.nombre, 'PARTICULAR') AS obra_social,
                    (SELECT GROUP_CONCAT(DISTINCT d.nombre SEPARATOR ', ')
                     FROM resultado_analisis r
@@ -44,11 +45,14 @@ public class EstadisticaDAO {
                     lista.add(new Object[]{
                         rs.getInt("id_analisis"),
                         new java.text.SimpleDateFormat("dd/MM/yyyy").format(rs.getTimestamp("fecha")),
-                        rs.getString("dni"), rs.getString("paciente"), rs.getString("medico"),
+                        rs.getString("dni"), 
+                        rs.getString("apellido_pac"), 
+                        rs.getString("nombre_pac"),
+                        rs.getString("medico"), 
                         rs.getString("obra_social"),
                         rs.getString("practicas") != null ? rs.getString("practicas") : "Sin prácticas",
                         rs.getDouble("precio")
-                    });
+                    }); // AHORA DEVUELVE 9 COLUMNAS EN LUGAR DE 8
                 }
             }
         } catch (Exception e) { e.printStackTrace(); }
